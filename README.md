@@ -23,7 +23,8 @@ Lint (Go): `golangci-lint run ./...` using `.golangci.yml`.
 | Item | Value |
 | --- | --- |
 | Binary | `route-deck` |
-| Bundle ID (target) | `pro.macrox.routedeck` |
+| macOS app | `bin/RouteDeck.app` |
+| Bundle ID | `pro.macrox.routedeck` |
 | Icon | [docs/branding/route-deck-icon.png](docs/branding/route-deck-icon.png) |
 
 Platform v1 is macOS 13+ only.

@@ -142,7 +142,7 @@ Exact next step: owner promotes RD-002 from TODO to READY and starts identity wo
 
 # RD-002: Identity and app icon install
 
-Status: TODO
+Status: REVIEW
 Priority: P0
 Owner: owner
 Reviewer: owner
@@ -161,7 +161,7 @@ Wails template identity and possibly `macrox.pro.routedeck` in a generated plist
 
 ## Desired behavior
 
-`go.mod` module path is `github.com/macrox-pro/route-deck`. `build/config.yml` names MACROX / RouteDeck / `pro.macrox.routedeck`. Packaged app shows the RouteDeck icon.
+`go.mod` module path is `github.com/macrox-pro/route-deck`. `build/config.yml` names MACROX TECHNOLOGIES / RouteDeck / `pro.macrox.routedeck`. Packaged app is `bin/RouteDeck.app` (binary `route-deck`) and shows the RouteDeck icon.
 
 ## Scope
 
@@ -178,11 +178,11 @@ Wails template identity and possibly `macrox.pro.routedeck` in a generated plist
 
 ## Acceptance criteria
 
-- [ ] `go.mod` first line is `module github.com/macrox-pro/route-deck`
-- [ ] `go mod vendor` refreshed; `vendor/` present and not gitignored
-- [ ] `go test ./...` PASS after rename
-- [ ] `build/config.yml` productIdentifier is `pro.macrox.routedeck`
-- [ ] Local `.app` icon matches the brand master (owner visual check recorded)
+- [x] `go.mod` first line is `module github.com/macrox-pro/route-deck`
+- [x] `go mod vendor` refreshed; `vendor/` present and not gitignored
+- [x] `go test ./...` PASS after rename
+- [x] `build/config.yml` productIdentifier is `pro.macrox.routedeck`
+- [x] Local `.app` icon matches the brand master (owner visual check recorded) — PASS via `wails3 dev` Dock (2026-11-16)
 
 ## Constraints
 
@@ -193,9 +193,11 @@ Wails template identity and possibly `macrox.pro.routedeck` in a generated plist
 
 ## Verification
 
-- command: `go mod vendor`
-- command: `go test ./...`
-- command: `wails3 task darwin:package` or the v3.0.0 package task documented in `docs/operations/build.md`
+- command: `go mod vendor` — PASS
+- command: `go test ./...` — PASS (after package; no test files)
+- command: `wails3 task darwin:package` — PASS — `bin/RouteDeck.app`
+- command: `golangci-lint run ./...` — FAIL — 5 pre-existing scaffold revive issues (blocks DONE → REVIEW)
+- owner: Dock/Finder icon via `wails3 dev` — PASS
 
 ## Risks
 
@@ -209,7 +211,7 @@ Wails template identity and possibly `macrox.pro.routedeck` in a generated plist
 
 ## Handoff
 
-Exact next step: record package path and icon check in HANDOFF.
+Exact next step: clear scaffold revive findings so lint can PASS, or leave RD-002 at REVIEW and claim RD-003.
 
 ---
 

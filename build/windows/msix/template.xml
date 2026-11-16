@@ -10,24 +10,24 @@
     <Installer
         Path="route-deck"
         Arguments=""
-        InstallLocation="C:\Program Files\MACROX TECHNOLOGIES\My Product">
+        InstallLocation="C:\Program Files\MACROX TECHNOLOGIES\RouteDeck">
     </Installer>
     <PackageInformation
-        PackageName="My Product"
-        PackageDisplayName="My Product"
+        PackageName="RouteDeck"
+        PackageDisplayName="RouteDeck"
         PublisherName="CN=MACROX TECHNOLOGIES"
         PublisherDisplayName="MACROX TECHNOLOGIES"
         Version="0.1.0.0"
-        PackageDescription="A route-deck application">
+        PackageDescription="Per-app proxy policy for macOS">
         <Capabilities>
             <Capability Name="runFullTrust" />
             
         </Capabilities>
         <Applications>
             <Application
-                Id="macrox.pro.routedeck"
-                Description="A route-deck application"
-                DisplayName="My Product"
+                Id="pro.macrox.routedeck"
+                Description="Per-app proxy policy for macOS"
+                DisplayName="RouteDeck"
                 ExecutableName="route-deck"
                 EntryPoint="Windows.FullTrustApplication">
                 
@@ -41,9 +41,9 @@
         </Dependencies>
         <Properties>
             <Framework>false</Framework>
-            <DisplayName>My Product</DisplayName>
+            <DisplayName>RouteDeck</DisplayName>
             <PublisherDisplayName>MACROX TECHNOLOGIES</PublisherDisplayName>
-            <Description>A route-deck application</Description>
+            <Description>Per-app proxy policy for macOS</Description>
             <Logo>Assets\AppIcon.png</Logo>
         </Properties>
     </PackageInformation>

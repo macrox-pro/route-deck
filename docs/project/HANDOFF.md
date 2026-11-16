@@ -1,113 +1,94 @@
 # Handoff
 
-Timestamp: 2026-11-16 20:16 UTC
-Agent: agent (vendor ADR-0006)
+Timestamp: 2026-11-16 20:34 UTC
+Agent: agent (RD-002 owner icon PASS)
 Task ID: RD-002
 Branch / commit: uncommitted working tree (agent MUST NOT commit)
 
 ## Done
 
-- Owner added `vendor/` via `go mod vendor`; recorded as ADR-0006 and stack/dev/Go rules
-- `.golangci.yml` set `modules-download-mode: vendor`
-- Owner rule: Plan Mode plans MUST include follow `AGENTS.md`, segmented todos, and an explicit DoD
-- RD-001 acceptance recorded: `go version`, `wails3 doctor`, `go test ./...`, `wails3 task build`
-- Pre-build `go test ./...` FAIL on missing `frontend/dist` (expected)
-- `wails3 task build` PASS; created `frontend/dist`, `frontend/bindings/`, `bin/route-deck`
-- Post-build `go test ./...` PASS (no tests); `golangci-lint run ./...` FAIL (5 revive)
-- BACKLOG RD-001 → DONE; STATUS points at RD-002 (still TODO)
+- Module renamed to `github.com/macrox-pro/route-deck`; `go mod vendor` refreshed
+- `build/config.yml` identity: MACROX TECHNOLOGIES / RouteDeck / `pro.macrox.routedeck` / 0.1.0
+- Brand master copied to `build/appicon.png`; PNG-only `generate:icons`; template `Assets.car` removed
+- Darwin plists: identifier `pro.macrox.routedeck`, min OS `13.0.0`, no `CFBundleIconName`
+- Frontend bindings under `frontend/bindings/github.com/macrox-pro/route-deck`; `App.tsx` import updated
+- `APP_BUNDLE_NAME` = `RouteDeck` → package `bin/RouteDeck.app` with binary `Contents/MacOS/route-deck`
+- Windows MSIX templates aligned so leftover rejected-id grep is clean (v1 still macOS-only)
+- Docs: STATUS, BACKLOG, HANDOFF, build.md, development.md, branding README, README identity
 
 ## Files changed
 
-Vendor policy (this pass):
-
-- `docs/decisions/ADR-0006-go-vendor.md` (new)
-- `AGENTS.md`, `docs/engineering/golang.md`, `docs/operations/development.md`
-- `.cursor/rules/golang.mdc`, `.golangci.yml`
-- `docs/decisions/ADR-0005-golang-toolchain.md` (follow-up link)
-- `docs/project/BACKLOG.md` (RD-002 / RD-003 vendor notes)
-- `docs/project/STATUS.md`, `docs/project/HANDOFF.md`
-- Owner-created: `?? vendor/` (commit with the tree; not gitignored)
-
-Build side effects left unstaged from RD-001:
-
-- `M build/darwin/Assets.car`
-- `M build/darwin/icons.icns`
-- `M build/windows/icon.ico`
-- `?? frontend/bindings/`
-- gitignored: `frontend/dist/`, `frontend/node_modules/`, `bin/route-deck`
+- `go.mod`, `vendor/` (refresh)
+- `build/config.yml`, `build/Taskfile.yml` (PNG-only icons)
+- `Taskfile.yml`, `build/darwin/Taskfile.yml` (`APP_BUNDLE_NAME`)
+- `build/appicon.png`, `build/darwin/icons.icns`, `build/windows/icon.ico`
+- `build/darwin/Info.plist`, `build/darwin/Info.dev.plist` (+ asset-task side effects on ios/windows/linux)
+- `build/windows/msix/template.xml`, `build/windows/msix/app_manifest.xml`
+- `frontend/src/App.tsx`, `frontend/bindings/`
+- `docs/project/STATUS.md`, `BACKLOG.md`, `HANDOFF.md`
+- `docs/operations/build.md`, `docs/operations/development.md`
+- `docs/branding/README.md`, `README.md`
+- ADR-0004 body unchanged (consequence “until RD-002” is now historical)
 
 ## Decisions
 
-- ADR-0006: commit `vendor/`; refresh with `go mod vendor` after dependency changes
-- RD-001 records evidence; FAIL on first test and post-build lint does not block DONE
-- No drive-by fix of revive findings or module rename
+- Company: `MACROX TECHNOLOGIES` (macrox.pro brand; English form)
+- Version: `0.1.0`
+- macOS bundle folder: `RouteDeck.app`; binary stays `route-deck` (ADR-0004)
+- No Icon Composer `.icon` / `Assets.car` for v1
 
 ## Verification
 
-- Command: `go version`
-- Result: PASS — `go version go1.27.4 darwin/arm64`
-- Command: `node -v` / `npm -v`
-- Result: PASS — `v22.23.5` / `10.9.9`
-- Command: `golangci-lint version`
-- Result: PASS — `2.15.0` (built with go1.27.2)
-- Command: `wails3 doctor`
-- Result: PASS — exit 0; "Your system is ready for Wails development!"; doctor lists Go go1.27.3
-- Command: `go test ./...` (before build)
-- Result: FAIL — `main.go:17:12: pattern all:frontend/dist: no matching files found`
-- Command: `wails3 task build`
-- Result: PASS — exit 0; command used was `wails3 task build` (darwin native); ld warnings only (object built for newer macOS than link min 12.0)
-- Command: `go test ./...` (after build, `frontend/dist` present)
-- Result: PASS — `? changeme` (no test files); exit 0
-- Command: `golangci-lint run ./...` (after build)
-- Result: FAIL — revive: `greetservice.go` package comment; `build/ios/app_options_default.go` package comment + unused `opts`; `build/ios/scripts/deps/install_deps.go` package comment + superfluous-else
-- Command: `git status --short`
-- Result: recorded; generated/icon artifacts left unstaged; agent did not commit
-- Environment: macOS 27.2.1 arm64; module `changeme`; Wails CLI v3.0.0; `vendor/` present
-- Note: `docs/operations/development.md` golangci-lint pin line corrected to v2.15.0 while documenting vendor
+- Command: `go mod vendor` — PASS
+- Command: `wails3 task common:generate:icons` — PASS (PNG only)
+- Command: `wails3 task common:update:build-assets` — PASS
+- Command: `wails3 task common:generate:bindings` — PASS
+- Command: `wails3 task darwin:package` — PASS — `bin/RouteDeck.app`
+- Command: `go test ./...` — PASS
+- Command: `golangci-lint run ./...` — FAIL — 5 revive (scaffold); blocks DONE
+- Command: PlistBuddy / resources / shasum / leftover grep — PASS (see STATUS)
+- Owner Dock/Finder icon check — PASS — owner via `wails3 dev` (2026-11-16)
 
 ## Not done
 
-- RD-002 identity (`changeme` → `github.com/macrox-pro/route-deck`, bundle ID, Dock icon)
-- RD-003 ADR owner accept
-- RD-005 ProxyBridge path freeze
-- Clearing scaffold golangci-lint revive FAILs (Phase 1 exit)
-- Any product feature code
+- Clearing scaffold golangci-lint revive FAILs (blocks RD-002 DONE / Phase 1 exit)
+- RD-003, RD-005
+- Agent did not commit
 
 ## Risks / blockers
 
-- Phase 1 roadmap exit needs green lint; scaffold revive issues remain
-- Module still `changeme`; bindings generated under `frontend/bindings/changeme`
-- Prior docs-prep / RD-000 / commit-message-rule edits may still be uncommitted
+- Lint FAIL keeps RD-002 at REVIEW
+- Next `common:update:build-assets` resets `LSMinimumSystemVersion` to 12.0.0
 
 ## Exact next step
 
-Owner sets RD-002 to READY in `docs/project/BACKLOG.md`, then starts identity work per that task (`go.mod`, `build/config.yml`, app icon).
+Clear scaffold revive findings (`golangci-lint run ./...`) or claim RD-003 while leaving RD-002 at REVIEW.
 
 ## Suggested commit message
 
 Owner commits. Agent did not run git commit. Exactly one lowercase sentence; no fluff.
 
 ```text
-record rd-001 go, wails, test, and build results for the scaffold
+set rd-002 module path, bundle id, and routedeck.app icon identity
 ```
 
 ## Context to read
 
 - `AGENTS.md`
 - `docs/project/BACKLOG.md` (RD-002)
-- `docs/project/STATUS.md`
-- `docs/decisions/ADR-0005-golang-toolchain.md`
+- `docs/decisions/ADR-0004-naming-identity.md`
+- `docs/operations/build.md`
 
-## Loop evidence (RD-001)
+## Loop evidence (RD-002)
 
 | Step | Evidence |
 | --- | --- |
-| Recover | STATUS + HANDOFF + BACKLOG RD-001 read; plan attached |
-| Select | RD-001 was READY |
-| Understand | ADR-0005 + development.md; record-only scope |
-| Plan | Accepted RD-001 plan executed; plan file not edited |
-| Implement | Docs only; no product fix |
-| Verify | Commands above with PASS/FAIL |
-| Review | No Direct fallback; no secrets; no commit; generated files unstaged |
-| Document | STATUS, BACKLOG, HANDOFF share RD-002 as next / current pointer |
+| Recover | STATUS + HANDOFF + BACKLOG RD-002 + plan |
+| Select | RD-002 claimed READY → IN_PROGRESS |
+| Understand | ADR-0004, ADR-0006, branding, Wails v3.0.0 asset/icon facts |
+| Plan | Accepted RD-002 plan; owner chose RouteDeck.app bundle name |
+| Implement | Module, config, icons, plists, bindings, APP_BUNDLE_NAME, package |
+| Verify | Commands above with PASS/FAIL/NOT RUN |
+| Review | No Direct fallback; no secrets; no invented Wails flags; no commit |
+| Document | STATUS, BACKLOG, HANDOFF share RD-002 REVIEW |
 | Owner commit prep | Message above; `git commit` not run |

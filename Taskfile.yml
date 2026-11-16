@@ -1,7 +1,9 @@
 version: '3'
 
 vars:
+  # Binary name (ADR-0004). The macOS .app folder uses APP_BUNDLE_NAME.
   APP_NAME: "route-deck"
+  APP_BUNDLE_NAME: "RouteDeck"
   BIN_DIR: "bin"
   PACKAGE_MANAGER: '{{.PACKAGE_MANAGER | default "npm"}}'
   VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'

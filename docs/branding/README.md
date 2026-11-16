@@ -28,11 +28,9 @@ Dark-friendly UI is acceptable. Do not recolor the master into a generic purple 
 - Treat Wails template icons under `build/` as the brand master
 - Commit a second “official” PNG elsewhere
 
-## Install into the Wails build (owner task RD-002)
+## Install into the Wails build
 
-1. Replace `build/appicon.png` with this master (or a square export of it).
-2. Regenerate platform icons with the Wails v3.0.0 task flow (`icons.icns`, Windows `.ico`, `Assets.car` / `.icon` as that version documents).
+1. Replace `build/appicon.png` with this master (square PNG; this file is already 1024×1024).
+2. Regenerate `.icns` and `.ico` with `wails3 task common:generate:icons` (PNG only). Do not add an Icon Composer `.icon` or ship `Assets.car` for v1 (macOS 13 floor).
 3. Keep this file as the source. Treat `build/` icon outputs as derived.
-4. Confirm Dock and Finder show RouteDeck, not the Wails placeholder.
-
-This docs pass does not regenerate `.icns` or `.ico`.
+4. Confirm Dock and Finder show RouteDeck on `bin/RouteDeck.app`, not the Wails placeholder.

@@ -1,4 +1,4 @@
-module changeme
+module github.com/macrox-pro/route-deck
 
 go 1.26.0
 

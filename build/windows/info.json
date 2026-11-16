@@ -6,10 +6,10 @@
 		"0409": {
 			"ProductVersion": "0.1.0",
 			"CompanyName": "MACROX TECHNOLOGIES",
-			"FileDescription": "A route-deck application",
+			"FileDescription": "Per-app proxy policy for macOS",
 			"LegalCopyright": "© 2026, MACROX TECHNOLOGIES",
-			"ProductName": "My Product",
-			"Comments": "This is a comment"
+			"ProductName": "RouteDeck",
+			"Comments": "Per-app proxy policy for macOS"
 		}
 	}
 }

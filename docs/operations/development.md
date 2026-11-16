@@ -69,7 +69,7 @@ This pin uses the `go install` version suffix, not a repo tool directive. Change
 
 ## Module name
 
-`go.mod` is still `module changeme` until RD-002. Do not rename it inside unrelated tasks.
+`go.mod` is `module github.com/macrox-pro/route-deck`. Do not rename it inside unrelated tasks.
 
 ## Docs for agents
 

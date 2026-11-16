@@ -10,7 +10,7 @@ version: "0.1.0"
 section: "default"
 priority: "extra"
 maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
-description: "A route-deck application"
+description: "Per-app proxy policy for macOS"
 vendor: "MACROX TECHNOLOGIES"
 homepage: "https://wails.io"
 license: "MIT"
