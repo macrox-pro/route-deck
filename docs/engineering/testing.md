@@ -4,11 +4,17 @@
 
 Default shape is table-driven with `t.Run`.
 
-Use it for domain invariants, profile validation, rule compilation, CLI parsers, mappers, and state transitions.
+Unit tests cover **exported behavior**: public functions and methods. Nested logic, private helpers, and field layout are exercised only through those entry points.
+
+A plain struct with no methods and no constructor is not a unit-test target. Field lists and type shapes are reviewed in code; do not write reflect inventories or “closed field” tests for them.
+
+Use unit tests for domain invariants, profile validation, rule compilation, CLI parsers, mappers, and state transitions — always via the public API that owns that behavior.
 
 MUST NOT start the real ProxyBridge CLI in unit tests. Use a fake process and fixtures.
 
 MUST NOT add `github.com/google/go-cmp` unless a READY task says so. Compare fields or use `errors.Is`.
+
+MUST NOT write tests only to raise coverage, assert struct field order/types, or mirror the type definition without behavior.
 
 A bugfix SHOULD add a failing table case first when the defect is in pure logic.
 
@@ -48,4 +54,4 @@ func TestValidateProxyRefs(t *testing.T) {
 
 ## Forbidden
 
-A test named `TestItWorks` with no cases, or a unit test that execs `proxybridge`.
+A test named `TestItWorks` with no cases, a unit test that execs `proxybridge`, a test that only lists struct fields with `reflect`, or any other test written only for coverage or ceremony.

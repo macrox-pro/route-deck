@@ -11,3 +11,9 @@ var ErrUnknownState = errors.New("unknown state")
 
 // ErrUnknownProxyKind is returned when a proxy kind token is not socks5 or http.
 var ErrUnknownProxyKind = errors.New("unknown proxy kind")
+
+// ErrInvalidPort is returned when a proxy port is outside 1–65535.
+var ErrInvalidPort = errors.New("invalid port")
+
+// ErrEmptyHost is returned when a proxy host is empty.
+var ErrEmptyHost = errors.New("empty host")

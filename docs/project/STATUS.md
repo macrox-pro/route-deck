@@ -1,15 +1,15 @@
 # Project Status
 
 Updated: 2026-11-16 21:55 UTC
-Updated by: agent (RD-013 DONE)
+Updated by: agent (RD-009 DONE)
 
 ## Current phase
 
-Phase 2 Domain ports — RD-008 value types DONE; RD-013 quality gates DONE. Next: check DoR on RD-009.
+Phase 2 Domain ports — RD-009 Application, ProcessIdentity, ProxyEndpoint DONE. Next: check DoR on RD-010.
 
 ## Current task
 
-RD-013
+RD-009
 
 ## State
 
@@ -26,19 +26,20 @@ DONE
 - RD-005: ProxyBridge contracts frozen against live docs; installed CLI `ProxyBridge CLI 4.1.3`.
 - Phase 2 backlog accepted: task bodies in `docs/project/tasks/RD-*.md`; BACKLOG is an index only.
 - RD-008: `internal/domain` ids, states, policy value types, opaque `RoutingAction`, three sentinels, table tests. Lint and tests PASS.
-- RD-013: lint now enables the `gofmt` formatter and the `exhaustive` linter; RD-008 parsers convert once; `state.go` is `gofmt`-clean; rules in `docs/engineering/golang.md` and `.cursor/rules/golang.mdc`.
+- RD-013: lint now enables the `gofmt` formatter and the `exhaustive` linter; RD-008 parsers convert once; `state.go` is `gofmt`-clean; rules in `docs/engineering/golang.md` and `.cursor/rules/golang.mdc`. Committed as `6264c28`.
+- RD-009: `Application`, `ProcessIdentity` (`MatchableNames`), `ProxyEndpoint` (`NewProxyEndpoint`), `ErrInvalidPort`, `ErrEmptyHost`. Unit tests only for public methods/constructors. Lint and tests PASS.
 
 ## In progress
 
-- None. RD-013 DONE. Owner promotes RD-009 after DoR check.
+- None. RD-009 DONE. Owner promotes RD-010 after DoR check.
 
 ## Blockers
 
-- None for promoting RD-009 after its DoR check. RD-010 through RD-012 wait on prior DONE. CONCEPTION is not edited until RD-011.
+- None for promoting RD-010 after its DoR check. RD-011 and RD-012 wait on prior DONE. CONCEPTION is not edited until RD-011.
 
 ## Known limitations
 
-- No aggregates, persistence, or ProxyBridge adapter code yet (RD-009+)
+- No Profile, persistence, or ProxyBridge adapter code yet (RD-010+)
 - Wails template still includes `GreetService` and a demo time event
 - ESLint is not part of the frontend scaffold and is not required
 - `vendor/` committed per ADR-0006; refresh after dependency changes
@@ -54,23 +55,28 @@ DONE
 - Opaque `RoutingAction` would serialize as `{}`; future Wails inbound must map it to a DTO
 - Open owner review items, not scheduled: zero `RoutingAction` has no validity check (a caller's `else` branch could treat it as Direct); five copy-paste id parsers in `id.go`; `ProtocolScopeBOTH` naming; `ErrEmptyID` wording for `KeychainRef`; `ProxyHealth` tests lack empty and case-variant tokens
 - Lint shows one issue per line; a `gofmt` issue can hide behind another issue on the same line
+- `ProxyEndpoint` has exported fields; a struct literal can bypass `NewProxyEndpoint` (invalid port, empty host, or `SendDomain: false`)
+- `NewProxyEndpoint` does not validate `Kind` or empty `ID`; whitespace-only host is accepted (owner decision)
+- `MatchableNames` does not deduplicate; equal bundle id and executable name yield two equal entries
+- Unit tests target exported functions/methods only; plain structs with no behavior have no dedicated tests (owner, 2026-11-17; `docs/engineering/testing.md`)
 
 ## Next actions
 
-1. Open `docs/project/tasks/RD-009.md` and check DoR before promoting to READY.
-2. Owner commits RD-013 when ready.
+1. Open `docs/project/tasks/RD-010.md` and check DoR before promoting to READY.
+2. Owner commits RD-009 when ready.
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `gofmt -l internal/` | PASS — empty |
-| `golangci-lint config verify` | PASS — exit 0 |
-| `golangci-lint run ./...` with temporary gofmt and exhaustive probes | PASS — both issues reported, exit 1; probe removed |
+| `golangci-lint run ./...` (baseline) | PASS — 0 issues. Cache write warnings only (sandbox) |
 | `go test ./internal/domain/...` | PASS |
-| `go test ./...` | PASS |
 | `golangci-lint run ./...` | PASS — 0 issues. Cache write warnings only (sandbox) |
-| `wails3 build` | NOT RUN — `main` does not import `internal/domain`; no runtime change |
-| macOS-only checks | NOT RUN — no OS calls changed |
+| `go test ./...` | PASS |
+| `go list` imports for `./internal/domain/...` | PASS — `errors fmt strings` only |
+| `git status --short go.mod go.sum vendor/` | PASS — empty |
+| `gofmt -l internal/domain/` | PASS — empty |
+| `wails3 build` | NOT RUN — `main` does not import `internal/domain` |
+| macOS-only checks | NOT RUN — pure Go structs with no OS calls |
 
 Environment: macOS darwin/arm64; module `github.com/macrox-pro/route-deck`; Go declared `1.26.0`; Wails v3.0.0; golangci-lint 2.15.0; ProxyBridge CLI 4.1.3 at documented paths

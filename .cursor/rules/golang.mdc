@@ -12,7 +12,7 @@ Follow `docs/engineering/golang.md` and `docs/engineering/testing.md`.
 - MUST NOT extract a one-off helper used in a single place.
 - Wrap errors with `%w`. No `panic` for expected failures.
 - I/O takes `context.Context`.
-- Table-driven tests for pure logic.
+- Table-driven tests for exported functions/methods only. Plain structs with no behavior get no unit tests. MUST NOT write tests only for coverage or field inventories.
 - `gofmt`-clean files. Lint reports formatting; fix with `golangci-lint fmt ./...`.
 - Compute a conversion, call, or expression once per function; bind it to a local.
 - Closed enum parser: convert once, `switch` on the local, return the local. List every constant (`exhaustive` linter; `default` is not coverage). MUST NOT silence `exhaustive` or disable a linter to pass.
