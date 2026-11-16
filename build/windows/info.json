@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "0.1.0"
+	},
+	"info": {
+		"0409": {
+			"ProductVersion": "0.1.0",
+			"CompanyName": "MACROX TECHNOLOGIES",
+			"FileDescription": "A route-deck application",
+			"LegalCopyright": "© 2026, MACROX TECHNOLOGIES",
+			"ProductName": "My Product",
+			"Comments": "This is a comment"
+		}
+	}
+}

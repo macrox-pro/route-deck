@@ -1,0 +1,16 @@
+---
+description: Go naming, errors, tests, and lint
+globs: "**/*.go"
+alwaysApply: false
+---
+
+# Go
+
+Follow `docs/engineering/golang.md` and `docs/engineering/testing.md`.
+
+- Names state the role. No `Util`, `Helper`, or `Manager` packages.
+- MUST NOT extract a one-off helper used in a single place.
+- Wrap errors with `%w`. No `panic` for expected failures.
+- I/O takes `context.Context`.
+- Table-driven tests for pure logic.
+- Run `golangci-lint run ./...` before claiming Go DoD.

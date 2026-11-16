@@ -1,0 +1,13 @@
+---
+description: React UI must not own routing policy
+globs: "frontend/**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Frontend
+
+- MUST NOT encode Proxy / Direct / Block rules in TypeScript.
+- After a user action, load a snapshot. Events are not the source of truth.
+- UI language is English.
+- MUST NOT add ESLint as a required gate. Typecheck with the existing `tsc` scripts.
+- Unknown or failed protection MUST NOT look like Active.

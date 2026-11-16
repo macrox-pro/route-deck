@@ -1,0 +1,33 @@
+# Events contract
+
+Wails events notify the UI. They are not the source of truth. On window open, the frontend calls the snapshot API.
+
+Each product event payload MUST include:
+
+| Field | Meaning |
+| --- | --- |
+| `schema` | Integer schema version, start at 1 |
+| `timestamp` | RFC3339 UTC |
+| `payload` | Event-specific object |
+
+## Names
+
+| Event | When |
+| --- | --- |
+| `protection.state.changed` | ProtectionState or coverage changed |
+| `proxy.health.changed` | One proxy health changed |
+| `proxybridge.state.changed` | BridgeState changed |
+| `application.discovered` | Discovery found an app |
+| `operation.progress` | Long operation tick (`operation_id`) |
+| `operation.failed` | Long operation failed (`operation_id`, typed error) |
+
+`connection.observed` is not a v1 event. Activity shows RouteDeck events and health, not a parsed CLI connection stream.
+
+The scaffold event `time` is template-only. Remove it when the first product service task lands. Do not document it as a product event.
+
+## Rules
+
+- Re-subscribe after reload.
+- Ignore unknown `schema` versions (log and keep the last snapshot).
+- MUST NOT treat an event as proof of `Active` without a snapshot that says so.
+- Register payload types with Wails only using APIs that exist in v3.0.0. The scaffold uses `application.RegisterEvent[string]("time")`. Copy that pattern only after checking it still exists in the installed module.

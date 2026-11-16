@@ -1,0 +1,182 @@
+# AGENTS.md — MACROX RouteDeck
+
+Portable operating contract for any coding agent. Cursor-specific scoping lives in `.cursor/rules/`. Deep standards live in `docs/engineering/`.
+
+Product: **MACROX RouteDeck**. Binary: `route-deck`. Tasks: `RD-*`. Bundle ID (target): `pro.macrox.routedeck`. Module (target): `github.com/macrox-pro/route-deck`. Platform v1: **macOS desktop only**.
+
+## Read order (every session)
+
+Context may be compressed or lost. Prior chat is untrusted. Re-read after long gaps.
+
+1. `AGENTS.md` (this file)
+2. `docs/project/STATUS.md`
+3. `docs/project/HANDOFF.md`
+4. The task in `docs/project/BACKLOG.md` (same `RD-*` as STATUS)
+5. Related ADR under `docs/decisions/` and contracts under `docs/contracts/`
+6. `docs/engineering/golang.md`, `testing.md`, `cursor-workflow.md` when touching Go, tests, or agent workflow
+7. Matching packet in `docs/prompts/`
+8. The code and tests you will change
+
+Then change code. MUST NOT start from chat memory alone.
+
+## Source of truth
+
+When sources conflict, use this order:
+
+1. Real code behavior and command output from this session
+2. Accepted ADRs
+3. Contracts and architecture docs
+4. `CONCEPTION.md`
+5. Chat memory (lowest)
+
+If code disagrees with an Accepted ADR: record the gap and propose a new ADR. MUST NOT silently “fix” either side.
+
+## Loop
+
+```text
+Recover Context
+  -> Select READY Task
+  -> Understand Code + Contracts
+  -> Plan (Plan Mode if multi-file / unclear)
+  -> Implement (minimal scope)
+  -> Verify (tests + golangci-lint + listed commands)
+  -> Review (boundaries, fail-open, naming, no one-off helpers)
+  -> Update Docs / HANDOFF / STATUS
+  -> Prepare owner commit (diff + message)
+  -> Next Loop
+```
+
+Agents MUST NOT `git commit`, `git push`, or `git commit --amend`. Prepare a diff summary and a suggested message only. The owner commits.
+
+Suggested commit messages MUST be exactly one lowercase sentence: cite the `RD-*` when applicable, state the why, and omit fluff, second paragraphs, and bullet lists.
+
+### Loop Verification Matrix
+
+Run at the end of every Loop. A step without evidence fails the Loop.
+
+| Loop step | MUST have evidence | Fail = |
+| --- | --- | --- |
+| Recover | STATUS + HANDOFF + task ID read this session; `@` paths used or listed | Starting from chat memory only |
+| Select | Task status was READY; dependencies clear | Working a TODO/BLOCKED task without an explicit claim |
+| Understand | Touched contracts/ADRs named; current vs desired stated | Coding without citing the owner of the behavior |
+| Plan | Multi-file: Plan Mode plan written or accepted; assumptions listed | Multi-file edits with no plan |
+| Implement | Diff matches Scope only; naming and extract rules held | Scope creep, one-off helper sprawl, invented APIs |
+| Verify | Exact commands + PASS/FAIL/NOT RUN in HANDOFF | “should work”; unrun lint or tests |
+| Review | Explicit check: no Direct fallback; GORM boundaries; secrets; owner-commit rule | Skipping review on protection or network changes |
+| Document | STATUS, BACKLOG, HANDOFF share the same `RD-*`; next step is a command or path | Stale STATUS or the word “continue” as the next step |
+| Owner commit prep | One lowercase sentence suggested; no agent commit | Agent ran `git commit`; multi-sentence, padded, or capitalized message |
+
+## Definition of Ready (DoR)
+
+A task MUST NOT start until all are true:
+
+- [ ] One-line `Goal` present
+- [ ] `Context` / `Current behavior` / `Desired behavior` filled
+- [ ] `Scope` and `Out of scope` explicit
+- [ ] Dependencies closed or listed as non-blocking
+- [ ] Acceptance criteria are checkboxes and machine-checkable
+- [ ] `Constraints` include MUST NOT (files, APIs, behaviors)
+- [ ] `Verification` lists exact commands
+- [ ] Related ADR/contracts linked
+- [ ] No blocking open ADR for this change
+- [ ] Task fits one Loop (else decompose first)
+- [ ] Reviewer or owner named when the change is product-sensitive
+
+If any box fails, status stays `TODO` or `BLOCKED`, not `READY`.
+
+## Definition of Done (DoD)
+
+### Code
+
+- [ ] Matches Goal, Scope, architecture boundaries, and Accepted ADRs
+- [ ] Names reflect the thing they are; no vague `Util` / `Helper` / `Manager` packages
+- [ ] No one-off helper extracted without a second call site or a real testability need
+- [ ] Errors wrapped with `%w`; not swallowed; no silent Direct fallback
+- [ ] Contexts and goroutines have an owner and a stop path
+- [ ] No secrets in code, logs, SQLite, or fixtures
+- [ ] GORM only inside the persistence adapter; no `*gorm.DB` returned outward
+- [ ] Public contracts unchanged unless the task allows it
+
+### Verification (record in HANDOFF)
+
+- [ ] Table-driven unit tests added or updated when logic changed
+- [ ] `go test` for affected packages: command + PASS/FAIL
+- [ ] `golangci-lint run` with repo `.golangci.yml`: command + result
+- [ ] Affected build recorded when relevant (`wails3 build` or `wails3 task`)
+- [ ] macOS-only checks: result on macOS, or `NOT RUN` with a reason
+- [ ] Any unrun required check blocks DONE (status stays `REVIEW` at most)
+
+### Docs and handoff
+
+- [ ] STATUS, BACKLOG, and HANDOFF updated for the same `RD-*`
+- [ ] Contracts or ADR updated if behavior changed
+- [ ] Known limitations listed
+- [ ] Exact next step is a command or file path
+- [ ] Diff and one lowercase-sentence suggested commit message prepared; agent did not commit
+
+## Hard bans
+
+- Silent Direct fallback when a proxy is missing, unresolved, or dead
+- Showing `Unknown` as `Active` / protected
+- Claiming tests, lint, or build passed without command output from this turn
+- Inventing Wails, GORM, or ProxyBridge APIs or CLI flags
+- Expanding scope beyond the READY task
+- Changing an Accepted ADR without a new ADR
+- Secrets in logs, SQLite, or domain aggregates
+- Creating empty packages “for later”
+- Non-English docs or code comments
+- Using any ORM other than GORM
+- Implementing without Goal and acceptance criteria
+- `git commit`, `git push`, amend, or force-push
+- One-off helper sprawl and vague names
+- Promising a kill switch or leak-free failure of ProxyBridge (v1 does not guarantee it)
+- Adding ESLint as a required gate (not in v1; do not add it)
+- Introducing goose or golang-migrate (schema is GORM `AutoMigrate`)
+
+## Stack rules (short)
+
+| Topic | Rule |
+| --- | --- |
+| Go | 1.26+ (Wails v3.0.0). Details: `docs/engineering/golang.md` |
+| Tests | Table-driven by default. Details: `docs/engineering/testing.md` |
+| Lint | `golangci-lint run ./...` using `.golangci.yml`. FAIL blocks DONE |
+| DB | SQLite via GORM only (`gorm.io/gorm`) + `gorm.io/driver/sqlite` (CGO) |
+| Schema | GORM `AutoMigrate` at controlled startup. No separate migration tool in v1 |
+| GORM boundary | Models and `*gorm.DB` stay in the persistence adapter |
+| Secrets | macOS Keychain. SQLite stores references only |
+| UI | React has no routing business rules. After an action, request a snapshot |
+| ProxyBridge | Official CLI only. Profile via stdin `--profile -`. Human text is not a stable API |
+| Platform | macOS 13+ desktop. Scaffold folders for other OSes are not product scope |
+
+Verify library APIs against the **installed** module docs before use. MUST NOT invent them.
+
+## Modes
+
+| Mode | When |
+| --- | --- |
+| Plan Mode | Multi-file work, architecture, ProxyBridge or protection changes, unclear scope, more than one package |
+| Agent | Execute an accepted plan or a READY `RD-*` across files |
+| Inline edit | Single-file fix after the task is understood |
+
+Skip Plan Mode only for a one-line change the owner explicitly requested.
+
+## Ambiguity
+
+If a decision is not in `CONCEPTION.md`, an Accepted ADR, a contract, or the READY task: **stop and ask the owner**. List assumptions before coding when anything is unclear.
+
+## Parallel work
+
+- Prefer one git worktree per `RD-*`. See `docs/operations/parallel.md`.
+- Two agents MUST NOT edit the same file.
+- Cloud agents get the same READY task, contracts, verification commands, and DoD.
+- MUST NOT use “Run Everything” auto-run against machines that hold secrets.
+
+## Report
+
+Use `docs/templates/AGENT-REPORT.md`. Forbidden phrases without evidence: “done”, “should work”, “tests pass”, “protection is active”.
+
+## Correct vs forbidden
+
+Correct: unresolved proxy ID returns a typed error and does not start the ProxyBridge process.
+
+Forbidden: missing proxy ID is rewritten to action Direct so the profile still applies.

@@ -1,0 +1,16 @@
+---
+description: ProxyBridge CLI adapter constraints
+globs: "**/proxybridge/**/*.go"
+alwaysApply: false
+---
+
+# ProxyBridge
+
+Follow `docs/contracts/proxybridge-cli.md` and `docs/contracts/proxybridge-profile.md`.
+
+- Pass the profile on stdin with `--profile -`. MUST NOT pass an arbitrary file path.
+- MUST NOT build a shell command string. Use `exec.Command` with separate args.
+- Parse stdout with fixtures per version. Unknown lines stay unclassified.
+- MUST NOT treat `Extension: active` alone as proof the profile applied.
+- One managed process. Graceful signal, then wait, then timeout.
+- MUST NOT start the real CLI in unit tests.

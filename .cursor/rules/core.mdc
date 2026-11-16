@@ -1,0 +1,19 @@
+---
+description: RouteDeck hard rules for every session
+alwaysApply: true
+---
+
+# Core
+
+Re-read `AGENTS.md`, `docs/project/STATUS.md`, and `docs/project/HANDOFF.md` at session start. Chat memory is not a source of truth.
+
+- MUST ask the owner if a decision is missing from CONCEPTION, an Accepted ADR, a contract, or the READY task.
+- MUST NOT invent Wails, GORM, or ProxyBridge APIs.
+- MUST NOT add a silent Direct fallback.
+- MUST NOT store secrets in SQLite or logs.
+- MUST NOT `git commit`, `git push`, or amend. Suggest a message only: exactly one lowercase sentence, no fluff.
+- Docs and comments: English.
+- Multi-file or architecture work: Plan Mode first.
+- golangci-lint and tests: record PASS/FAIL/NOT RUN. Unrun checks are not DONE.
+
+Details: `AGENTS.md`, `docs/engineering/cursor-workflow.md`.

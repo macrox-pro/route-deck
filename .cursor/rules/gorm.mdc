@@ -1,0 +1,17 @@
+---
+description: GORM stays inside the SQLite adapter
+globs: "**/persistence/**/*.go"
+alwaysApply: false
+---
+
+# GORM
+
+Follow `docs/architecture/persistence.md` and ADR-0003.
+
+- SQLite via `gorm.io/gorm` and `gorm.io/driver/sqlite` only.
+- Schema via `AutoMigrate` on a known model list.
+- MUST NOT return `*gorm.DB`.
+- MUST NOT import GORM from domain or application.
+- MUST NOT store passwords in SQLite.
+- MUST NOT put business rules in GORM hooks.
+- MUST NOT add goose or golang-migrate.
