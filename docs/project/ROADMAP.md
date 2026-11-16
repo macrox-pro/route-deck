@@ -33,7 +33,7 @@ E11 depends on the coordinator (E08), not only on the UI shell. Tray restore of 
 | Phase | Exit |
 | --- | --- |
 | 0 Contracts | ADR-0001..0005 and ProxyBridge contract reviewed (RD-000, RD-003, RD-005) |
-| 1 Toolchain | RD-001, RD-002, golangci-lint green on the scaffold |
+| 1 Toolchain | RD-001, RD-002, `golangci-lint run ./...` green (`build/` excluded) |
 | 2 Domain ports | Entities and ports with table-driven tests; no GORM import |
 | 3 Persistence | GORM adapter, AutoMigrate, Keychain port for secrets |
 | 4 CLI adapter | One managed process, stdin profile, parser fixtures |

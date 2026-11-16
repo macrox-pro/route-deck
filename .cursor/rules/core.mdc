@@ -13,7 +13,7 @@ Re-read `AGENTS.md`, `docs/project/STATUS.md`, and `docs/project/HANDOFF.md` at 
 - MUST NOT store secrets in SQLite or logs.
 - MUST NOT `git commit`, `git push`, or amend. Suggest a message only: exactly one lowercase sentence, no fluff.
 - Docs and comments: English.
-- Multi-file or architecture work: Plan Mode first. Plans MUST include follow `AGENTS.md`, segmented todos (not two coarse buckets), and an explicit DoD.
-- golangci-lint and tests: record PASS/FAIL/NOT RUN. Unrun checks are not DONE.
+- Multi-file or architecture work: Plan Mode first. Plans MUST include follow `AGENTS.md`, segmented todos (not two coarse buckets), an explicit DoD, and `golangci-lint run ./...` as its own verification step.
+- `golangci-lint run ./...` PASS closes a Go loop. A recorded FAIL does not. MUST NOT defer a lint FAIL to a later task or start the next `RD-*` while lint is FAIL, unless the READY task quotes an owner waiver for that command. Unrun checks are not DONE.
 
 Details: `AGENTS.md`, `docs/engineering/cursor-workflow.md`.

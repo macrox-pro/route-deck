@@ -57,11 +57,11 @@ Run at the end of every Loop. A step without evidence fails the Loop.
 | Loop step | MUST have evidence | Fail = |
 | --- | --- | --- |
 | Recover | STATUS + HANDOFF + task ID read this session; `@` paths used or listed | Starting from chat memory only |
-| Select | Task status was READY; dependencies clear | Working a TODO/BLOCKED task without an explicit claim |
+| Select | Task status was READY; dependencies clear | Working a TODO/BLOCKED task without an explicit claim; starting another `RD-*` while `golangci-lint run ./...` is FAIL and the task has no owner waiver |
 | Understand | Touched contracts/ADRs named; current vs desired stated | Coding without citing the owner of the behavior |
 | Plan | Multi-file: Plan Mode plan written or accepted; assumptions listed; follow-AGENTS.md item; segmented todos; DoD present | Multi-file edits with no plan; missing follow-AGENTS.md; two coarse todos; missing DoD |
 | Implement | Diff matches Scope only; naming and extract rules held | Scope creep, one-off helper sprawl, invented APIs |
-| Verify | Exact commands + PASS/FAIL/NOT RUN in HANDOFF | “should work”; unrun lint or tests |
+| Verify | Exact commands + PASS/FAIL/NOT RUN in HANDOFF | “should work”; unrun lint or tests; a plan whose Verification omits `golangci-lint run ./...`; a recorded lint FAIL treated as a finished loop |
 | Review | Explicit check: no Direct fallback; GORM boundaries; secrets; owner-commit rule | Skipping review on protection or network changes |
 | Document | STATUS, BACKLOG, HANDOFF share the same `RD-*`; next step is a command or path | Stale STATUS or the word “continue” as the next step |
 | Owner commit prep | One lowercase sentence suggested; no agent commit | Agent ran `git commit`; multi-sentence, padded, or capitalized message |
@@ -101,10 +101,10 @@ If any box fails, status stays `TODO` or `BLOCKED`, not `READY`.
 
 - [ ] Table-driven unit tests added or updated when logic changed
 - [ ] `go test` for affected packages: command + PASS/FAIL
-- [ ] `golangci-lint run` with repo `.golangci.yml`: command + result
+- [ ] `golangci-lint run ./...` with repo `.golangci.yml` is PASS (command + output). `NOT RUN` only when the READY task contains an owner waiver that names this command. A recorded FAIL blocks DONE
 - [ ] Affected build recorded when relevant (`wails3 build` or `wails3 task`)
 - [ ] macOS-only checks: result on macOS, or `NOT RUN` with a reason
-- [ ] Any unrun required check blocks DONE (status stays `REVIEW` at most)
+- [ ] Any unrun required check, or a required check that FAILed, blocks DONE (status stays `REVIEW` at most)
 
 ### Docs and handoff
 
@@ -133,6 +133,7 @@ If any box fails, status stays `TODO` or `BLOCKED`, not `READY`.
 - Adding ESLint as a required gate (not in v1; do not add it)
 - Introducing goose or golang-migrate (schema is GORM `AutoMigrate`)
 - Gitignoring or deleting committed `vendor/` (ADR-0006)
+- Deferring a `golangci-lint run ./...` FAIL to a later task, or starting the next `RD-*` while that command is FAIL, unless the READY task quotes an owner waiver for that command
 
 ## Stack rules (short)
 
@@ -169,6 +170,7 @@ Every Plan Mode plan MUST include:
 1. **Follow `AGENTS.md`** — an explicit plan item or DoD checkbox that execution follows `AGENTS.md` (source of truth, hard bans, owner-commit, verification evidence). MUST NOT be implied only.
 2. **Segmented todos** — one todo per concrete step (command, file group, or verify). MUST NOT collapse the loop into two coarse items such as “run checks” and “update docs”. Prefer a checklist the owner can track step by step.
 3. **Definition of Done (DoD)** — an explicit section stating what evidence closes the loop (acceptance boxes, commands + PASS/FAIL/NOT RUN, docs updated, no commit unless the owner asked).
+4. **Lint gate** — Verification lists `golangci-lint run ./...` and one todo runs that command. If the command is already FAIL, clearing those findings is in this plan. A recorded FAIL does not close the plan. Omit the command only when the READY task contains an owner waiver that names it.
 
 Packet: `docs/prompts/plan-mode.md`.
 

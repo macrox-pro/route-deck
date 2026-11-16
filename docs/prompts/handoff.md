@@ -24,6 +24,7 @@ Acceptance criteria:
 
 Constraints:
 - MUST NOT write "continue" as the next step
+- MUST NOT mark the task DONE, and MUST NOT name the next `RD-*` as the next step, while `golangci-lint run ./...` is FAIL, unless the READY task quotes an owner waiver for that command
 
 Verification:
 - command: git status (read-only)

@@ -20,6 +20,7 @@ Constraints:
 
 Verification:
 - command: go test <package>
+- command: golangci-lint run ./...
 
 Related ADR / contracts:
 

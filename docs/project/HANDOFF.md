@@ -1,7 +1,7 @@
 # Handoff
 
-Timestamp: 2026-11-16 20:34 UTC
-Agent: agent (RD-002 owner icon PASS)
+Timestamp: 2026-11-16 20:44 UTC
+Agent: agent (RD-002 lint PASS)
 Task ID: RD-002
 Branch / commit: uncommitted working tree (agent MUST NOT commit)
 
@@ -15,6 +15,7 @@ Branch / commit: uncommitted working tree (agent MUST NOT commit)
 - `APP_BUNDLE_NAME` = `RouteDeck` → package `bin/RouteDeck.app` with binary `Contents/MacOS/route-deck`
 - Windows MSIX templates aligned so leftover rejected-id grep is clean (v1 still macOS-only)
 - Docs: STATUS, BACKLOG, HANDOFF, build.md, development.md, branding README, README identity
+- Package comment on `greetservice.go` so revive `package-comments` passes for package `main`
 
 ## Files changed
 
@@ -25,13 +26,18 @@ Branch / commit: uncommitted working tree (agent MUST NOT commit)
 - `build/darwin/Info.plist`, `build/darwin/Info.dev.plist` (+ asset-task side effects on ios/windows/linux)
 - `build/windows/msix/template.xml`, `build/windows/msix/app_manifest.xml`
 - `frontend/src/App.tsx`, `frontend/bindings/`
+- `greetservice.go` (package comment)
 - `docs/project/STATUS.md`, `BACKLOG.md`, `HANDOFF.md`
 - `docs/operations/build.md`, `docs/operations/development.md`
 - `docs/branding/README.md`, `README.md`
+- Lint gate (this turn): `AGENTS.md`, `.cursor/rules/core.mdc`, `.cursor/rules/golang.mdc`, `docs/engineering/golang.md`, `docs/engineering/cursor-workflow.md`, `docs/prompts/plan-mode.md`, `feature.md`, `bugfix.md`, `refactor.md`, `test-gen.md`, `handoff.md`, `docs/templates/TASK.md`, `docs/templates/AGENT-REPORT.md`
+- `.golangci.yml` excludes `^build/`; `docs/operations/development.md`; `docs/project/ROADMAP.md`
 - ADR-0004 body unchanged (consequence “until RD-002” is now historical)
 
 ## Decisions
 
+- Owner ordered `build/` excluded from golangci-lint. Path regex in `.golangci.yml` is `^build/`. That tree is the Wails scaffold, not product Go
+- Owner rejected deferring lint. A recorded `golangci-lint run ./...` FAIL does not close a loop, and the next `RD-*` does not start while that command is FAIL, unless the READY task quotes an owner waiver for the command
 - Company: `MACROX TECHNOLOGIES` (macrox.pro brand; English form)
 - Version: `0.1.0`
 - macOS bundle folder: `RouteDeck.app`; binary stays `route-deck` (ADR-0004)
@@ -44,32 +50,32 @@ Branch / commit: uncommitted working tree (agent MUST NOT commit)
 - Command: `wails3 task common:update:build-assets` — PASS
 - Command: `wails3 task common:generate:bindings` — PASS
 - Command: `wails3 task darwin:package` — PASS — `bin/RouteDeck.app`
-- Command: `go test ./...` — PASS
-- Command: `golangci-lint run ./...` — FAIL — 5 revive (scaffold); blocks DONE
+- Command: `go test ./...` — PASS — no test files
+- Command: `golangci-lint config verify` — PASS
+- Command: `gofmt -w greetservice.go` — PASS
+- Command: `golangci-lint run ./...` — PASS — 0 issues. Cache write warnings only (sandbox)
 - Command: PlistBuddy / resources / shasum / leftover grep — PASS (see STATUS)
 - Owner Dock/Finder icon check — PASS — owner via `wails3 dev` (2026-11-16)
 
 ## Not done
 
-- Clearing scaffold golangci-lint revive FAILs (blocks RD-002 DONE / Phase 1 exit)
-- RD-003, RD-005
+- RD-003, RD-005 (still TODO; not started)
 - Agent did not commit
 
 ## Risks / blockers
 
-- Lint FAIL keeps RD-002 at REVIEW
 - Next `common:update:build-assets` resets `LSMinimumSystemVersion` to 12.0.0
 
 ## Exact next step
 
-Clear scaffold revive findings (`golangci-lint run ./...`) or claim RD-003 while leaving RD-002 at REVIEW.
+Owner reviews `docs/project/BACKLOG.md` RD-003 (ADR-0001..0006). Leave RD-003 TODO until that review.
 
 ## Suggested commit message
 
 Owner commits. Agent did not run git commit. Exactly one lowercase sentence; no fluff.
 
 ```text
-set rd-002 module path, bundle id, and routedeck.app icon identity
+set rd-002 identity and satisfy golangci-lint with a package comment and build scaffold excluded
 ```
 
 ## Context to read
@@ -88,7 +94,7 @@ set rd-002 module path, bundle id, and routedeck.app icon identity
 | Understand | ADR-0004, ADR-0006, branding, Wails v3.0.0 asset/icon facts |
 | Plan | Accepted RD-002 plan; owner chose RouteDeck.app bundle name |
 | Implement | Module, config, icons, plists, bindings, APP_BUNDLE_NAME, package |
-| Verify | Commands above with PASS/FAIL/NOT RUN |
+| Verify | `golangci-lint run ./...` PASS (0 issues); `go test ./...` PASS |
 | Review | No Direct fallback; no secrets; no invented Wails flags; no commit |
-| Document | STATUS, BACKLOG, HANDOFF share RD-002 REVIEW |
+| Document | STATUS, BACKLOG, HANDOFF share RD-002 DONE |
 | Owner commit prep | Message above; `git commit` not run |

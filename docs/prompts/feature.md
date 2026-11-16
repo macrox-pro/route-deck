@@ -17,6 +17,7 @@ Constraints:
 - MUST NOT
 
 Verification:
+- command: golangci-lint run ./...
 - command:
 
 Related ADR / contracts:
@@ -57,10 +58,10 @@ Task ID:
 
 - [ ] Table-driven tests updated when logic changed
 - [ ] `go test` command + PASS/FAIL recorded
-- [ ] `golangci-lint run` command + result recorded
+- [ ] `golangci-lint run ./...` is PASS (command + output). NOT RUN only with an owner waiver in the READY task that names this command. A recorded FAIL blocks DONE
 - [ ] Build recorded when relevant
 - [ ] macOS-only checks recorded or NOT RUN with reason
-- [ ] Unrun required checks block DONE
+- [ ] Unrun required checks, and required checks that FAILed, block DONE
 
 ### Docs
 

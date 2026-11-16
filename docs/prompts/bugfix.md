@@ -17,6 +17,7 @@ Constraints:
 - MUST NOT
 
 Verification:
+- command: golangci-lint run ./...
 - command:
 
 Related ADR / contracts:

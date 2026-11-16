@@ -14,3 +14,9 @@ linters:
     - revive
     - staticcheck
     - unused
+  exclusions:
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      - ^build/

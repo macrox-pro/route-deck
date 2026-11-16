@@ -19,6 +19,7 @@ Constraints:
 - MUST NOT mix formatting-only edits with behavior changes
 
 Verification:
+- command: golangci-lint run ./...
 - command:
 
 Related ADR / contracts:

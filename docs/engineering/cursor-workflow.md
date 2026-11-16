@@ -47,6 +47,7 @@ Every plan MUST:
 - Include an explicit **follow `AGENTS.md`** item (todo and/or DoD checkbox). Implied compliance is not enough.
 - Segment todos into concrete steps (one command, one file group, or one verify). MUST NOT ship only two coarse todos such as “implement” and “document”.
 - Include an explicit **Definition of Done (DoD)** section with checkable evidence (commands, acceptance boxes, docs, commit policy).
+- List `golangci-lint run ./...` under Verification and as its own todo. If that command is already FAIL, the plan fixes it. A recorded FAIL does not close the plan. Skip the command only when the READY task quotes an owner waiver that names it.
 
 See `docs/prompts/plan-mode.md`.
 
@@ -89,4 +90,5 @@ Constraints:
 - MUST NOT rewrite the rule to DIRECT
 Verification:
 - go test ./internal/domain/...
+- golangci-lint run ./...
 ```

@@ -11,7 +11,7 @@ Baseline: [Effective Go](https://go.dev/doc/effective_go) and [Code Review Comme
 - Give every goroutine an owner and a stop path.
 - Check APIs under `vendor/` (then installed module docs) before calling a library.
 - Keep `vendor/` in sync: after `go.mod` / `go.sum` changes, run `go mod vendor` (ADR-0006).
-- Run `golangci-lint run ./...` with the repo `.golangci.yml` before Go DoD.
+- Run `golangci-lint run ./...` with the repo `.golangci.yml` before Go DoD. Put that command in the plan Verification list and in its own todo. A recorded FAIL blocks DONE. Do not start the next task while the command is FAIL, unless the READY task quotes an owner waiver for that command. `build/` is excluded in that config: it is the Wails scaffold, not product Go.
 - Prefer `new(expr)` (Go 1.26) when it makes an optional pointer obvious.
 
 ## MUST NOT

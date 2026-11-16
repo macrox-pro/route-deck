@@ -37,7 +37,7 @@ DONE only if DoD in `AGENTS.md` is fully checked. Otherwise REVIEW or BLOCKED.
 - [ ] Code matches Goal and Accepted ADRs
 - [ ] No silent Direct fallback
 - [ ] No secrets in SQLite or logs
-- [ ] Tests and golangci-lint recorded when Go changed
+- [ ] `golangci-lint run ./...` is PASS when Go changed, or the READY task quotes an owner waiver for that command. A recorded FAIL is not DONE
 - [ ] Exact next step is a command or path
 - [ ] One lowercase-sentence suggested commit message only; no git commit
 

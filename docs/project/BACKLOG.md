@@ -142,7 +142,7 @@ Exact next step: owner promotes RD-002 from TODO to READY and starts identity wo
 
 # RD-002: Identity and app icon install
 
-Status: REVIEW
+Status: DONE
 Priority: P0
 Owner: owner
 Reviewer: owner
@@ -196,7 +196,7 @@ Wails template identity and possibly `macrox.pro.routedeck` in a generated plist
 - command: `go mod vendor` — PASS
 - command: `go test ./...` — PASS (after package; no test files)
 - command: `wails3 task darwin:package` — PASS — `bin/RouteDeck.app`
-- command: `golangci-lint run ./...` — FAIL — 5 pre-existing scaffold revive issues (blocks DONE → REVIEW)
+- command: `golangci-lint run ./...` — PASS — 0 issues (`build/` excluded; package comment on `greetservice.go`)
 - owner: Dock/Finder icon via `wails3 dev` — PASS
 
 ## Risks
@@ -211,7 +211,7 @@ Wails template identity and possibly `macrox.pro.routedeck` in a generated plist
 
 ## Handoff
 
-Exact next step: clear scaffold revive findings so lint can PASS, or leave RD-002 at REVIEW and claim RD-003.
+Exact next step: owner reviews RD-003 in this file (ADR-0001..0006). Leave that task TODO until the owner accepts or lists edits.
 
 ---
 

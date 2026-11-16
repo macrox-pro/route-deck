@@ -13,5 +13,5 @@ Follow `docs/engineering/golang.md` and `docs/engineering/testing.md`.
 - Wrap errors with `%w`. No `panic` for expected failures.
 - I/O takes `context.Context`.
 - Table-driven tests for pure logic.
-- Run `golangci-lint run ./...` before claiming Go DoD.
+- Run `golangci-lint run ./...` before claiming Go DoD. The plan lists that command as its own todo. A recorded FAIL stays in this task; do not hand it to the next `RD-*`.
 - `vendor/` is committed (ADR-0006). Refresh with `go mod vendor` after dependency changes. Verify APIs under `vendor/`.

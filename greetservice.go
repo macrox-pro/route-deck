@@ -1,3 +1,4 @@
+// Command route-deck is the RouteDeck desktop shell.
 package main
 
 type GreetService struct{}

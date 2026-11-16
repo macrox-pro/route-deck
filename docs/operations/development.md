@@ -48,7 +48,7 @@ npm run build
 
 ## golangci-lint
 
-Config: `/.golangci.yml` (`modules-download-mode: vendor`). Version pin: **v2.15.0**.
+Config: `/.golangci.yml` (`modules-download-mode: vendor`). Version pin: **v2.15.0**. `linters.exclusions.paths` includes `^build/`: the Wails scaffold under `build/` is not product Go and is not linted. `vendor/` stays excluded by the tool default.
 
 Install (official binary method):
 
