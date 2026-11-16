@@ -1,44 +1,36 @@
 # Handoff
 
-Timestamp: 2026-11-16 21:56 UTC
-Agent: agent (RD-009)
-Task ID: RD-009
+Timestamp: 2026-11-16 22:15 UTC
+Agent: agent (RD-010)
+Task ID: RD-010
 Branch / commit: uncommitted working tree on top of `6264c28` (agent MUST NOT commit)
 
 ## Done
 
-- Promoted RD-009 to READY then IN_PROGRESS; recorded owner decisions in Scope
-- Added `Application`, `ProcessIdentity` with `MatchableNames`, `ProxyEndpoint` with `NewProxyEndpoint`
-- Added sentinels `ErrInvalidPort` and `ErrEmptyHost`
-- Unit tests only for `MatchableNames` and `NewProxyEndpoint` (no `Application` test file; no reflect field inventories)
-- Recorded public-method-only unit test rule in `docs/engineering/testing.md` and `.cursor/rules/golang.mdc`
+- Promoted RD-010 to READY then IN_PROGRESS; recorded owner decisions in Scope
+- Added `ApplicationPolicy`, `Profile`, `NewProfile`, `ValidateProxyRefs`
+- Added sentinels `ErrUnresolvedProxy` and `ErrEmptyName` in `errors.go` only
+- Unit tests: `TestNewProfile` and `TestValidateProxyRefs` (`known_id`, `missing_id`, `direct_is_not_a_proxy_ref`)
 - Verification PASS for domain tests, lint, full `go test ./...`, import check, vendor status, gofmt
 
 ## Files changed
 
-- `docs/project/tasks/RD-009.md`
+- `docs/project/tasks/RD-010.md`
 - `docs/project/BACKLOG.md`
 - `docs/project/STATUS.md`
 - `docs/project/HANDOFF.md`
-- `docs/engineering/testing.md`
-- `.cursor/rules/golang.mdc`
 - `internal/domain/errors.go`
-- `internal/domain/application.go`
-- `internal/domain/process_identity.go`
-- `internal/domain/process_identity_test.go`
-- `internal/domain/proxy_endpoint.go`
-- `internal/domain/proxy_endpoint_test.go`
+- `internal/domain/profile.go`
+- `internal/domain/profile_test.go`
 
 ## Decisions
 
-1. Promote RD-009 to READY. Owner, 2026-11-17.
-2. Only `NewProxyEndpoint(id ProxyID, name string, kind ProxyKind, host string, port int, ref KeychainRef) (ProxyEndpoint, error)`. No `Validate()`. Owner, 2026-11-17.
-3. No extra checks: only `ErrInvalidPort` and `ErrEmptyHost`. Whitespace-only host is not trimmed. Owner, 2026-11-17.
-4. Unit tests cover exported functions/methods only. Plain structs with no behavior are not unit-test targets. No tests written only for coverage or field inventories. Owner, 2026-11-17.
+1. Promote RD-010 to READY. Owner, 2026-11-17.
+2. Only `NewProfile(id ProfileID, name string, policies []ApplicationPolicy) (Profile, error)`. Error only when `name == ""` (`ErrEmptyName`, no trim). Empty ID, empty policies, and policy contents are not checked. `ValidateProxyRefs` is not called from the constructor. On error return the zero value. `ApplicationPolicy` is a plain struct with no constructor. Owner, 2026-11-17.
+3. `ErrUnresolvedProxy` and `ErrEmptyName` are declared in `errors.go`. Do not change the package comment or any other text in that file. Owner, 2026-11-17.
 
 ## Verification
 
-- Command: `golangci-lint run ./...` (baseline) — PASS — 0 issues. Cache write warnings only (sandbox)
 - Command: `go test ./internal/domain/...` — PASS — `ok github.com/macrox-pro/route-deck/internal/domain`
 - Command: `golangci-lint run ./...` — PASS — 0 issues. Cache write warnings only (sandbox)
 - Command: `go test ./...` — PASS
@@ -50,49 +42,50 @@ Branch / commit: uncommitted working tree on top of `6264c28` (agent MUST NOT co
 
 ## Not done
 
-- RD-010, RD-011, RD-012
+- RD-011, RD-012
 - RD-006, RD-007
 - Open RD-013 review items (unscheduled)
 - Agent did not commit
 
 ## Risks / blockers
 
-- `ProxyEndpoint` exported fields allow bypassing `NewProxyEndpoint`
-- `NewProxyEndpoint` does not validate `Kind` or empty `ID`
-- `MatchableNames` does not deduplicate
+- `Profile` exported fields allow bypassing `NewProfile` and storing an empty name
+- `NewProfile` does not validate empty `ID` or policy contents
+- `ValidateProxyRefs` does not check `Name` or `ID`
+- Package comment in `errors.go` still says “no aggregates”
 - MUST NOT load every `docs/project/tasks/RD-*.md` into one session
 
 ## Exact next step
 
-Open `docs/project/tasks/RD-010.md` and check DoR before promoting to READY.
+Open `docs/project/tasks/RD-011.md` or `docs/project/tasks/RD-012.md` and check DoR before promoting one to READY.
 
 ## Suggested commit message
 
 Owner commits. Agent did not run git commit. Exactly one lowercase sentence; no fluff.
 
 ```text
-add rd-009 application, process identity, and proxy endpoint so profiles can reference typed catalog entries without passwords
+add rd-010 profile validation so a missing proxy id returns an error and the action stays proxy
 ```
 
 ## Context to read
 
 - `AGENTS.md`
 - `docs/project/BACKLOG.md` (index only)
-- `docs/project/tasks/RD-010.md`
+- `docs/project/tasks/RD-011.md` or `docs/project/tasks/RD-012.md`
 - `docs/architecture/domain-model.md`
 - `docs/contracts/proxybridge-profile.md`
 - `docs/engineering/testing.md`
 
-## Loop evidence (RD-009)
+## Loop evidence (RD-010)
 
 | Step | Evidence |
 | --- | --- |
-| Recover | STATUS + HANDOFF + RD-009 + domain-model + proxybridge-profile + ADR-0001 + golang/testing after RD-013 |
-| Select | RD-009 DoR complete; RD-008 and RD-013 DONE; owner promoted to READY |
-| Understand | Closed fields and constructor from RD-009 Scope + owner decisions; no Profile; ports stay RD-012 |
-| Plan | Accepted plan `rd-009_domain_structs`; follow AGENTS.md, segmented todos, DoD, lint gate |
-| Implement | `application.go`, `process_identity.go`, `proxy_endpoint.go`, sentinels; tests only for public methods; testing.md updated |
+| Recover | STATUS + HANDOFF + RD-010 + domain-model + proxybridge-profile + ADR-0001 + golang/testing |
+| Select | RD-010 DoR complete; RD-009 DONE; owner decisions closed; promoted to READY then IN_PROGRESS |
+| Understand | Closed fields and constructor from RD-010 Scope + owner decisions; no ProxyStore; no DeriveProtection |
+| Plan | Accepted plan `rd-010_profile_refs`; follow AGENTS.md, segmented todos, DoD, lint gate |
+| Implement | `profile.go`, `profile_test.go`, two sentinels in `errors.go`; no Action rewrite |
 | Verify | domain tests PASS; lint PASS; `go test ./...` PASS; imports `errors fmt strings`; vendor empty; gofmt empty |
-| Review | No Direct fallback; no secrets; no GORM; no one-off helpers; no field-inventory tests; RD-013 review items untouched; no agent commit |
-| Document | STATUS, BACKLOG, HANDOFF, RD-009 share RD-009 DONE; next step is `docs/project/tasks/RD-010.md` |
+| Review | No Direct rewrite; no ProxyStore; closed fields only; no one-off helper; errors.go is two sentinels; no agent commit |
+| Document | STATUS, BACKLOG, HANDOFF, RD-010 share RD-010 DONE; next step is RD-011 or RD-012 DoR |
 | Owner commit prep | message above; `git commit` not run |

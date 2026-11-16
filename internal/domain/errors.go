@@ -17,3 +17,9 @@ var ErrInvalidPort = errors.New("invalid port")
 
 // ErrEmptyHost is returned when a proxy host is empty.
 var ErrEmptyHost = errors.New("empty host")
+
+// ErrUnresolvedProxy is returned when a Proxy action references a proxy id that is not known.
+var ErrUnresolvedProxy = errors.New("unresolved proxy")
+
+// ErrEmptyName is returned when a profile name is empty.
+var ErrEmptyName = errors.New("empty name")

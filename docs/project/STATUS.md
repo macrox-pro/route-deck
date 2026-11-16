@@ -1,15 +1,15 @@
 # Project Status
 
-Updated: 2026-11-16 21:55 UTC
-Updated by: agent (RD-009 DONE)
+Updated: 2026-11-16 22:15 UTC
+Updated by: agent (RD-010 DONE)
 
 ## Current phase
 
-Phase 2 Domain ports — RD-009 Application, ProcessIdentity, ProxyEndpoint DONE. Next: check DoR on RD-010.
+Phase 2 Domain ports — RD-010 Profile and ValidateProxyRefs DONE. Next: owner promotes RD-011 or RD-012 (only one READY at a time).
 
 ## Current task
 
-RD-009
+RD-010
 
 ## State
 
@@ -28,18 +28,19 @@ DONE
 - RD-008: `internal/domain` ids, states, policy value types, opaque `RoutingAction`, three sentinels, table tests. Lint and tests PASS.
 - RD-013: lint now enables the `gofmt` formatter and the `exhaustive` linter; RD-008 parsers convert once; `state.go` is `gofmt`-clean; rules in `docs/engineering/golang.md` and `.cursor/rules/golang.mdc`. Committed as `6264c28`.
 - RD-009: `Application`, `ProcessIdentity` (`MatchableNames`), `ProxyEndpoint` (`NewProxyEndpoint`), `ErrInvalidPort`, `ErrEmptyHost`. Unit tests only for public methods/constructors. Lint and tests PASS.
+- RD-010: `ApplicationPolicy`, `Profile`, `NewProfile`, `ValidateProxyRefs`, `ErrEmptyName`, `ErrUnresolvedProxy`. Lint and tests PASS.
 
 ## In progress
 
-- None. RD-009 DONE. Owner promotes RD-010 after DoR check.
+- None. RD-010 DONE. Owner promotes RD-011 or RD-012 after DoR check (only one READY at a time).
 
 ## Blockers
 
-- None for promoting RD-010 after its DoR check. RD-011 and RD-012 wait on prior DONE. CONCEPTION is not edited until RD-011.
+- None for promoting RD-011 or RD-012 after their DoR checks. CONCEPTION is not edited until RD-011.
 
 ## Known limitations
 
-- No Profile, persistence, or ProxyBridge adapter code yet (RD-010+)
+- No persistence or ProxyBridge adapter code yet (RD-011+)
 - Wails template still includes `GreetService` and a demo time event
 - ESLint is not part of the frontend scaffold and is not required
 - `vendor/` committed per ADR-0006; refresh after dependency changes
@@ -59,17 +60,21 @@ DONE
 - `NewProxyEndpoint` does not validate `Kind` or empty `ID`; whitespace-only host is accepted (owner decision)
 - `MatchableNames` does not deduplicate; equal bundle id and executable name yield two equal entries
 - Unit tests target exported functions/methods only; plain structs with no behavior have no dedicated tests (owner, 2026-11-17; `docs/engineering/testing.md`)
+- `Profile` has exported fields; a struct literal can bypass `NewProfile` and store an empty name
+- `NewProfile` does not validate empty `ID` or policy contents; whitespace-only name is accepted (owner decision)
+- `ValidateProxyRefs` does not check `Name` or `ID`; empty name is only a `NewProfile` error
+- Package comment in `errors.go` still says “no aggregates” after Profile was added (owner decision not to edit it)
+- Skeleton in `docs/engineering/testing.md` shows `ValidateProxyRefs` with one argument; real signature takes `known []ProxyID`
 
 ## Next actions
 
-1. Open `docs/project/tasks/RD-010.md` and check DoR before promoting to READY.
-2. Owner commits RD-009 when ready.
+1. Open `docs/project/tasks/RD-011.md` or `docs/project/tasks/RD-012.md` and check DoR before promoting one to READY.
+2. Owner commits RD-010 when ready.
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `golangci-lint run ./...` (baseline) | PASS — 0 issues. Cache write warnings only (sandbox) |
 | `go test ./internal/domain/...` | PASS |
 | `golangci-lint run ./...` | PASS — 0 issues. Cache write warnings only (sandbox) |
 | `go test ./...` | PASS |
