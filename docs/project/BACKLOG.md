@@ -17,7 +17,6 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 | ID | Status | Goal |
 | --- | --- | --- |
-| [`RD-008`](tasks/RD-008.md) | READY | Add `internal/domain` value types and parsers with no aggregates and no protection deri... |
 | [`RD-006`](tasks/RD-006.md) | TODO | When persistence work starts, verify `AutoMigrate` and `gorm.io/driver/sqlite` against ... |
 | [`RD-007`](tasks/RD-007.md) | TODO | Define CI commands that match local checks. Do not require ESLint. |
 | [`RD-009`](tasks/RD-009.md) | TODO | Add the three domain structs named in the domain model, with no password field and no U... |
@@ -29,6 +28,7 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 | ID | Status | Goal |
 | --- | --- | --- |
+| [`RD-008`](tasks/RD-008.md) | DONE | Add `internal/domain` value types and parsers with no aggregates and no protection deri... |
 | [`RD-000`](tasks/RD-000.md) | DONE | Owner confirms `CONCEPTION.md` bounds for v1. |
 | [`RD-001`](tasks/RD-001.md) | DONE | Record real Go, Wails, test, and build results for this scaffold. |
 | [`RD-002`](tasks/RD-002.md) | DONE | Align module path, bundle metadata, and Dock icon with MACROX RouteDeck. |
