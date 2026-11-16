@@ -5,7 +5,7 @@ Sources (principles only; no SaaS required):
 - https://prodmoh.com/blog/10-best-practices-for-cursor-users
 - https://www.vibecodingacademy.ai/blog/cursor-ai-best-practices-guide-2026
 
-Upstream input is `CONCEPTION.md` + Accepted ADRs + contracts + the READY `RD-*` task. That set replaces a vague prompt.
+Upstream input is `CONCEPTION.md` + Accepted ADRs + contracts + the READY task file under `docs/project/tasks/`. That set replaces a vague prompt. `docs/project/BACKLOG.md` is an index; open one `RD-*.md` only.
 
 ## Prompt shape
 
@@ -21,7 +21,7 @@ MUST `@` the task file, the contracts, and the packages you will edit. MUST NOT 
 
 Screenshots are allowed for UI bugs. Acceptance criteria still go in the backlog.
 
-If a criterion is missing, list assumptions and ask the owner before editing.
+If a criterion is missing, ask the owner and get an answer before planning or editing. Do not invent the criterion in Assumptions.
 
 ## Layers
 
@@ -36,11 +36,13 @@ If a criterion is missing, list assumptions and ask the owner before editing.
 
 | Mode | When |
 | --- | --- |
-| Plan Mode | More than one package, architecture, ProxyBridge, protection, unclear scope |
+| Plan Mode | More than one package, architecture, ProxyBridge, protection — only after open questions are closed |
 | Agent | Execute an accepted plan |
 | Inline (Cmd+K) | One file, task already understood |
 
-Plan flow: clarify, read docs and code, edit the plan, owner accepts, then build. Save lasting plans under `.cursor/plans/` or `docs/project/plans/`.
+Plan flow: clarify open questions with the owner **first**, read docs and code, **then** write the plan, owner accepts, then build. MUST NOT draft a plan that invents product answers or papers over gaps. Save lasting plans under `.cursor/plans/` only. MUST NOT put plan files under `docs/`.
+
+If a criterion, closed list, state mapping, or behavior choice is missing: stop and ask. Do not enter Plan Mode until the owner has answered.
 
 Every plan MUST:
 

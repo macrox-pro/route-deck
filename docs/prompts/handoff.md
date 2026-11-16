@@ -10,7 +10,7 @@ Desired behavior:
 Scope:
 - docs/project/HANDOFF.md
 - docs/project/STATUS.md
-- docs/project/BACKLOG.md status line
+- docs/project/BACKLOG.md index status line + matching `docs/project/tasks/RD-XXX.md`
 
 Out of scope:
 - New code

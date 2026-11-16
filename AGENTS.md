@@ -11,13 +11,13 @@ Context may be compressed or lost. Prior chat is untrusted. Re-read after long g
 1. `AGENTS.md` (this file)
 2. `docs/project/STATUS.md`
 3. `docs/project/HANDOFF.md`
-4. The task in `docs/project/BACKLOG.md` (same `RD-*` as STATUS)
+4. `docs/project/BACKLOG.md` **index only** (status match) — then **one** task file `docs/project/tasks/RD-XXX.md` (same `RD-*` as STATUS)
 5. Related ADR under `docs/decisions/` and contracts under `docs/contracts/`
 6. `docs/engineering/golang.md`, `testing.md`, `cursor-workflow.md` when touching Go, tests, or agent workflow
 7. Matching packet in `docs/prompts/`
 8. The code and tests you will change
 
-Then change code. MUST NOT start from chat memory alone.
+Then change code. MUST NOT start from chat memory alone. MUST NOT `@` every file under `docs/project/tasks/` in one session.
 
 ## Source of truth
 
@@ -59,7 +59,7 @@ Run at the end of every Loop. A step without evidence fails the Loop.
 | Recover | STATUS + HANDOFF + task ID read this session; `@` paths used or listed | Starting from chat memory only |
 | Select | Task status was READY; dependencies clear | Working a TODO/BLOCKED task without an explicit claim; starting another `RD-*` while `golangci-lint run ./...` is FAIL and the task has no owner waiver |
 | Understand | Touched contracts/ADRs named; current vs desired stated | Coding without citing the owner of the behavior |
-| Plan | Multi-file: Plan Mode plan written or accepted; assumptions listed; follow-AGENTS.md item; segmented todos; DoD present | Multi-file edits with no plan; missing follow-AGENTS.md; two coarse todos; missing DoD |
+| Plan | Open questions closed with the owner before plan text; Plan Mode plan written or accepted; follow-AGENTS.md item; segmented todos; DoD present | Planning while product questions are open; inventing closed lists in the plan; multi-file edits with no plan; missing follow-AGENTS.md; two coarse todos; missing DoD |
 | Implement | Diff matches Scope only; naming and extract rules held | Scope creep, one-off helper sprawl, invented APIs |
 | Verify | Exact commands + PASS/FAIL/NOT RUN in HANDOFF | “should work”; unrun lint or tests; a plan whose Verification omits `golangci-lint run ./...`; a recorded lint FAIL treated as a finished loop |
 | Review | Explicit check: no Direct fallback; GORM boundaries; secrets; owner-commit rule | Skipping review on protection or network changes |
@@ -120,6 +120,8 @@ If any box fails, status stays `TODO` or `BLOCKED`, not `READY`.
 - Showing `Unknown` as `Active` / protected
 - Claiming tests, lint, or build passed without command output from this turn
 - Inventing Wails, GORM, or ProxyBridge APIs or CLI flags
+- Planning or writing backlog closed lists while product or contract questions are still open
+- Inventing answers in a plan to cover missing owner decisions
 - Expanding scope beyond the READY task
 - Changing an Accepted ADR without a new ADR
 - Secrets in logs, SQLite, or domain aggregates
@@ -157,11 +159,24 @@ Verify library APIs against **`vendor/`** (then installed module docs) before us
 
 | Mode | When |
 | --- | --- |
-| Plan Mode | Multi-file work, architecture, ProxyBridge or protection changes, unclear scope, more than one package |
+| Plan Mode | Multi-file work, architecture, ProxyBridge or protection changes, more than one package — only after open questions are closed |
 | Agent | Execute an accepted plan or a READY `RD-*` across files |
 | Inline edit | Single-file fix after the task is understood |
 
 Skip Plan Mode only for a one-line change the owner explicitly requested.
+
+### Plan gate (before any plan text)
+
+If anything needed for Scope, Acceptance, Constraints, closed lists, or behavior is missing from `CONCEPTION.md`, an Accepted ADR, a contract, or the READY task: **stop**. Ask the owner. Close every open question. **Then** write the plan.
+
+MUST NOT:
+
+- Start Plan Mode while product or contract questions are still open
+- Invent answers, field lists, error names, or mappings to “fill gaps” in the plan
+- Treat Assumptions as a substitute for owner decisions on product behavior
+- Write backlog or plan text that papers over unresolved ambiguity
+
+Assumptions in a plan are only for non-blocking, reversible engineering choices the owner can reject. Product words, closed lists, and state mappings need owner answers first.
 
 ### Plan requirements
 
@@ -176,7 +191,11 @@ Packet: `docs/prompts/plan-mode.md`.
 
 ## Ambiguity
 
-If a decision is not in `CONCEPTION.md`, an Accepted ADR, a contract, or the READY task: **stop and ask the owner**. List assumptions before coding when anything is unclear.
+Order is fixed: **clarify → owner answers → plan → implement**.
+
+If a decision is not in `CONCEPTION.md`, an Accepted ADR, a contract, or the READY task: **stop and ask the owner before planning**. Do not draft a plan, backlog task body, or closed list until the answer exists. Coding under open ambiguity is also forbidden.
+
+Assumptions may appear in a plan only after product decisions are closed, and only for non-blocking engineering choices.
 
 ## Parallel work
 

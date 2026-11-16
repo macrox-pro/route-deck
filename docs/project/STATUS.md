@@ -1,19 +1,19 @@
 # Project Status
 
-Updated: 2026-11-16 21:00 UTC
-Updated by: agent (RD-005 Phase 0 exit)
+Updated: 2026-11-16 21:15 UTC
+Updated by: agent (Phase 2 backlog write)
 
 ## Current phase
 
-Phase 0 Contracts — exit complete. Phase 1 Toolchain already DONE. Phase 2 Domain ports not started.
+Phase 2 Domain ports — backlog text started. Code under `internal/` not started.
 
 ## Current task
 
-RD-005
+RD-008
 
 ## State
 
-DONE
+READY
 
 ## Completed
 
@@ -24,15 +24,15 @@ DONE
 - RD-003: owner accepted ADR-0001..0006 as written via Phase 0 exit plan (2026-11-16). No ADR body edits.
 - RD-004: match rule revised — `processNames` matches bundle id or executable name; dashboard aggregate unchanged.
 - RD-005: ProxyBridge contracts frozen against live docs; installed CLI `ProxyBridge CLI 4.1.3`.
+- Phase 2 backlog accepted: RD-008 READY; RD-009 through RD-012 TODO; task bodies live in `docs/project/tasks/RD-*.md`; BACKLOG is an index only.
 
 ## In progress
 
-- None (RD-005 DONE; Phase 0 exit)
+- BACKLOG split to per-task files (index + `docs/project/tasks/`). No `internal/` packages yet.
 
 ## Blockers
 
-- No Phase 2 READY task yet. Owner must add a domain-ports task before any `internal/` packages.
-- None for RD-005.
+- None for RD-008. RD-009 through RD-012 wait on prior DONE. CONCEPTION is not edited until RD-011.
 
 ## Known limitations
 
@@ -46,20 +46,19 @@ DONE
 - After `wails3 task common:update:build-assets`, re-apply `LSMinimumSystemVersion` `13.0.0` and drop `CFBundleIconName` when not shipping `Assets.car`
 - Linker may warn about macOS 12.0 link minimum; plist floor is 13.0.0
 - Homebrew and other non-documented ProxyBridge install paths stay “not documented; do not guess”
+- Phase 2 exit waits until RD-011 is DONE (owner choice)
 
 ## Next actions
 
-1. Owner adds a Phase 2 domain-ports READY task in `docs/project/BACKLOG.md` before any `internal/` packages.
-2. Optional later: RD-006 (GORM smoke) when persistence starts; RD-007 (CI baseline) when the owner asks.
+1. Open `docs/project/tasks/RD-008.md` and start the RD-008 loop at `internal/domain/errors.go`, then `internal/domain/id.go`.
+2. After RD-008 DONE: promote RD-009 in its task file + BACKLOG index. Optional later: RD-006 / RD-007.
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| Four ProxyBridge doc URLs vs contracts | PASS — source date 2026-11-16 |
-| `/usr/local/bin/proxybridge --version` | PASS — `ProxyBridge CLI 4.1.3` |
-| `rg` for `not the runtime match key` / `Not Bundle ID` | PASS — gone from product docs (only historical if any) |
-| `go test ./...` | PASS — no test files |
 | `golangci-lint run ./...` | PASS — 0 issues. Cache write warnings only (sandbox) |
+| `go test ./...` | PASS — no test files in product packages; exit 0 |
+| Closed-list review of RD-008..012 | PASS — only RD-008 READY; RD-011 TODO not BLOCKED; ports only Get/Load; Username/Password/List/Save/Delete only in MUST NOT; CONCEPTION untouched; no `internal/` |
 
 Environment: macOS darwin/arm64; module `github.com/macrox-pro/route-deck`; Go declared `1.26.0`; Wails v3.0.0; ProxyBridge CLI 4.1.3 at documented paths

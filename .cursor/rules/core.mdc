@@ -5,15 +5,16 @@ alwaysApply: true
 
 # Core
 
-Re-read `AGENTS.md`, `docs/project/STATUS.md`, and `docs/project/HANDOFF.md` at session start. Chat memory is not a source of truth.
+Re-read `AGENTS.md`, `docs/project/STATUS.md`, and `docs/project/HANDOFF.md` at session start. Then open **one** `docs/project/tasks/RD-*.md` matching STATUS. MUST NOT load every task file. Chat memory is not a source of truth.
 
-- MUST ask the owner if a decision is missing from CONCEPTION, an Accepted ADR, a contract, or the READY task.
+- MUST ask the owner if a decision is missing from CONCEPTION, an Accepted ADR, a contract, or the READY task — **before planning**, not during or after.
+- Order: clarify → owner answers → plan → implement. MUST NOT start Plan Mode or invent closed lists while questions are open.
 - MUST NOT invent Wails, GORM, or ProxyBridge APIs.
 - MUST NOT add a silent Direct fallback.
 - MUST NOT store secrets in SQLite or logs.
 - MUST NOT `git commit`, `git push`, or amend. Suggest a message only: exactly one lowercase sentence, no fluff.
 - Docs and comments: English.
-- Multi-file or architecture work: Plan Mode first. Plans MUST include follow `AGENTS.md`, segmented todos (not two coarse buckets), an explicit DoD, and `golangci-lint run ./...` as its own verification step.
+- Multi-file or architecture work: Plan Mode only after open questions are closed. Plans MUST include follow `AGENTS.md`, segmented todos (not two coarse buckets), an explicit DoD, and `golangci-lint run ./...` as its own verification step.
 - `golangci-lint run ./...` PASS closes a Go loop. A recorded FAIL does not. MUST NOT defer a lint FAIL to a later task or start the next `RD-*` while lint is FAIL, unless the READY task quotes an owner waiver for that command. Unrun checks are not DONE.
 
 Details: `AGENTS.md`, `docs/engineering/cursor-workflow.md`.

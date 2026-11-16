@@ -1,3 +1,5 @@
+<!-- Path: docs/project/tasks/RD-XXX.md — index row lives in docs/project/BACKLOG.md only. -->
+
 # RD-XXX: Title
 
 Status: TODO

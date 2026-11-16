@@ -2,6 +2,12 @@
 
 Use before multi-file edits, architecture changes, or ProxyBridge/protection work.
 
+## Gate (MUST pass before writing this packet)
+
+If Scope, Acceptance, Constraints, closed lists, or behavior are not fully decided in `CONCEPTION.md`, an Accepted ADR, a contract, or the READY task: **stop**. Ask the owner. Close every open question. Only then fill the template below.
+
+MUST NOT invent product answers, field lists, error names, or state mappings inside the plan. Assumptions cover non-blocking engineering choices only after product decisions are closed.
+
 ```text
 Goal:
 
