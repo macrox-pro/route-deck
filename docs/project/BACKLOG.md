@@ -28,6 +28,7 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 | ID | Status | Goal |
 | --- | --- | --- |
+| [`RD-013`](tasks/RD-013.md) | DONE | Make `golangci-lint run ./...` catch unformatted Go and non-exhaustive enum switches, fix t... |
 | [`RD-008`](tasks/RD-008.md) | DONE | Add `internal/domain` value types and parsers with no aggregates and no protection deri... |
 | [`RD-000`](tasks/RD-000.md) | DONE | Owner confirms `CONCEPTION.md` bounds for v1. |
 | [`RD-001`](tasks/RD-001.md) | DONE | Record real Go, Wails, test, and build results for this scaffold. |

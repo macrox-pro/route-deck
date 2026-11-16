@@ -8,12 +8,23 @@ linters:
   default: none
   enable:
     - errcheck
+    - exhaustive
     - govet
     - ineffassign
     - misspell
     - revive
     - staticcheck
     - unused
+  exclusions:
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      - ^build/
+
+formatters:
+  enable:
+    - gofmt
   exclusions:
     paths:
       - third_party$

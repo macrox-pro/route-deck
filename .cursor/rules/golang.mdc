@@ -13,5 +13,9 @@ Follow `docs/engineering/golang.md` and `docs/engineering/testing.md`.
 - Wrap errors with `%w`. No `panic` for expected failures.
 - I/O takes `context.Context`.
 - Table-driven tests for pure logic.
+- `gofmt`-clean files. Lint reports formatting; fix with `golangci-lint fmt ./...`.
+- Compute a conversion, call, or expression once per function; bind it to a local.
+- Closed enum parser: convert once, `switch` on the local, return the local. List every constant (`exhaustive` linter; `default` is not coverage). MUST NOT silence `exhaustive` or disable a linter to pass.
+- Re-read the diff against `docs/engineering/golang.md` before DoD. Lint PASS is necessary, not sufficient.
 - Run `golangci-lint run ./...` before claiming Go DoD. The plan lists that command as its own todo. A recorded FAIL stays in this task; do not hand it to the next `RD-*`.
 - `vendor/` is committed (ADR-0006). Refresh with `go mod vendor` after dependency changes. Verify APIs under `vendor/`.

@@ -76,9 +76,10 @@ func (a RoutingAction) ProxyID() (ProxyID, bool) {
 
 // ParseProxyKind returns a ProxyKind for the exact tokens socks5 or http.
 func ParseProxyKind(s string) (ProxyKind, error) {
-	switch ProxyKind(s) {
+	kind := ProxyKind(s)
+	switch kind {
 	case ProxyKindSOCKS5, ProxyKindHTTP:
-		return ProxyKind(s), nil
+		return kind, nil
 	default:
 		return "", fmt.Errorf("parse proxy kind %q: %w", s, ErrUnknownProxyKind)
 	}

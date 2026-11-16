@@ -48,7 +48,9 @@ npm run build
 
 ## golangci-lint
 
-Config: `/.golangci.yml` (`modules-download-mode: vendor`). Version pin: **v2.15.0**. `linters.exclusions.paths` includes `^build/`: the Wails scaffold under `build/` is not product Go and is not linted. `vendor/` stays excluded by the tool default.
+Config: `/.golangci.yml` (`modules-download-mode: vendor`). Version pin: **v2.15.0**. `linters.exclusions.paths` and `formatters.exclusions.paths` include `^build/`: the Wails scaffold under `build/` is not product Go and is not linted. `vendor/` stays excluded by the tool default.
+
+`golangci-lint run ./...` also reports unformatted files (`gofmt` formatter) and enum switches that miss a constant (`exhaustive` linter). Fix formatting with `golangci-lint fmt ./...`. Lint shows one issue per line, so a formatting issue can hide behind another issue on the same line until that one is fixed.
 
 Install (official binary method):
 

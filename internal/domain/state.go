@@ -23,11 +23,11 @@ type ProxyHealth string
 
 // ProxyHealth values from CONCEPTION.
 const (
-	ProxyHealthUnknown                   ProxyHealth = "Unknown"
-	ProxyHealthChecking                  ProxyHealth = "Checking"
-	ProxyHealthAvailable                 ProxyHealth = "Available"
-	ProxyHealthUnavailable               ProxyHealth = "Unavailable"
-	ProxyHealthAuthenticationFailed      ProxyHealth = "AuthenticationFailed"
+	ProxyHealthUnknown                    ProxyHealth = "Unknown"
+	ProxyHealthChecking                   ProxyHealth = "Checking"
+	ProxyHealthAvailable                  ProxyHealth = "Available"
+	ProxyHealthUnavailable                ProxyHealth = "Unavailable"
+	ProxyHealthAuthenticationFailed       ProxyHealth = "AuthenticationFailed"
 	ProxyHealthTCPAvailableUDPUnavailable ProxyHealth = "TCPAvailableUDPUnavailable"
 )
 
@@ -36,18 +36,19 @@ type ProtectionState string
 
 // ProtectionState values from CONCEPTION. Active requires full coverage.
 const (
-	ProtectionStateInactive      ProtectionState = "Inactive"
-	ProtectionStateInitializing  ProtectionState = "Initializing"
-	ProtectionStateActive        ProtectionState = "Active"
-	ProtectionStateDegraded      ProtectionState = "Degraded"
-	ProtectionStateUnprotected   ProtectionState = "Unprotected"
-	ProtectionStateFailed        ProtectionState = "Failed"
-	ProtectionStateUnknown       ProtectionState = "Unknown"
+	ProtectionStateInactive     ProtectionState = "Inactive"
+	ProtectionStateInitializing ProtectionState = "Initializing"
+	ProtectionStateActive       ProtectionState = "Active"
+	ProtectionStateDegraded     ProtectionState = "Degraded"
+	ProtectionStateUnprotected  ProtectionState = "Unprotected"
+	ProtectionStateFailed       ProtectionState = "Failed"
+	ProtectionStateUnknown      ProtectionState = "Unknown"
 )
 
 // ParseBridgeState returns a BridgeState for an exact CONCEPTION token.
 func ParseBridgeState(s string) (BridgeState, error) {
-	switch BridgeState(s) {
+	state := BridgeState(s)
+	switch state {
 	case BridgeStateNotInstalled,
 		BridgeStateDetected,
 		BridgeStateStarting,
@@ -57,7 +58,7 @@ func ParseBridgeState(s string) (BridgeState, error) {
 		BridgeStateFailed,
 		BridgeStateConflict,
 		BridgeStateUnknown:
-		return BridgeState(s), nil
+		return state, nil
 	default:
 		return "", fmt.Errorf("parse bridge state %q: %w", s, ErrUnknownState)
 	}
@@ -65,14 +66,15 @@ func ParseBridgeState(s string) (BridgeState, error) {
 
 // ParseProxyHealth returns a ProxyHealth for an exact CONCEPTION token.
 func ParseProxyHealth(s string) (ProxyHealth, error) {
-	switch ProxyHealth(s) {
+	health := ProxyHealth(s)
+	switch health {
 	case ProxyHealthUnknown,
 		ProxyHealthChecking,
 		ProxyHealthAvailable,
 		ProxyHealthUnavailable,
 		ProxyHealthAuthenticationFailed,
 		ProxyHealthTCPAvailableUDPUnavailable:
-		return ProxyHealth(s), nil
+		return health, nil
 	default:
 		return "", fmt.Errorf("parse proxy health %q: %w", s, ErrUnknownState)
 	}
@@ -81,7 +83,8 @@ func ParseProxyHealth(s string) (ProxyHealth, error) {
 // ParseProtectionState returns a ProtectionState for an exact CONCEPTION token.
 // An unknown token never returns ProtectionStateActive.
 func ParseProtectionState(s string) (ProtectionState, error) {
-	switch ProtectionState(s) {
+	state := ProtectionState(s)
+	switch state {
 	case ProtectionStateInactive,
 		ProtectionStateInitializing,
 		ProtectionStateActive,
@@ -89,7 +92,7 @@ func ParseProtectionState(s string) (ProtectionState, error) {
 		ProtectionStateUnprotected,
 		ProtectionStateFailed,
 		ProtectionStateUnknown:
-		return ProtectionState(s), nil
+		return state, nil
 	default:
 		return "", fmt.Errorf("parse protection state %q: %w", s, ErrUnknownState)
 	}
