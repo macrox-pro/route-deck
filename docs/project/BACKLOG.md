@@ -72,7 +72,7 @@ Exact next step after accept: start RD-001 commands and record output in STATUS.
 
 # RD-001: Verify scaffold toolchain
 
-Status: READY
+Status: DONE
 Priority: P0
 Owner: owner or agent
 Reviewer: owner
@@ -105,10 +105,10 @@ STATUS and HANDOFF contain command output for version and smoke checks.
 
 ## Acceptance criteria
 
-- [ ] `go version` output recorded
-- [ ] `wails3 doctor` output recorded (or NOT RUN with reason)
-- [ ] `go test ./...` result recorded
-- [ ] `wails3 build` or `wails3 task build` result recorded or NOT RUN with reason
+- [x] `go version` output recorded
+- [x] `wails3 doctor` output recorded (or NOT RUN with reason)
+- [x] `go test ./...` result recorded
+- [x] `wails3 build` or `wails3 task build` result recorded or NOT RUN with reason
 
 ## Constraints
 
@@ -117,10 +117,13 @@ STATUS and HANDOFF contain command output for version and smoke checks.
 
 ## Verification
 
-- command: `go version`
-- command: `wails3 doctor`
-- command: `go test ./...`
-- command: `wails3 task build`
+- command: `go version` — PASS — `go version go1.27.4 darwin/arm64`
+- command: `wails3 doctor` — PASS — exit 0; "Your system is ready for Wails development!" (doctor reports Go go1.27.3)
+- command: `go test ./...` (before build) — FAIL — `main.go:17:12: pattern all:frontend/dist: no matching files found`
+- command: `wails3 task build` — PASS — exit 0; produced `bin/route-deck` (ld macOS version warnings only)
+- command: `go test ./...` (after build) — PASS — packages have no test files; exit 0
+- command: `golangci-lint run ./...` (after build) — FAIL — 5 `revive` issues in scaffold (`greetservice.go`, `build/ios/...`)
+- Environment: node v22.23.5; npm 10.9.9; golangci-lint v2.15.0
 
 ## Risks
 
@@ -133,7 +136,7 @@ STATUS and HANDOFF contain command output for version and smoke checks.
 
 ## Handoff
 
-Exact next step: if PASS, owner starts RD-002.
+Exact next step: owner promotes RD-002 from TODO to READY and starts identity work.
 
 ---
 
@@ -163,6 +166,7 @@ Wails template identity and possibly `macrox.pro.routedeck` in a generated plist
 ## Scope
 
 - Rename module and fix imports
+- Run `go mod vendor` after the rename and keep `vendor/` in sync (ADR-0006)
 - Update `build/config.yml` info fields
 - Replace `build/appicon.png` from the brand master and regenerate platform icons per Wails v3.0.0 docs
 - Verify Finder/Dock icon on a local macOS package
@@ -175,6 +179,7 @@ Wails template identity and possibly `macrox.pro.routedeck` in a generated plist
 ## Acceptance criteria
 
 - [ ] `go.mod` first line is `module github.com/macrox-pro/route-deck`
+- [ ] `go mod vendor` refreshed; `vendor/` present and not gitignored
 - [ ] `go test ./...` PASS after rename
 - [ ] `build/config.yml` productIdentifier is `pro.macrox.routedeck`
 - [ ] Local `.app` icon matches the brand master (owner visual check recorded)
@@ -183,10 +188,12 @@ Wails template identity and possibly `macrox.pro.routedeck` in a generated plist
 
 - MUST NOT invent a second brand
 - MUST keep `docs/branding/route-deck-icon.png` as the master
+- MUST NOT drop `vendor/` (ADR-0006)
 - MUST NOT commit unless the owner chooses to
 
 ## Verification
 
+- command: `go mod vendor`
 - command: `go test ./...`
 - command: `wails3 task darwin:package` or the v3.0.0 package task documented in `docs/operations/build.md`
 
@@ -197,6 +204,7 @@ Wails template identity and possibly `macrox.pro.routedeck` in a generated plist
 ## Related ADR / contracts
 
 - `docs/decisions/ADR-0004-naming-identity.md`
+- `docs/decisions/ADR-0006-go-vendor.md`
 - `docs/branding/README.md`
 
 ## Handoff
@@ -214,7 +222,7 @@ Reviewer: owner
 
 ## Goal
 
-Owner accepts ADR-0001, ADR-0002, ADR-0004, and ADR-0005 (ADR-0003 is already the GORM decision to confirm in the same pass).
+Owner accepts ADR-0001, ADR-0002, ADR-0004, and ADR-0005 (ADR-0003 is already the GORM decision to confirm in the same pass). Confirm ADR-0006 (vendor) in the same pass or note it already matches owner action.
 
 ## Context
 
@@ -240,6 +248,7 @@ Owner confirms or replaces status with comments. Agents MUST NOT change Accepted
 ## Acceptance criteria
 
 - [ ] Each ADR-0001..0005 has an owner note: accept or required edit
+- [ ] ADR-0006 (vendor) accepted or required edit noted
 - [ ] No contradictory guarantee vs `CONCEPTION.md`
 
 ## Constraints

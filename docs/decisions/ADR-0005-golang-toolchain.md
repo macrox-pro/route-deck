@@ -31,6 +31,8 @@ Wails v3.0.0 requires Go 1.26 or newer. The scaffold `go.mod` declares `go 1.26.
 
 golangci-lint v2.15.0 is pinned in `docs/operations/development.md`. Config is `.golangci.yml` (`version: "2"`).
 
+Vendoring is decided in ADR-0006 (`vendor/` committed; refresh with `go mod vendor`).
+
 ## Open decisions (owner)
 
 None.

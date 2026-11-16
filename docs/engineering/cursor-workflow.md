@@ -42,6 +42,14 @@ If a criterion is missing, list assumptions and ask the owner before editing.
 
 Plan flow: clarify, read docs and code, edit the plan, owner accepts, then build. Save lasting plans under `.cursor/plans/` or `docs/project/plans/`.
 
+Every plan MUST:
+
+- Include an explicit **follow `AGENTS.md`** item (todo and/or DoD checkbox). Implied compliance is not enough.
+- Segment todos into concrete steps (one command, one file group, or one verify). MUST NOT ship only two coarse todos such as “implement” and “document”.
+- Include an explicit **Definition of Done (DoD)** section with checkable evidence (commands, acceptance boxes, docs, commit policy).
+
+See `docs/prompts/plan-mode.md`.
+
 ## Parallel and cloud
 
 One worktree per `RD-*`. See `docs/operations/parallel.md`.

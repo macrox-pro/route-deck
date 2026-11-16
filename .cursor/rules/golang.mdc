@@ -14,3 +14,4 @@ Follow `docs/engineering/golang.md` and `docs/engineering/testing.md`.
 - I/O takes `context.Context`.
 - Table-driven tests for pure logic.
 - Run `golangci-lint run ./...` before claiming Go DoD.
+- `vendor/` is committed (ADR-0006). Refresh with `go mod vendor` after dependency changes. Verify APIs under `vendor/`.

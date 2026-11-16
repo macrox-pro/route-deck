@@ -9,7 +9,8 @@ Baseline: [Effective Go](https://go.dev/doc/effective_go) and [Code Review Comme
 - Wrap errors with `%w`. Use sentinel or typed errors where callers branch.
 - Pass `context.Context` into I/O, repository, and process calls. Set a timeout at the edge.
 - Give every goroutine an owner and a stop path.
-- Check the installed module docs before calling a library.
+- Check APIs under `vendor/` (then installed module docs) before calling a library.
+- Keep `vendor/` in sync: after `go.mod` / `go.sum` changes, run `go mod vendor` (ADR-0006).
 - Run `golangci-lint run ./...` with the repo `.golangci.yml` before Go DoD.
 - Prefer `new(expr)` (Go 1.26) when it makes an optional pointer obvious.
 
@@ -20,7 +21,8 @@ Baseline: [Effective Go](https://go.dev/doc/effective_go) and [Code Review Comme
 - Synchronize with `time.Sleep`.
 - Store business config in mutable package-level variables.
 - Add an interface for every struct. Interfaces belong at ports.
-- Add a dependency for a trivial helper.
+- Add a dependency for a trivial helper without refreshing `vendor/`.
+- Gitignore or delete `vendor/` as cleanup.
 - Create `Util`, `Helper`, or `Manager` packages without a domain noun.
 - Extract a function used once unless the block is too large to test in place. Then the name MUST say what it does.
 - Add `helpers.go` grab-bags.

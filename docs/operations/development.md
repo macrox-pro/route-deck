@@ -12,6 +12,18 @@
 
 ESLint is not installed and is not required. Do not add it.
 
+## Vendor
+
+This repo commits `vendor/` (ADR-0006). Owner added it with `go mod vendor`.
+
+```bash
+go mod vendor
+```
+
+After any change to `go.mod` or `go.sum`, re-run `go mod vendor` and keep `vendor/` in the owner commit. MUST NOT gitignore `vendor/`. MUST NOT delete `vendor/` as cleanup.
+
+With `vendor/` present, Go defaults to `-mod=vendor`. Prefer reading APIs under `vendor/` before inventing calls.
+
 ## Commands that exist in this repo
 
 From the repo root:
@@ -21,6 +33,7 @@ wails3 dev
 wails3 task build
 wails3 doctor
 go test ./...
+go mod vendor
 gofmt -l .
 ```
 
@@ -35,7 +48,7 @@ npm run build
 
 ## golangci-lint
 
-Config: `/.golangci.yml`. Version pin: **v2.7.2**.
+Config: `/.golangci.yml` (`modules-download-mode: vendor`). Version pin: **v2.15.0**.
 
 Install (official binary method):
 

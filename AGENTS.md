@@ -59,7 +59,7 @@ Run at the end of every Loop. A step without evidence fails the Loop.
 | Recover | STATUS + HANDOFF + task ID read this session; `@` paths used or listed | Starting from chat memory only |
 | Select | Task status was READY; dependencies clear | Working a TODO/BLOCKED task without an explicit claim |
 | Understand | Touched contracts/ADRs named; current vs desired stated | Coding without citing the owner of the behavior |
-| Plan | Multi-file: Plan Mode plan written or accepted; assumptions listed | Multi-file edits with no plan |
+| Plan | Multi-file: Plan Mode plan written or accepted; assumptions listed; follow-AGENTS.md item; segmented todos; DoD present | Multi-file edits with no plan; missing follow-AGENTS.md; two coarse todos; missing DoD |
 | Implement | Diff matches Scope only; naming and extract rules held | Scope creep, one-off helper sprawl, invented APIs |
 | Verify | Exact commands + PASS/FAIL/NOT RUN in HANDOFF | “should work”; unrun lint or tests |
 | Review | Explicit check: no Direct fallback; GORM boundaries; secrets; owner-commit rule | Skipping review on protection or network changes |
@@ -132,12 +132,14 @@ If any box fails, status stays `TODO` or `BLOCKED`, not `READY`.
 - Promising a kill switch or leak-free failure of ProxyBridge (v1 does not guarantee it)
 - Adding ESLint as a required gate (not in v1; do not add it)
 - Introducing goose or golang-migrate (schema is GORM `AutoMigrate`)
+- Gitignoring or deleting committed `vendor/` (ADR-0006)
 
 ## Stack rules (short)
 
 | Topic | Rule |
 | --- | --- |
 | Go | 1.26+ (Wails v3.0.0). Details: `docs/engineering/golang.md` |
+| Vendor | Commit `vendor/` (`go mod vendor`). Refresh after dependency changes. See ADR-0006 |
 | Tests | Table-driven by default. Details: `docs/engineering/testing.md` |
 | Lint | `golangci-lint run ./...` using `.golangci.yml`. FAIL blocks DONE |
 | DB | SQLite via GORM only (`gorm.io/gorm`) + `gorm.io/driver/sqlite` (CGO) |
@@ -148,7 +150,7 @@ If any box fails, status stays `TODO` or `BLOCKED`, not `READY`.
 | ProxyBridge | Official CLI only. Profile via stdin `--profile -`. Human text is not a stable API |
 | Platform | macOS 13+ desktop. Scaffold folders for other OSes are not product scope |
 
-Verify library APIs against the **installed** module docs before use. MUST NOT invent them.
+Verify library APIs against **`vendor/`** (then installed module docs) before use. MUST NOT invent them.
 
 ## Modes
 
@@ -159,6 +161,16 @@ Verify library APIs against the **installed** module docs before use. MUST NOT i
 | Inline edit | Single-file fix after the task is understood |
 
 Skip Plan Mode only for a one-line change the owner explicitly requested.
+
+### Plan requirements
+
+Every Plan Mode plan MUST include:
+
+1. **Follow `AGENTS.md`** — an explicit plan item or DoD checkbox that execution follows `AGENTS.md` (source of truth, hard bans, owner-commit, verification evidence). MUST NOT be implied only.
+2. **Segmented todos** — one todo per concrete step (command, file group, or verify). MUST NOT collapse the loop into two coarse items such as “run checks” and “update docs”. Prefer a checklist the owner can track step by step.
+3. **Definition of Done (DoD)** — an explicit section stating what evidence closes the loop (acceptance boxes, commands + PASS/FAIL/NOT RUN, docs updated, no commit unless the owner asked).
+
+Packet: `docs/prompts/plan-mode.md`.
 
 ## Ambiguity
 
