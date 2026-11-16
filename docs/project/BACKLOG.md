@@ -211,13 +211,13 @@ Wails template identity and possibly `macrox.pro.routedeck` in a generated plist
 
 ## Handoff
 
-Exact next step: owner reviews RD-003 in this file (ADR-0001..0006). Leave that task TODO until the owner accepts or lists edits.
+Exact next step: RD-003 (DONE in Phase 0 exit).
 
 ---
 
 # RD-003: Accept architecture ADRs
 
-Status: TODO
+Status: DONE
 Priority: P1
 Owner: owner
 Reviewer: owner
@@ -249,9 +249,9 @@ Owner confirms or replaces status with comments. Agents MUST NOT change Accepted
 
 ## Acceptance criteria
 
-- [ ] Each ADR-0001..0005 has an owner note: accept or required edit
-- [ ] ADR-0006 (vendor) accepted or required edit noted
-- [ ] No contradictory guarantee vs `CONCEPTION.md`
+- [x] Each ADR-0001..0005 has an owner note: accept or required edit — owner accepted ADR-0001..0006 as written via Phase 0 exit plan (2026-11-16). No ADR body edits.
+- [x] ADR-0006 (vendor) accepted or required edit noted — accepted as written
+- [x] No contradictory guarantee vs `CONCEPTION.md` — kill-switch and silent-Direct bans unchanged; match-rule revision is in CONCEPTION, not in ADR bodies
 
 ## Constraints
 
@@ -259,7 +259,7 @@ Owner confirms or replaces status with comments. Agents MUST NOT change Accepted
 
 ## Verification
 
-- command: owner review
+- command: owner review — PASS (Phase 0 exit plan accepted 2026-11-16)
 
 ## Risks
 
@@ -271,13 +271,13 @@ Owner confirms or replaces status with comments. Agents MUST NOT change Accepted
 
 ## Handoff
 
-Exact next step: RD-004 review of glossary and states.
+Exact next step: RD-004 review of glossary and states (DONE in same Phase 0 exit).
 
 ---
 
 # RD-004: Review domain glossary and states
 
-Status: TODO
+Status: DONE
 Priority: P1
 Owner: owner
 Reviewer: owner
@@ -290,9 +290,9 @@ Owner confirms aggregates and the three state dimensions.
 
 `docs/architecture/domain-model.md` and `docs/project/GLOSSARY.md` define Application, ProcessIdentity, ProxyEndpoint, Profile, policy, and ProtectionSnapshot.
 
-## Current behavior
+## Current behavior (at close)
 
-Process match is `processNames`, not Bundle ID.
+`processNames` patterns match the bundle identifier or the executable name. Signature and path stay UX warnings. Dashboard aggregate unchanged: `Active` only when the bridge is ready and every protected app is fully covered.
 
 ## Desired behavior
 
@@ -301,6 +301,7 @@ Owner accepts that model or lists field-level edits.
 ## Scope
 
 - Read domain-model and glossary
+- Revise match wording to live ProxyBridge rules (Phase 0 exit)
 
 ## Out of scope
 
@@ -308,8 +309,8 @@ Owner accepts that model or lists field-level edits.
 
 ## Acceptance criteria
 
-- [ ] Owner accepts processNames as the enforcement key
-- [ ] Owner accepts Dashboard aggregate rule in CONCEPTION
+- [x] Owner accepts processNames as the enforcement key — accepted; patterns match bundle id or executable name (Phase 0 exit plan 2026-11-16)
+- [x] Owner accepts Dashboard aggregate rule in CONCEPTION — unchanged and accepted
 
 ## Constraints
 
@@ -317,11 +318,11 @@ Owner accepts that model or lists field-level edits.
 
 ## Verification
 
-- command: owner review
+- command: owner review — PASS (Phase 0 exit plan accepted 2026-11-16)
 
 ## Risks
 
-- Later code treats Bundle ID as the ProxyBridge match key
+- Later code treats a `*` rule that has a host or port limit as UDP coverage, or writes only one name and misses a helper process
 
 ## Related ADR / contracts
 
@@ -330,13 +331,13 @@ Owner accepts that model or lists field-level edits.
 
 ## Handoff
 
-Exact next step: RD-005 against live ProxyBridge docs.
+Exact next step: RD-005 against live ProxyBridge docs (DONE in same Phase 0 exit).
 
 ---
 
 # RD-005: Freeze ProxyBridge contract against live docs
 
-Status: TODO
+Status: DONE
 Priority: P0
 Owner: agent
 Reviewer: owner
@@ -349,9 +350,9 @@ Replace any TBD path list with facts from current ProxyBridge macOS docs.
 
 `docs/contracts/proxybridge-cli.md` links official docs and forbids invented flags. Install locations are not frozen.
 
-## Current behavior
+## Current behavior (at close)
 
-Contract lists commands named in the product plan and marks paths as unresolved.
+Contracts quote only documented flags and paths. Match semantics, UDP limits, catch-all order, and CLI process facts are frozen against live docs dated 2026-11-16. Installed CLI: `ProxyBridge CLI 4.1.3`.
 
 ## Desired behavior
 
@@ -370,9 +371,9 @@ Contract quotes only flags and limits that appear in the live docs for the versi
 
 ## Acceptance criteria
 
-- [ ] Every CLI flag in the contract has a doc URL anchor or is marked unknown
-- [ ] Install path list is either filled from docs or explicitly “not documented; owner path required”
-- [ ] No new flag added from memory
+- [x] Every CLI flag in the contract has a doc URL anchor or is marked unknown — all flags cite https://proxybridge.interceptsuite.com/docs/macos-cli/
+- [x] Install path list is either filled from docs or explicitly “not documented; owner path required” — documented: `/usr/local/bin/proxybridge`, `/Applications/ProxyBridge.app/Contents/MacOS/ProxyBridge`; Homebrew and others not documented
+- [x] No new flag added from memory
 
 ## Constraints
 
@@ -381,7 +382,8 @@ Contract quotes only flags and limits that appear in the live docs for the versi
 
 ## Verification
 
-- command: open the four ProxyBridge doc URLs and diff the contract
+- command: open the four ProxyBridge doc URLs and diff the contract — PASS (2026-11-16)
+- command: `/usr/local/bin/proxybridge --version` — PASS — `ProxyBridge CLI 4.1.3`
 
 ## Risks
 
@@ -395,7 +397,7 @@ Contract quotes only flags and limits that appear in the live docs for the versi
 
 ## Handoff
 
-Exact next step: paste the path list and version into HANDOFF.
+Exact next step: `docs/project/BACKLOG.md` — no Phase 2 domain-ports task yet; owner adds that task before any `internal/` packages.
 
 ---
 

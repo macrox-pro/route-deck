@@ -2,7 +2,7 @@
 
 Source checked: 2026-11-16 against https://proxybridge.interceptsuite.com/docs/macos-cli/
 
-Re-read that page before changing the adapter (RD-005). MUST NOT add flags that are not on that page.
+Re-read that page before changing the adapter. MUST NOT add flags that are not on that page.
 
 ## What the CLI is
 
@@ -14,6 +14,8 @@ with CLI options. No `sudo`. The GUI and the CLI share one system extension. Onl
 
 ## Options (documented)
 
+Each option below is on https://proxybridge.interceptsuite.com/docs/macos-cli/.
+
 | Option | Behavior |
 | --- | --- |
 | `--version` | Print version and exit |
@@ -21,12 +23,16 @@ with CLI options. No `sudo`. The GUI and the CLI share one system extension. Onl
 | `--list-profiles` | List saved profiles and exit |
 | `--profile <name>` | Run a profile saved in the ProxyBridge app |
 | `--profile -` | Read a macOS `.pbprofile` JSON from stdin |
-| `--verbose <0-3>` | 0 silent, 1 logs, 2 connections, 3 both |
+| `--verbose <0-3>` | 0 silent (default), 1 logs, 2 connections, 3 both |
 | `--update` | Check for an update and exit. It does not download or install |
 
 `--profile=Work` and `--verbose=2` are accepted. `--cli` is accepted and ignored.
 
+`--profile` is required to run unless the command is `--list-profiles`, `--update`, `--version`, or `--help`/`-h`.
+
 MUST NOT pass a filesystem path to `--profile`. The app is sandboxed and refuses paths. Pipe the profile: `proxybridge --profile -`.
+
+A profile name that contains `/` or ends in `.pbprofile` is treated as a path and refused. Rename such a profile in the ProxyBridge app.
 
 Stdin limit: 4 MiB. Stdin must be a pipe or file, not a terminal.
 
@@ -42,7 +48,7 @@ RouteDeck does not rely on profiles saved inside the ProxyBridge GUI.
 
 ## Discovery
 
-Documented locations:
+Documented locations (https://proxybridge.interceptsuite.com/docs/macos-cli/):
 
 | Path | Role |
 | --- | --- |
@@ -51,15 +57,19 @@ Documented locations:
 
 Also honor a user-configured absolute path. Unknown version: warning, not silent success. Signature check: only if a READY task specifies a concrete API. Do not invent a codesign policy here.
 
-Other well-known paths (Homebrew, and so on) are **not documented** on the CLI page. RD-005 may add a path only with a source URL. Until then, do not guess them.
+Other well-known paths (Homebrew, and so on) are **not documented** on the CLI page. Do not guess them. An owner-configured absolute path is the only addition without a docs URL.
+
+Do not copy sample version strings from the docs (for example `4.1.0`) as the supported version. Record the installed binary's `--version` output when probing.
 
 ## Process control
 
-One managed process. If the GUI is running, the CLI refuses to start (`The ProxyBridge app is running...`). If the GUI starts later, the tunnel stops and the CLI exits 1 (`The tunnel was stopped by something else...`).
+One managed process. If the GUI is running, the CLI refuses to start (`The ProxyBridge app is running...`). If another CLI is already running, a second one is refused (`Another ProxyBridge CLI is already running.`). If the GUI starts later, the tunnel stops and the CLI exits 1 (`The tunnel was stopped by something else...`).
 
 On that conflict: set BridgeState `Conflict`, ProtectionState not protected, tell the user to quit the GUI, do not restart in a loop.
 
-Stop: SIGINT/SIGTERM/SIGHUP clear rules (docs: Ctrl+C, SIGTERM, SIGHUP). `SIGKILL` does not clear rules. After a kill -9, RouteDeck MUST NOT report protected.
+Stop: SIGINT/SIGTERM/SIGHUP clear rules (docs: Ctrl+C, SIGTERM, SIGHUP). If the extension does not answer, the CLI exits after 5 seconds. `SIGKILL` does not clear rules. After a kill -9, RouteDeck MUST NOT report protected.
+
+First-run extension approval can wait up to 5 minutes (`Timed out waiting for the extension...`).
 
 Graceful stop is signal, wait, then timeout. MUST NOT use context cancel as the only stop (it can kill immediately).
 
@@ -68,6 +78,8 @@ Graceful stop is signal, wait, then timeout. MUST NOT use context cancel as the 
 `Extension: active` is not enough. The CLI docs say routing is on when it prints `Redirecting traffic. Press Ctrl+C to stop.` A profile load line looks like `Profile "<name>": N proxies, M rules applied`.
 
 RouteDeck confirms apply only after the redirect-ready line (and no fatal error). Partial or unknown lines stay unclassified and MUST NOT flip state to `Active` by themselves.
+
+A warning such as `warning: N rule(s) were rejected by the extension (invalid fields)` stays unclassified. It MUST NOT mean the profile is confirmed or that ProtectionState is `Active`.
 
 Verbose 2 and 3 print connections. v1 Activity does not depend on parsing those lines. If a later task parses them, it needs fixtures. Unknown lines stay `Unclassified`.
 

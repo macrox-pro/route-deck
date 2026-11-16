@@ -4,7 +4,8 @@ Sources checked 2026-11-16:
 
 - https://proxybridge.interceptsuite.com/docs/macos-profiles/
 - https://proxybridge.interceptsuite.com/docs/macos-cli/
-- Rules detail: https://proxybridge.interceptsuite.com/docs/macos-rules/ (re-read in RD-005 before coding rule fields)
+- https://proxybridge.interceptsuite.com/docs/macos-rules/
+- https://proxybridge.interceptsuite.com/docs/macos-how-it-works/
 
 ## Format
 
@@ -42,12 +43,21 @@ RouteDeck loads the password from Keychain only inside the serializer. Domain st
 | Field | Notes |
 | --- | --- |
 | `name` | Optional |
-| `processNames` | Match key. Not Bundle ID |
-| `targetHosts` | Host patterns. Weak if DNS is off |
-| `targetPorts` | Port patterns. Docs show lists such as `80; 443` or `*` |
+| `processNames` | Patterns compared to bundle identifier and executable name. Either match is enough. Case-insensitive, whole-string. `*` is the only wildcard. A pattern with `/` does not match. Separators: `;` or comma |
+| `targetHosts` | Host patterns. Separators: `;` only (a comma is not a separator). No CIDR. Weak if DNS is off or the app uses DNS-over-HTTPS |
+| `targetPorts` | Port patterns. Separators: `;` or comma. Docs show lists such as `80; 443` or `*` |
 | `protocol` | `TCP`, `UDP`, or `BOTH` (missing means `BOTH` on import) |
 | `action` | `DIRECT`, `BLOCK`, or a proxy `id` |
 | `enabled` | Optional. Missing means true |
+
+## Match semantics
+
+- The JSON field is still `processNames`. The CLI matches each pattern against the program's bundle identifier and its executable name.
+- `*` or empty matches every program.
+- No matching rule means the connection is not redirected. Absence of a rule is not `Block`. RouteDeck MUST NOT report that as protected.
+- ProxyBridge's own app and extension flows are never redirected.
+- Domain entries in `targetHosts` need Enable DNS. With DNS off, or when the app uses DNS-over-HTTPS / DNS-over-TLS, domain patterns do not match. IP patterns and `processNames` matching still apply.
+- Among enabled rules: a specific program match beats a catch-all. A catch-all is `*` with no host limit and no port limit. Only the first catch-all applies. A `*` rule that has a host or port limit is not a catch-all; on TCP it matches immediately when the limit fits. Among specific rules (and limited `*` rules), earlier list order wins.
 
 ## Fail-open (CLI behavior)
 
@@ -59,13 +69,21 @@ No matching rule means the connection is not redirected. Absence of a rule is no
 
 ## UDP
 
-HTTP proxies do not carry UDP. For a rule that needs UDP and the chosen proxy is HTTP, compile UDP as `BLOCK` unless the user has stored an explicit Direct-UDP limitation. Do not mark that case protected.
+For a specific program, UDP matches on program and protocol only. Target hosts and ports are ignored for that UDP.
+
+A rule whose program is `*` and which also has a host or port limit never matches UDP. Do not treat that rule as UDP coverage.
+
+HTTP proxies do not carry UDP. The CLI sends that UDP direct and may log a warning. For a rule that needs UDP and the chosen proxy is HTTP, RouteDeck compiles UDP as `BLOCK` unless the user has stored an explicit Direct-UDP limitation. Do not treat the CLI's direct UDP as protection. Do not mark that case protected.
+
+## TCP proxy failure
+
+TCP sent to a proxy that is down, rejects, or is silent is closed. The CLI does not rewrite that traffic to Direct.
 
 ## Profile settings RouteDeck sets
 
 | Field | RouteDeck v1 |
 | --- | --- |
-| `dnsEnabled` | true unless a task says otherwise. Domain rules are secondary to process match |
+| `dnsEnabled` | true unless a task says otherwise. Domain rules are secondary to `processNames` match |
 | `trafficLoggingEnabled` | false unless a task needs fixtures. v1 Activity does not require CLI connection lines |
 | `closeToMenuBar`, `runAtStartup` | false. The CLI ignores them. RouteDeck tray is separate |
 

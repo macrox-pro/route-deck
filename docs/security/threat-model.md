@@ -9,7 +9,7 @@ RouteDeck is a local macOS app. It does not run a server and does not sync to a 
 | Proxy passwords | Keychain |
 | Proxy host, port, username | SQLite |
 | Profile and rules | SQLite and the JSON passed to ProxyBridge stdin |
-| Process names | SQLite and the profile |
+| Process names and bundle ids in rules | SQLite and the profile |
 
 ## Abuse cases
 
@@ -19,7 +19,7 @@ RouteDeck is a local macOS app. It does not run a server and does not sync to a 
 | Replaced ProxyBridge binary | Prefer the documented install paths. A user path is allowed. Record version. Do not claim a signature check until a task implements one with a real API |
 | Shell injection | `exec.Command` with argument list only. No shell string |
 | Log injection | Do not log the profile document |
-| Wrong process match | Warn when path or signature changes. Enforcement is `processNames` |
+| Wrong process match | Warn when path or signature changes. Enforcement is `processNames`, compared to bundle id or executable name. Signature and path are not match fields |
 | Missing proxy id | Reject the profile. CLI would otherwise send that rule direct |
 | CLI crash or SIGKILL | Rules may remain or vanish. State becomes not protected. No kill-switch claim |
 | GUI takes the extension | `Conflict`, stop retry loop |

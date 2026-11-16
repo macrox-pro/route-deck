@@ -9,8 +9,8 @@
 | Profile | A named set of rules plus proxy references. At most one is applied. |
 | Desired | Config the user asked to apply. |
 | Applied | Config the running CLI has confirmed. |
-| ProcessIdentity | How RouteDeck remembers an app (bundle id, path, signature hints). |
-| processNames | ProxyBridge rule field that actually matches processes. |
+| ProcessIdentity | How RouteDeck remembers an app (bundle id, executable name, path, signature hints). |
+| processNames | ProxyBridge rule field. Each pattern matches the bundle identifier or the executable name. |
 | BridgeState | Lifecycle of the ProxyBridge CLI integration. |
 | ProxyHealth | Reachability and protocol support of one proxy. |
 | ProtectionState | Whether routing for the protected set is confirmed. |
@@ -25,7 +25,8 @@
 
 | A | B |
 | --- | --- |
-| Bundle ID | ProxyBridge match key (`processNames`) |
+| Product bundle id (`pro.macrox.routedeck`) | A value written into a rule's `processNames` field |
+| Path or code signature | CLI match fields (`processNames`) |
 | Wails event | Source of truth |
 | Open TCP port | Healthy proxy |
 | `Active` | Crash-proof kill switch |

@@ -83,8 +83,8 @@ Go is the source of truth for user configuration. Wails events are notifications
 | --- | --- |
 | Proxies | Global catalog; profiles reference proxy IDs |
 | Applied profile | At most one |
-| Enforcement key | ProxyBridge `processNames` |
-| Bundle ID / signature | UX and identity checks only, not the runtime match key |
+| Enforcement key | ProxyBridge `processNames` (each pattern matches bundle identifier or executable name) |
+| Bundle ID / signature | Bundle id may be written into `processNames`. Signature and path are UX warnings only; they are not CLI match fields |
 | Passwords | macOS Keychain. SQLite stores a reference only |
 | Persistence | GORM + SQLite + `gorm.io/driver/sqlite` + `AutoMigrate` |
 | Activity v1 | RouteDeck events and health/ops, not an assumed per-connection CLI log |
@@ -131,7 +131,7 @@ Dashboard aggregate: `Active` only if the bridge is ready AND every protected ap
 - HTTP CONNECT does not carry UDP. MUST NOT mark that path protected for UDP.
 - Default compile: UDP for an HTTP proxy is `BLOCK`, unless the user records an explicit accept-Direct-UDP limitation.
 - UDP rules match application and protocol. Do not promise address/port filtering for UDP the way TCP rules do.
-- v1 primary match is by process, not by domain. DNS-over-HTTPS can make domain rules incomplete.
+- v1 primary match is `processNames` (bundle id or executable name), not domain. DNS-over-HTTPS can make domain rules incomplete.
 
 ## Apply and rollback
 

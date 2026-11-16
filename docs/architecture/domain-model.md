@@ -7,7 +7,7 @@ Types below are conceptual. Implement them only in a READY task. Names are norma
 | Name | Role |
 | --- | --- |
 | Application | User-facing app entry (display name, bundle id, icon ref) |
-| ProcessIdentity | Path, signing hints, and the process name string used for rules |
+| ProcessIdentity | Bundle id, executable name, path, and signing hints. Bundle id and executable name may be written into `processNames` |
 | ProxyEndpoint | Global proxy: type `socks5` or `http`, host, port, Keychain ref for the password, `sendDomain` |
 | Profile | Named set of rules. References proxy IDs. At most one profile is applied |
 | ApplicationPolicy | Policy for one process identity inside a profile: `Proxy`, `Direct`, or `Block` |
@@ -18,7 +18,9 @@ Types below are conceptual. Implement them only in a READY task. Names are norma
 
 ## Matching
 
-ProxyBridge rules use `processNames`. Bundle ID and code signature help the user recognize an app and warn on path or signature change. They are not the runtime match key.
+ProxyBridge rules use the JSON field `processNames`. The CLI compares each pattern with the app's bundle identifier and with its executable name. Either match is enough. Match is case-insensitive and whole-string; `*` is the only wildcard; a pattern containing `/` does not match.
+
+Code signature and path stay UX warnings. They are not CLI match fields.
 
 Helper processes are not added to a rule until the user confirms them.
 
