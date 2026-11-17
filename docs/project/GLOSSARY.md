@@ -14,6 +14,8 @@
 | BridgeState | Lifecycle of the ProxyBridge CLI integration. |
 | ProxyHealth | Reachability and protocol support of one proxy. |
 | ProtectionState | Whether routing for the protected set is confirmed. |
+| Inactive | nothing is being protected. The bridge is not installed or only detected, the bridge is stopped and no profile is desired, or a confirmed profile protects no application. |
+| Initializing | the bridge is starting or stopping. |
 | Snapshot | Backend state the UI loads. Events do not replace it. |
 | Keychain reference | Pointer stored in SQLite. The password is not in SQLite. |
 | Fail-open | ProxyBridge may send traffic direct if a proxy ID is missing or no rule matches. RouteDeck must not allow the missing-ID case. |

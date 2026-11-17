@@ -124,6 +124,37 @@ Dashboard aggregate: `Active` only if the bridge is ready AND every protected ap
 | Database damaged | Diagnose / recover; do not pretend success |
 | Wake or network change | Re-check health; do not assume still protected |
 
+### ProtectionState derivation
+
+First match wins.
+
+1. Wake or network change, re-check not finished: `Unknown`.
+2. Bridge `Unknown`, or CLI version unknown, or a referenced proxy is `Unknown` or `Checking`: `Unknown`.
+3. Bridge `Starting` or `Stopping`: `Initializing`.
+4. Confirm failed and the one rollback failed, or applied is none after a failed confirm: `Unprotected`, even if the bridge is `Failed`.
+5. Bridge `Failed` on start, and step 4 did not apply: `Failed`. An unexpected CLI exit is step 8 or 10, not step 5. The matrix names that exit `Unprotected`.
+6. Bridge `Conflict`: `Unprotected`.
+7. Bridge `NotInstalled` or `Detected`: `Inactive`, with or without a desired profile. Owner.
+8. Bridge `Stopped` and a profile is desired: `Unprotected`. Owner.
+9. Bridge `Stopped` and no profile is desired: `Inactive`. Owner's split of step 8. No third test.
+10. Bridge `Ready` and the applied profile is not confirmed: `Unprotected`.
+11. Bridge `Ready`, profile confirmed, protected set empty: `Inactive`. Owner. Empty coverage is not `Active`.
+12. Bridge `Ready`, profile confirmed, every protected app covered for its required protocols, every proxy used by a `Proxy` rule is `Available`: `Active`.
+13. Bridge `Ready`, profile confirmed, at least one protected app covered and at least one gap: `Degraded`.
+14. Bridge `Ready`, profile confirmed, protected set non-empty, nothing covered: `Unprotected`.
+
+Coverage facts the caller may set:
+
+- User `Block` for a protocol: that protocol's covered fact is true, including UDP. Proxy UDP limits do not clear it.
+- UDP required and the proxy cannot carry it: covered fact is false. `Degraded` when another protocol for that app is covered (step 13).
+- Direct-UDP limitation on required UDP: covered fact is false. `Direct` is not protection.
+- Proxy `Unavailable` or `AuthenticationFailed` while steps 1–11 did not match: `Degraded`. Owner said this for `Unavailable`. Auth failure stays a proxy failure with no rewrite to `Direct`, which is the same step-13 gap.
+- `TCPAvailableUDPUnavailable`: TCP may be covered. Required UDP is not.
+- Domain rules present and DNS incomplete: gap, so not step 12. Process coverage alone does not clear it.
+- Missing proxy id: not a protection word. `ValidateProxyRefs` returns `ErrUnresolvedProxy`. Snapshot word stays on the last confirmed profile, or step 10 when nothing is confirmed.
+- Database damaged: input flag forces step 2's `Unknown`. The matrix does not name `Failed` here.
+- Quit uses the `Stopped` steps. Window close changes no protection input.
+
 ## UDP and HTTP
 
 - TCP may use SOCKS5 or HTTP CONNECT.

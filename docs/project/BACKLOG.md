@@ -19,13 +19,13 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 | --- | --- | --- |
 | [`RD-006`](tasks/RD-006.md) | TODO | When persistence work starts, verify `AutoMigrate` and `gorm.io/driver/sqlite` against ... |
 | [`RD-007`](tasks/RD-007.md) | TODO | Define CI commands that match local checks. Do not require ESLint. |
-| [`RD-011`](tasks/RD-011.md) | TODO | Write the 14-step ProtectionState derivation into CONCEPTION, add two glossary sentence... |
-| [`RD-012`](tasks/RD-012.md) | TODO | Add only `ProxyStore.Get` and `SecretStore.Load` in `internal/application/port`, with n... |
 
 ## Done
 
 | ID | Status | Goal |
 | --- | --- | --- |
+| [`RD-012`](tasks/RD-012.md) | DONE | Add only `ProxyStore.Get` and `SecretStore.Load` in `internal/application/port`, with n... |
+| [`RD-011`](tasks/RD-011.md) | DONE | Write the 14-step ProtectionState derivation into CONCEPTION, add two glossary sentence... |
 | [`RD-010`](tasks/RD-010.md) | DONE | Add Profile and ApplicationPolicy and reject unresolved proxy ids without rewriting act... |
 | [`RD-009`](tasks/RD-009.md) | DONE | Add the three domain structs named in the domain model, with no password field and no U... |
 | [`RD-013`](tasks/RD-013.md) | DONE | Make `golangci-lint run ./...` catch unformatted Go and non-exhaustive enum switches, fix t... |

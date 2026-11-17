@@ -1,15 +1,15 @@
 # Project Status
 
-Updated: 2026-11-16 22:15 UTC
-Updated by: agent (RD-010 DONE)
+Updated: 2026-11-17 08:04 UTC
+Updated by: agent (RD-012 DONE)
 
 ## Current phase
 
-Phase 2 Domain ports — RD-010 Profile and ValidateProxyRefs DONE. Next: owner promotes RD-011 or RD-012 (only one READY at a time).
+Phase 2 Domain ports — RD-011 and RD-012 DONE. Next: owner Phase 2 exit review. Do not open RD-006 or RD-007.
 
 ## Current task
 
-RD-010
+RD-012
 
 ## State
 
@@ -29,14 +29,16 @@ DONE
 - RD-013: lint now enables the `gofmt` formatter and the `exhaustive` linter; RD-008 parsers convert once; `state.go` is `gofmt`-clean; rules in `docs/engineering/golang.md` and `.cursor/rules/golang.mdc`. Committed as `6264c28`.
 - RD-009: `Application`, `ProcessIdentity` (`MatchableNames`), `ProxyEndpoint` (`NewProxyEndpoint`), `ErrInvalidPort`, `ErrEmptyHost`. Unit tests only for public methods/constructors. Lint and tests PASS.
 - RD-010: `ApplicationPolicy`, `Profile`, `NewProfile`, `ValidateProxyRefs`, `ErrEmptyName`, `ErrUnresolvedProxy`. Lint and tests PASS.
+- RD-011: CONCEPTION 14-step derivation, Inactive/Initializing glossary rows, `DeriveProtection`, 21 table cases. Lint and tests PASS.
+- RD-012: `ProxyStore.Get` and `SecretStore.Load` in `internal/application/port`, fake assignment test. Lint and tests PASS.
 
 ## In progress
 
-- None. RD-010 DONE. Owner promotes RD-011 or RD-012 after DoR check (only one READY at a time).
+- None. RD-012 DONE. Owner reviews Phase 2 exit.
 
 ## Blockers
 
-- None for promoting RD-011 or RD-012 after their DoR checks. CONCEPTION is not edited until RD-011.
+- None. No Phase 2 exit checklist file exists. Do not open RD-006 or RD-007 without owner direction.
 
 ## Known limitations
 
@@ -65,23 +67,23 @@ DONE
 - `ValidateProxyRefs` does not check `Name` or `ID`; empty name is only a `NewProfile` error
 - Package comment in `errors.go` still says “no aggregates” after Profile was added (owner decision not to edit it)
 - Skeleton in `docs/engineering/testing.md` shows `ValidateProxyRefs` with one argument; real signature takes `known []ProxyID`
+- `DatabaseDamaged`, `!VersionKnown`, referenced `Unknown`/`Checking`, `Stopping`, `Detected`, and applied-none are in the step 2/3/4/7 conditions and have no own row
+- Exported `ProtectionFacts` can skip a constructor
+- A proxy id missing from `Proxies` does not change the protection word
 
 ## Next actions
 
-1. Open `docs/project/tasks/RD-011.md` or `docs/project/tasks/RD-012.md` and check DoR before promoting one to READY.
-2. Owner commits RD-010 when ready.
+1. Owner reviews Phase 2 exit. No checklist file exists. Do not open RD-006 or RD-007.
+2. Owner commits RD-010, RD-011, and RD-012 when ready.
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `go test ./internal/domain/...` | PASS |
-| `golangci-lint run ./...` | PASS — 0 issues. Cache write warnings only (sandbox) |
-| `go test ./...` | PASS |
-| `go list` imports for `./internal/domain/...` | PASS — `errors fmt strings` only |
-| `git status --short go.mod go.sum vendor/` | PASS — empty |
-| `gofmt -l internal/domain/` | PASS — empty |
-| `wails3 build` | NOT RUN — `main` does not import `internal/domain` |
-| macOS-only checks | NOT RUN — pure Go structs with no OS calls |
+| `go test ./internal/application/port/...` | PASS |
+| `go list` imports for `./internal/application/port/...` | PASS — `context` and `internal/domain` only |
+| `golangci-lint run ./...` | PASS — 0 issues |
+| `wails3 build` | NOT RUN — `main` does not import these packages |
+| macOS-only checks | NOT RUN — no OS calls |
 
 Environment: macOS darwin/arm64; module `github.com/macrox-pro/route-deck`; Go declared `1.26.0`; Wails v3.0.0; golangci-lint 2.15.0; ProxyBridge CLI 4.1.3 at documented paths
