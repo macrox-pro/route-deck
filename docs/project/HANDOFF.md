@@ -1,52 +1,39 @@
 # Handoff
 
-Timestamp: 2026-11-17 13:25 UTC
-Agent: agent (RD-039 HTTP CONNECT)
-Task ID: RD-039
+Timestamp: 2026-11-17 14:45 UTC
+Agent: agent (RD-044 log severity)
+Task ID: RD-044
 Branch / commit: working tree (agent MUST NOT commit)
 
 ## Done
 
-- ADR-0012 Accepted: HTTP health via CONNECT `example.com:443`
-- ADR-0008 pointer to ADR-0012
-- `proxyhealth.Checker` HTTP branch: 200→Available, 407→AuthenticationFailed, else Unavailable (nil errors)
-- Basic auth header only when username or password non-empty; request not logged
-- Table tests rewrite (replaced TCP-only `TestCheckHTTPAvailable`)
-
-## Also in this working tree (earlier loops)
-
-- RD-038 Activity JSON log + Load more (`before`, page 100)
-- RD-007 `.github/workflows/ci.yml`
+- Owner severity scale recorded in `docs/engineering/logging.md` (Info / Warn / Error)
+- Retargeted failure call sites under `internal/` and `main.go` from Info to Warn or Error
+- `service.ErrOperationInProgress` sentinel; Apply/Stop busy returns `errors.Is`
+- Apply/Stop Wails logging: Warn for busy / not installed / conflict; Error otherwise
+- Warn when Apply skipped (desired profile not set)
+- Classified ProxyBridge CLI lines stay Info (ADR-0008)
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `go test ./...` | PASS |
+| `rg 'logger\(\)\.Info\("[^"]*fail' internal/ main.go` | PASS (no hits) |
+| `go test ./internal/application/service/ ./internal/adapter/inbound/wails/ ./internal/adapter/outbound/keychain/ ./internal/adapter/outbound/proxybridge/ ./internal/adapter/inbound/tray/` | PASS |
 | `golangci-lint run ./...` | PASS (0 issues) |
-| `npm run build` (frontend/) | NOT RUN (no frontend change in RD-039) |
-| Remote GitHub Actions | NOT RUN (not pushed) |
 
 ## Exact next step
 
-Owner reviews and commits (suggested messages below). Then owner tray smoke / RD-033 SOCKS5 when ready.
+Owner: restart or refresh `wails3 dev`, trigger a known failure (e.g. Apply without desired profile), confirm Activity shows WARN (not INFO). Then commit.
 
-## Suggested commit messages
-
-```text
-show activity log pages with before cursor and load more (rd-038)
-```
+## Suggested commit message
 
 ```text
-add ci for go test, golangci-lint, and the frontend build (rd-007)
-```
-
-```text
-probe http proxies with connect and report authentication failure (rd-039)
+log operational failures as warn and infra failures as error (rd-044)
 ```
 
 ## Context to read
 
-- `AGENTS.md`
-- `docs/decisions/ADR-0012-http-connect-health.md`
-- `docs/project/tasks/RD-039.md`
+- `docs/engineering/logging.md`
+- `docs/project/tasks/RD-044.md`
+- `internal/adapter/inbound/wails/protection.go`

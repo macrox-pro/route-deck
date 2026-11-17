@@ -1,15 +1,19 @@
 import { useState } from "react";
+import { HelpCircle } from "@untitledui/icons";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
 import { ProtectionBadge } from "@/components/application/protection-badge/protection-badge";
+import { SetupChecklist } from "@/components/application/setup-guide/setup-checklist";
+import { SuggestionBanner } from "@/components/application/setup-guide/suggestion-banner";
 import { Button } from "@/components/base/buttons/button";
 import { useSnapshot } from "@/hooks/use-snapshot";
-import { ProtectionService } from "../../bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import { ProtectionService } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 
 export function DashboardPage() {
     const { data, error, loading, reload } = useSnapshot();
     const [actionError, setActionError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [operationID, setOperationID] = useState<string | null>(null);
+    const [checklistKey, setChecklistKey] = useState(0);
 
     if (loading && !data) {
         return (
@@ -55,6 +59,9 @@ export function DashboardPage() {
                     <p className="mt-1 text-sm text-tertiary">Protection state from Go. Events trigger a snapshot reload; they are not proof of Active.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                    <Button color="secondary" size="md" iconLeading={HelpCircle} href="/help">
+                        Setup guides
+                    </Button>
                     <Button color="primary" size="md" isLoading={busy} onClick={() => void onApply()}>
                         Apply
                     </Button>
@@ -73,6 +80,14 @@ export function DashboardPage() {
                 </div>
             )}
 
+            <SuggestionBanner
+                onAdded={() => {
+                    void reload();
+                    setChecklistKey((k) => k + 1);
+                }}
+            />
+            <SetupChecklist refreshKey={checklistKey} />
+
             {data?.databaseError && (
                 <div className="rounded-lg bg-warning-primary px-4 py-3 text-sm text-warning-primary ring-1 ring-warning_subtle" role="alert">
                     Database: {data.databaseError}
@@ -81,7 +96,7 @@ export function DashboardPage() {
 
             {data?.bridge === "NotInstalled" && (
                 <div className="rounded-lg bg-warning-primary px-4 py-3 text-sm text-warning-primary ring-1 ring-warning_subtle" role="status">
-                    ProxyBridge is not installed. Install the official CLI, or set a custom path in Settings.
+                    ProxyBridge is not installed. Open Setup guides → ProxyBridge for install steps, or set a custom path in Settings.
                 </div>
             )}
 

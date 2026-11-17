@@ -44,6 +44,6 @@ E11 depends on the coordinator (E08), not only on the UI shell. Tray restore of 
 
 ## Screens (after the slice)
 
-Dashboard, Applications, Proxies, Profiles, Activity, Settings, onboarding.
+Dashboard, Applications, Proxies, Profiles, Activity, Settings, Setup guides (ADR-0013), onboarding checklist.
 
 Activity v1 shows recent RouteDeck JSON log records (health/ops). It MUST NOT assume ProxyBridge prints a stable connection log.

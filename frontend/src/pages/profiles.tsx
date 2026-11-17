@@ -8,8 +8,8 @@ import {
     ProfilesService,
     ProxiesService,
     SettingsService,
-} from "../../bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
-import type { PolicyDTO, ProcessIdentityDTO, ProfileDTO, ProxyDTO } from "../../bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+} from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import type { PolicyDTO, ProcessIdentityDTO, ProfileDTO, ProxyDTO } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 
 type PolicyDraft = PolicyDTO;
 

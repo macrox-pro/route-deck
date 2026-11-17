@@ -226,7 +226,7 @@ func TestProtectionConcurrentOp(t *testing.T) {
 	}()
 	time.Sleep(20 * time.Millisecond)
 	err := p.Apply(context.Background(), "prof-1", "op-b")
-	if err == nil || err.Error() != "protection: operation in progress" {
+	if !errors.Is(err, service.ErrOperationInProgress) {
 		t.Fatalf("concurrent = %v", err)
 	}
 	close(block)

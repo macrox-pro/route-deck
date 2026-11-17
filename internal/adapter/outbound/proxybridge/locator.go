@@ -97,7 +97,7 @@ func (l *Locator) Locate(ctx context.Context, customPath string) (port.BridgeDis
 			CompatibilityWarning: warning,
 		}
 		if runErr != nil && !known {
-			l.logger().Info("bridge version probe failed", "component", "proxybridge", "path", path, "err", runErr)
+			l.logger().Warn("bridge version probe failed", "component", "proxybridge", "path", path, "err", runErr)
 		} else {
 			l.logger().Info("bridge discovered",
 				"component", "proxybridge",

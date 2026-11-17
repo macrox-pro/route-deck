@@ -42,7 +42,7 @@ func (s *Store) Load(ctx context.Context, ref domain.KeychainRef) ([]byte, error
 	}
 	data, err := keychain.GetGenericPassword(ServiceName, account, "", "")
 	if err != nil {
-		s.logger().Info("keychain load failed", "component", "keychain", "proxy_id", account, "err", err)
+		s.logger().Error("keychain load failed", "component", "keychain", "proxy_id", account, "err", err)
 		return nil, fmt.Errorf("keychain load: %w", err)
 	}
 	if data == nil {
@@ -75,7 +75,7 @@ func (s *Store) Save(ctx context.Context, ref domain.KeychainRef, secret []byte)
 		err = keychain.UpdateItem(query, update)
 	}
 	if err != nil {
-		s.logger().Info("keychain save failed", "component", "keychain", "proxy_id", account, "err", err)
+		s.logger().Error("keychain save failed", "component", "keychain", "proxy_id", account, "err", err)
 		return fmt.Errorf("keychain save: %w", err)
 	}
 	s.logger().Info("keychain save ok", "component", "keychain", "proxy_id", account)
@@ -94,7 +94,7 @@ func (s *Store) Delete(ctx context.Context, ref domain.KeychainRef) error {
 	item := keychain.NewGenericPassword(ServiceName, account, "", nil, "")
 	err := keychain.DeleteItem(item)
 	if err != nil && !errors.Is(err, keychain.ErrorItemNotFound) {
-		s.logger().Info("keychain delete failed", "component", "keychain", "proxy_id", account, "err", err)
+		s.logger().Error("keychain delete failed", "component", "keychain", "proxy_id", account, "err", err)
 		return fmt.Errorf("keychain delete: %w", err)
 	}
 	s.logger().Info("keychain delete ok", "component", "keychain", "proxy_id", account)

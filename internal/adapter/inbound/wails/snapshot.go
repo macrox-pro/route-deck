@@ -61,7 +61,7 @@ func (s *SnapshotService) Get(ctx context.Context) (SnapshotDTO, error) {
 	s.logger().Debug("snapshot get", "component", "wails.snapshot")
 	result, err := s.Reader.Snapshot(ctx)
 	if err != nil {
-		s.logger().Info("snapshot get failed", "component", "wails.snapshot", "err", err)
+		s.logger().Error("snapshot get failed", "component", "wails.snapshot", "err", err)
 		return SnapshotDTO{}, fmt.Errorf("snapshot get: %w", err)
 	}
 	return mapSnapshot(result), nil

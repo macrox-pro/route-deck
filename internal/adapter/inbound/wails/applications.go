@@ -112,7 +112,7 @@ func (s *ApplicationsService) ListInstalled(ctx context.Context) ([]InstalledApp
 	}
 	rows, err := s.Catalog.ListInstalled(ctx)
 	if err != nil {
-		s.logger().Info("list installed failed", "component", "wails.applications", "err", err)
+		s.logger().Warn("list installed failed", "component", "wails.applications", "err", err)
 		return nil, err
 	}
 	out := make([]InstalledApplicationDTO, 0, len(rows))
@@ -151,7 +151,7 @@ func (s *ApplicationsService) AddFromPath(ctx context.Context, path string) (Add
 	}
 	saved, inspected, err := s.Catalog.AddApplicationFromPath(ctx, path)
 	if err != nil {
-		s.logger().Info("add application from path failed", "component", "wails.applications", "err", err)
+		s.logger().Warn("add application from path failed", "component", "wails.applications", "err", err)
 		return AddApplicationResultDTO{}, err
 	}
 	return mapAddResult(saved, inspected), nil
@@ -182,7 +182,7 @@ func (s *ApplicationsService) PickAndAdd(ctx context.Context) (AddApplicationRes
 	}
 	saved, inspected, err := s.Catalog.AddApplicationFromPath(ctx, path)
 	if err != nil {
-		s.logger().Info("add application failed", "component", "wails.applications", "err", err)
+		s.logger().Warn("add application failed", "component", "wails.applications", "err", err)
 		return AddApplicationResultDTO{}, err
 	}
 	return mapAddResult(saved, inspected), nil
@@ -240,7 +240,7 @@ func (s *ApplicationsService) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("applications delete: %w", err)
 	}
 	if err := s.Catalog.DeleteApplication(ctx, appID); err != nil {
-		s.logger().Info("application delete failed", "component", "wails.applications", "err", err)
+		s.logger().Warn("application delete failed", "component", "wails.applications", "err", err)
 		return err
 	}
 	return nil

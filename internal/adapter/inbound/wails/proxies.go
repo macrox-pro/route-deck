@@ -118,7 +118,7 @@ func (s *ProxiesService) Save(ctx context.Context, input ProxySaveDTO) (ProxyDTO
 		}
 	}
 	if err := s.Catalog.SaveProxy(ctx, endpoint); err != nil {
-		s.logger().Info("proxy save failed", "component", "wails.proxies", "err", err)
+		s.logger().Warn("proxy save failed", "component", "wails.proxies", "err", err)
 		return ProxyDTO{}, err
 	}
 	if s.Health != nil {
@@ -151,7 +151,7 @@ func (s *ProxiesService) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("proxies delete: %w", err)
 	}
 	if err := s.Catalog.DeleteProxy(ctx, proxyID); err != nil {
-		s.logger().Info("proxy delete failed", "component", "wails.proxies", "err", err)
+		s.logger().Warn("proxy delete failed", "component", "wails.proxies", "err", err)
 		return err
 	}
 	if s.Secrets != nil {

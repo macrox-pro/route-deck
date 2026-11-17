@@ -22,6 +22,8 @@
 | Degraded | Protection is partial or a dependency is weak. Not `Active`. |
 | Unprotected | Rules are not in effect. |
 | Direct-UDP limitation | User-recorded choice to allow UDP to go direct on a non-UDP proxy. Default is `BLOCK` for that UDP. |
+| Port open | TCP dial to `127.0.0.1` on a Setup guide's documented default port succeeded. Not ProxyHealth and not ProtectionState (ADR-0013). |
+| Setup guide | English step card for ProxyBridge or a third-party VPN client that exposes a local proxy (ADR-0013). |
 
 ## Not the same
 
@@ -30,6 +32,7 @@
 | Product bundle id (`pro.macrox.routedeck`) | A value written into a rule's `processNames` field |
 | Path or code signature | CLI match fields (`processNames`) |
 | Wails event | Source of truth |
-| Open TCP port | Healthy proxy |
+| Open TCP port / Port open | Healthy proxy (`Available`) |
 | `Active` | Crash-proof kill switch |
 | Explicit `Direct` policy | Silent fallback to Direct |
+| Setup guide "Installed" | Protection or proxy health |

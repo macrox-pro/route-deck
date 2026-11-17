@@ -8,8 +8,8 @@ import { Badge } from "@/components/base/badges/badges";
 import type { BadgeColors } from "@/components/base/badges/badge-types";
 import { Button } from "@/components/base/buttons/button";
 import { cx } from "@/utils/cx";
-import { ActivityService } from "../../bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
-import type { ActivityRecordDTO } from "../../bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import { ActivityService } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import type { ActivityRecordDTO } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 
 const REFRESH_EVENTS = [
     "protection.state.changed",

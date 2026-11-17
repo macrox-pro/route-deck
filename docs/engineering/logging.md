@@ -30,6 +30,14 @@ No third-party rotation dependency.
 
 Default: Info. Settings stores a debug flag in SQLite. Changing it updates a shared `slog.LevelVar` without restart.
 
+Severity for product events (owner 2026-11-17):
+
+| Level | When |
+| --- | --- |
+| Info | Normal flow; every classified ProxyBridge CLI line (truncated) |
+| Warn | Operational / expected: cancelled, desired profile not set, operation in progress, bridge not installed, conflict, probe and user-facing validation failures |
+| Error | Unexpected infrastructure: Keychain, DB/settings/snapshot, apply/stop internal failure |
+
 ## Redaction
 
 A `ReplaceAttr` on every handler replaces attribute values whose keys are `password`, `secret`, `token`, or `profile` with `[REDACTED]`. This is defense in depth. Callers MUST NOT pass secrets or the profile body to the logger.
@@ -53,16 +61,35 @@ A `ReplaceAttr` on every handler replaces attribute values whose keys are `passw
 ### Info
 
 - Startup: app identity, DB path, log path (no secrets)
-- DB open/close failures
-- Bridge discovery result (path, version, compatibility warning)
+- Bridge discovery result (path, version, compatibility warning text as attribute)
 - Proxy health transitions (old → new)
-- Apply/Stop start and result with `operation_id`
-- Confirm and rollback outcomes
+- Apply/Stop start, confirmed, stop done with `operation_id`
+- Confirm and rollback outcomes (success path)
 - CLI exit code and classification
 - Every classified CLI line (truncated)
 - Protection state transitions
 - Wake and network-change events
-- Typed errors returned to the UI
+
+### Warn
+
+- Typed operational errors returned to the UI (validation, referenced delete, already added, cancelled)
+- Desired profile not set; operation in progress
+- Bridge not installed; GUI/CLI conflict
+- Bridge version probe failure while trying the next path
+- Proxy health check / probe failure
+- Tray Stop failure when busy
+- Open docs / open logs folder failure
+- Log path or log file unavailable (stderr-only fallback)
+- Log file close failure on shutdown
+
+### Error
+
+- Keychain load/save/delete failure
+- Database open/close or settings load failure
+- Settings/DB read failure on Apply
+- Snapshot build/get failure
+- Apply/Stop internal failure (start/confirm/rollback/process), not the operational cases above
+- Tray Quit Stop failure when the managed CLI cannot stop
 
 ### Debug
 

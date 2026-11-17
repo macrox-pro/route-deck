@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -10,6 +11,9 @@ import (
 	"github.com/macrox-pro/route-deck/internal/application/port"
 	"github.com/macrox-pro/route-deck/internal/domain"
 )
+
+// ErrOperationInProgress is returned when Apply or Stop is already running.
+var ErrOperationInProgress = errors.New("protection: operation in progress")
 
 // Protection coordinates Apply/Stop for one managed bridge process.
 type Protection struct {
@@ -45,7 +49,7 @@ func (p *Protection) Apply(ctx context.Context, profileID domain.ProfileID, oper
 	p.mu.Lock()
 	if p.busy {
 		p.mu.Unlock()
-		return fmt.Errorf("protection: operation in progress")
+		return ErrOperationInProgress
 	}
 	p.busy = true
 	previousID := p.appliedID
@@ -144,7 +148,7 @@ func (p *Protection) Stop(ctx context.Context, operationID string) error {
 	p.mu.Lock()
 	if p.busy {
 		p.mu.Unlock()
-		return fmt.Errorf("protection: operation in progress")
+		return ErrOperationInProgress
 	}
 	p.busy = true
 	p.mu.Unlock()

@@ -111,7 +111,7 @@ func (m *HealthMonitor) Recheck(ctx context.Context) error {
 		}
 		health, err := m.Checker.Check(ctx, proxy, password)
 		if err != nil {
-			m.logger().Info("proxy health check error", "component", "health", "proxy_id", string(proxy.ID), "err", err)
+			m.logger().Warn("proxy health check error", "component", "health", "proxy_id", string(proxy.ID), "err", err)
 			health = domain.ProxyHealthUnknown
 		}
 		m.mu.Lock()

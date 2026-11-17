@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Events } from "@wailsio/runtime";
-import { SnapshotService } from "../../bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
-import type { SnapshotDTO } from "../../bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import { SnapshotService } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import type { SnapshotDTO } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 
 const REFRESH_EVENTS = [
     "protection.state.changed",

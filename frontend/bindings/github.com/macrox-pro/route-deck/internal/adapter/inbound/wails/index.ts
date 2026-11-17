@@ -7,6 +7,7 @@ import * as ProfilesService from "./profilesservice.js";
 import * as ProtectionService from "./protectionservice.js";
 import * as ProxiesService from "./proxiesservice.js";
 import * as SettingsService from "./settingsservice.js";
+import * as SetupGuidesService from "./setupguidesservice.js";
 import * as SnapshotService from "./snapshotservice.js";
 export {
     ActivityService,
@@ -15,6 +16,7 @@ export {
     ProtectionService,
     ProxiesService,
     SettingsService,
+    SetupGuidesService,
     SnapshotService
 };
 
@@ -25,7 +27,11 @@ export {
     AddApplicationResultDTO,
     ApplicationDTO,
     ApplyResultDTO,
+    ChecklistDTO,
     EventEnvelope,
+    GuideDTO,
+    GuideEndpointDTO,
+    GuideStepDTO,
     HelperDTO,
     InstalledApplicationDTO,
     PolicyDTO,
@@ -33,8 +39,10 @@ export {
     ProfileDTO,
     ProfileSaveDTO,
     ProxyDTO,
+    ProxyDraftDTO,
     ProxyRowDTO,
     ProxySaveDTO,
     SettingsDTO,
-    SnapshotDTO
+    SnapshotDTO,
+    SuggestionDTO
 } from "./models.js";

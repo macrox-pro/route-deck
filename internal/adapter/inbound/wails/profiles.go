@@ -98,7 +98,7 @@ func (s *ProfilesService) Save(ctx context.Context, input ProfileSaveDTO) (Profi
 		}
 	}
 	if err := s.Catalog.SaveProfile(ctx, profile); err != nil {
-		s.logger().Info("profile save failed", "component", "wails.profiles", "err", err)
+		s.logger().Warn("profile save failed", "component", "wails.profiles", "err", err)
 		return ProfileDTO{}, err
 	}
 	if s.Protection != nil {
@@ -160,7 +160,7 @@ func (s *ProfilesService) Delete(ctx context.Context, id string) error {
 		desiredID = settings.DesiredProfileID
 	}
 	if err := s.Catalog.DeleteProfile(ctx, profileID, desiredID, appliedID); err != nil {
-		s.logger().Info("profile delete failed", "component", "wails.profiles", "err", err)
+		s.logger().Warn("profile delete failed", "component", "wails.profiles", "err", err)
 		return err
 	}
 	return nil

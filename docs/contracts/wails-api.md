@@ -17,6 +17,7 @@ MUST NOT invent methods. Read the installed module or the v3 docs before adding 
 | `ProfilesService` | `List`, `Save(ProfileSaveDTO)`, `Copy`, `Rename`, `Delete`, `SetDesired` |
 | `SettingsService` | `Get`, `SetProxyBridgePath`, `SetDebugLogging`, `SetLaunchAtLogin`, `OpenLogsFolder` |
 | `ActivityService` | `Recent(before)` — page of up to 100 JSON log records; empty `before` is newest; exclusive RFC3339 cursor loads older; returns `hasMore` and `attrs` for non-secret string fields (ADR-0011) |
+| `SetupGuidesService` | `List(refresh)`, `OpenDocs(guideID)`, `AddProxy(guideID)`, `Suggestions`, `DismissSuggestion(guideID, port)`, `Checklist` — Setup guides detection, one-click proxy add, suggestion banner, first-run checklist (ADR-0013). `List(true)` refreshes the installed-app cache. Bindings: `wails3 generate bindings -ts` |
 
 `Apply` returns an `operation_id` immediately and runs confirm asynchronously. Progress and failure use product events. The client must reload the snapshot after events; events are not proof of `Active`.
 

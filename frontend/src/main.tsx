@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/providers/theme-provider";
 import { ActivityPage } from "@/pages/activity";
 import { ApplicationsPage } from "@/pages/applications";
 import { DashboardPage } from "@/pages/dashboard";
+import { HelpPage } from "@/pages/help";
 import { ProfilesPage } from "@/pages/profiles";
 import { ProxiesPage } from "@/pages/proxies";
 import { SettingsPage } from "@/pages/settings";
@@ -25,6 +26,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                             <Route path="proxies" element={<ProxiesPage />} />
                             <Route path="profiles" element={<ProfilesPage />} />
                             <Route path="activity" element={<ActivityPage />} />
+                            <Route path="help" element={<HelpPage />} />
                             <Route path="settings" element={<SettingsPage />} />
                             <Route path="*" element={<Navigate to="/" replace />} />
                         </Route>

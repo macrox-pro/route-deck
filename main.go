@@ -48,7 +48,7 @@ func run() error {
 	if logCloser != nil {
 		defer func() {
 			if closeErr := logCloser.Close(); closeErr != nil {
-				logger.Info("log file close failed", "component", "main", "err", closeErr)
+				logger.Warn("log file close failed", "component", "main", "err", closeErr)
 			}
 		}()
 	}
@@ -82,7 +82,7 @@ func run() error {
 
 	opened, openErr := sqlite.Open(ctx, dbPath)
 	if openErr != nil {
-		logger.Info("database open failed", "component", "main", "err", openErr)
+		logger.Error("database open failed", "component", "main", "err", openErr)
 		snapshotter.DatabaseError = openErr.Error()
 		snapshotter.Proxies = unavailableProxyStore{}
 	} else {
@@ -93,7 +93,7 @@ func run() error {
 		settingsStore = store.Settings()
 		settings, settingsErr := settingsStore.Get(ctx)
 		if settingsErr != nil {
-			logger.Info("settings load failed", "component", "main", "err", settingsErr)
+			logger.Error("settings load failed", "component", "main", "err", settingsErr)
 		} else if settings.DebugLogging {
 			level.Set(slog.LevelDebug)
 		}
@@ -129,7 +129,7 @@ func run() error {
 		defer func() {
 			healthMon.Stop()
 			if err := db.Close(); err != nil {
-				logger.Info("database close failed", "component", "main", "err", err)
+				logger.Error("database close failed", "component", "main", "err", err)
 			}
 		}()
 	}
@@ -190,6 +190,23 @@ func run() error {
 		Logger:   logger,
 	}
 
+	setupGuidesApp := &service.SetupGuides{
+		Prober:  &proxyhealth.LocalPortProber{},
+		Catalog: catalog,
+		Health:  healthMon,
+		Logger:  logger,
+		Snapshot: func(c context.Context) (service.SnapshotResult, error) {
+			return live.Snapshot(c)
+		},
+	}
+	if catalog != nil {
+		setupGuidesApp.Lister = catalog.Installed
+		setupGuidesApp.Proxies = catalog.Proxies
+		setupGuidesApp.Apps = catalog.Apps
+	}
+	_ = setupGuidesApp.RefreshInstalled(ctx)
+	setupGuidesService := &wails.SetupGuidesService{Guides: setupGuidesApp, Logger: logger}
+
 	trayCtrl := &tray.Controller{
 		Snapshot: tray.Snapshotter{Snapshot: live.Snapshot},
 		Logger:   logger,
@@ -218,6 +235,7 @@ func run() error {
 			application.NewService(profilesService),
 			application.NewService(settingsService),
 			application.NewService(activityService),
+			application.NewService(setupGuidesService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -322,14 +340,14 @@ func newLogger(level *slog.LevelVar) (*slog.Logger, io.Closer, error) {
 	logPath, err := logfile.DefaultPath()
 	if err != nil {
 		fallback := slog.New(stderrHandler)
-		fallback.Info("log path unavailable; stderr only", "component", "main", "err", err)
+		fallback.Warn("log path unavailable; stderr only", "component", "main", "err", err)
 		return fallback, nil, nil
 	}
 
 	fileWriter, err := logfile.Open(logPath, logfile.Options{})
 	if err != nil {
 		fallback := slog.New(stderrHandler)
-		fallback.Info("log file unavailable; stderr only", "component", "main", "err", err)
+		fallback.Warn("log file unavailable; stderr only", "component", "main", "err", err)
 		return fallback, nil, nil
 	}
 

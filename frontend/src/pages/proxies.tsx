@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { SuggestionBanner } from "@/components/application/setup-guide/suggestion-banner";
 import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
 import { NativeSelect } from "@/components/base/select/select-native";
-import { ProxiesService } from "../../bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
-import type { ProxyDTO } from "../../bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import { ProxiesService } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import type { ProxyDTO } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+
+const guidePrefill: Record<string, { name: string; kind: string; host: string; port: string }> = {
+    singbox: { name: "sing-box local", kind: "socks5", host: "127.0.0.1", port: "" },
+    generic: { name: "Local proxy", kind: "socks5", host: "127.0.0.1", port: "" },
+};
 
 const emptyForm = {
     id: "",
@@ -16,10 +23,12 @@ const emptyForm = {
 };
 
 export function ProxiesPage() {
+    const [searchParams] = useSearchParams();
     const [rows, setRows] = useState<ProxyDTO[]>([]);
     const [form, setForm] = useState(emptyForm);
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const [guideHint, setGuideHint] = useState<string | null>(null);
 
     const reload = useCallback(async () => {
         setError(null);
@@ -33,6 +42,27 @@ export function ProxiesPage() {
     useEffect(() => {
         void reload();
     }, [reload]);
+
+    useEffect(() => {
+        const guideID = searchParams.get("guide");
+        if (!guideID) {
+            return;
+        }
+        const draft = guidePrefill[guideID];
+        if (!draft) {
+            return;
+        }
+        setForm({
+            id: "",
+            name: draft.name,
+            kind: draft.kind,
+            host: draft.host,
+            port: draft.port,
+            username: "",
+            password: "",
+        });
+        setGuideHint(`Enter the local port from your ${draft.name.replace(/ local$/i, "")} client, then save.`);
+    }, [searchParams]);
 
     const onSave = async () => {
         setBusy(true);
@@ -119,6 +149,14 @@ export function ProxiesPage() {
             {error && (
                 <div className="rounded-lg bg-error-primary px-4 py-3 text-sm text-error-primary ring-1 ring-error_subtle" role="alert">
                     {error}
+                </div>
+            )}
+
+            <SuggestionBanner onAdded={() => void reload()} />
+
+            {guideHint && (
+                <div className="rounded-lg bg-secondary px-4 py-3 text-sm text-secondary ring-1 ring-secondary" role="status">
+                    {guideHint}
                 </div>
             )}
 

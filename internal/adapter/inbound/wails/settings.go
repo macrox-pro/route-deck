@@ -119,7 +119,7 @@ func (s *SettingsService) OpenLogsFolder(ctx context.Context) error {
 	}
 	dir := filepath.Dir(logPath)
 	if err := app.Env.OpenFileManager(dir, false); err != nil {
-		s.logger().Info("open logs folder failed", "component", "wails.settings", "err", err)
+		s.logger().Warn("open logs folder failed", "component", "wails.settings", "err", err)
 		return fmt.Errorf("open logs folder: %w", err)
 	}
 	return nil

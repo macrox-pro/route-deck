@@ -218,7 +218,7 @@ func (c *Controller) onStop() {
 		return
 	}
 	if err := c.Protection.Stop(context.Background(), "tray-stop"); err != nil {
-		c.logger().Info("tray stop failed", "component", "tray", "err", err)
+		c.logger().Warn("tray stop failed", "component", "tray", "err", err)
 	}
 	c.Refresh()
 }
@@ -262,7 +262,7 @@ func (c *Controller) RequestQuit() {
 	quit.OnClick(func() {
 		if owned && c.Protection != nil {
 			if err := c.Protection.Stop(context.Background(), "tray-quit"); err != nil {
-				c.logger().Info("tray quit stop failed", "component", "tray", "err", err)
+				c.logger().Error("tray quit stop failed", "component", "tray", "err", err)
 			}
 		}
 		c.allowQuit.Store(true)

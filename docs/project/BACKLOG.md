@@ -17,11 +17,16 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 | ID | Status | Goal |
 | --- | --- | --- |
+| [`RD-044`](tasks/RD-044.md) | REVIEW | Distinguish WARN and ERROR in RouteDeck logs so Activity severity matches. |
+| [`RD-040`](tasks/RD-040.md) | REVIEW | Ship Setup guides screen with VPN-client detection and Port open facts (ADR-0013). |
+| [`RD-041`](tasks/RD-041.md) | REVIEW | One-click Add this proxy from a guide (save + Recheck); form fallback without default port. |
+| [`RD-042`](tasks/RD-042.md) | REVIEW | Suggestion banner on Dashboard/Proxies for detected open local ports. |
+| [`RD-043`](tasks/RD-043.md) | REVIEW | Dashboard first-run checklist that auto-hides when complete. |
 | [`RD-039`](tasks/RD-039.md) | REVIEW | Probe HTTP proxies with CONNECT and report AuthenticationFailed on 407. |
 | [`RD-007`](tasks/RD-007.md) | REVIEW | Add CI workflow matching local checks. Do not require ESLint. |
 | [`RD-038`](tasks/RD-038.md) | REVIEW | Show recent RouteDeck JSON log records on the Activity screen without passwords or a connection journal. |
 | [`RD-037`](tasks/RD-037.md) | REVIEW | Settings Launch at Login via Wails Autostart without auto-Apply. |
-| [`RD-033`](tasks/RD-033.md) | REVIEW | Prove on macOS with real ProxyBridge 4.1.3 that Apply reaches Active, failures stay honest, and the log file traces each scenario without secrets. |
+| [`RD-033`](tasks/RD-033.md) | REVIEW | Prove on macOS with real ProxyBridge 4.1.3 that Apply reaches Active, failures stay honest, and the log file traces each scenario without secrets. SOCKS5: Shadowrocket 127.0.0.1:1082 (TCPAvailableUDPUnavailable). Apply→Active NOT RUN pending owner UI. |
 
 ## Done
 

@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
 import { Toggle } from "@/components/base/toggle/toggle";
-import { SettingsService } from "../../bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
-import type { SettingsDTO } from "../../bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import { SettingsService } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import type { SettingsDTO } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 
 export function SettingsPage() {
     const [data, setData] = useState<SettingsDTO | null>(null);

@@ -234,6 +234,46 @@ export class ApplyResultDTO {
 }
 
 /**
+ * ChecklistDTO is the first-run checklist.
+ */
+export class ChecklistDTO {
+    "bridgeFound": boolean;
+    "proxyAvailable": boolean;
+    "applicationAdded": boolean;
+    "profileApplied": boolean;
+    "complete": boolean;
+
+    /** Creates a new ChecklistDTO instance. */
+    constructor($$source: Partial<ChecklistDTO> = {}) {
+        if (!("bridgeFound" in $$source)) {
+            this["bridgeFound"] = false;
+        }
+        if (!("proxyAvailable" in $$source)) {
+            this["proxyAvailable"] = false;
+        }
+        if (!("applicationAdded" in $$source)) {
+            this["applicationAdded"] = false;
+        }
+        if (!("profileApplied" in $$source)) {
+            this["profileApplied"] = false;
+        }
+        if (!("complete" in $$source)) {
+            this["complete"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ChecklistDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ChecklistDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ChecklistDTO($$parsedSource as Partial<ChecklistDTO>);
+    }
+}
+
+/**
  * EventEnvelope is the product event shape.
  */
 export class EventEnvelope {
@@ -266,6 +306,154 @@ export class EventEnvelope {
             $$parsedSource["payload"] = $$createField2_0($$parsedSource["payload"]);
         }
         return new EventEnvelope($$parsedSource as Partial<EventEnvelope>);
+    }
+}
+
+/**
+ * GuideDTO is one setup guide with detection.
+ */
+export class GuideDTO {
+    "id": string;
+    "title": string;
+    "kind": string;
+    "detection": string;
+    "installedPath": string;
+    "portOpen": boolean;
+    "portChecked": number;
+    "alreadyAdded": boolean;
+    "addMode": string;
+    "docsUrl": string;
+    "connectHint": boolean;
+    "steps": GuideStepDTO[];
+    "endpoints": GuideEndpointDTO[];
+
+    /** Creates a new GuideDTO instance. */
+    constructor($$source: Partial<GuideDTO> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("title" in $$source)) {
+            this["title"] = "";
+        }
+        if (!("kind" in $$source)) {
+            this["kind"] = "";
+        }
+        if (!("detection" in $$source)) {
+            this["detection"] = "";
+        }
+        if (!("installedPath" in $$source)) {
+            this["installedPath"] = "";
+        }
+        if (!("portOpen" in $$source)) {
+            this["portOpen"] = false;
+        }
+        if (!("portChecked" in $$source)) {
+            this["portChecked"] = 0;
+        }
+        if (!("alreadyAdded" in $$source)) {
+            this["alreadyAdded"] = false;
+        }
+        if (!("addMode" in $$source)) {
+            this["addMode"] = "";
+        }
+        if (!("docsUrl" in $$source)) {
+            this["docsUrl"] = "";
+        }
+        if (!("connectHint" in $$source)) {
+            this["connectHint"] = false;
+        }
+        if (!("steps" in $$source)) {
+            this["steps"] = [];
+        }
+        if (!("endpoints" in $$source)) {
+            this["endpoints"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new GuideDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): GuideDTO {
+        const $$createField11_0 = $$createType9;
+        const $$createField12_0 = $$createType11;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("steps" in $$parsedSource) {
+            $$parsedSource["steps"] = $$createField11_0($$parsedSource["steps"]);
+        }
+        if ("endpoints" in $$parsedSource) {
+            $$parsedSource["endpoints"] = $$createField12_0($$parsedSource["endpoints"]);
+        }
+        return new GuideDTO($$parsedSource as Partial<GuideDTO>);
+    }
+}
+
+/**
+ * GuideEndpointDTO is a documented local listener.
+ */
+export class GuideEndpointDTO {
+    "host": string;
+    "port": number;
+    "kind": string;
+    "note": string;
+
+    /** Creates a new GuideEndpointDTO instance. */
+    constructor($$source: Partial<GuideEndpointDTO> = {}) {
+        if (!("host" in $$source)) {
+            this["host"] = "";
+        }
+        if (!("port" in $$source)) {
+            this["port"] = 0;
+        }
+        if (!("kind" in $$source)) {
+            this["kind"] = "";
+        }
+        if (!("note" in $$source)) {
+            this["note"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new GuideEndpointDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): GuideEndpointDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new GuideEndpointDTO($$parsedSource as Partial<GuideEndpointDTO>);
+    }
+}
+
+/**
+ * GuideStepDTO is one instruction step.
+ */
+export class GuideStepDTO {
+    "title": string;
+    "body": string;
+    "warning": boolean;
+
+    /** Creates a new GuideStepDTO instance. */
+    constructor($$source: Partial<GuideStepDTO> = {}) {
+        if (!("title" in $$source)) {
+            this["title"] = "";
+        }
+        if (!("body" in $$source)) {
+            this["body"] = "";
+        }
+        if (!("warning" in $$source)) {
+            this["warning"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new GuideStepDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): GuideStepDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new GuideStepDTO($$parsedSource as Partial<GuideStepDTO>);
     }
 }
 
@@ -452,7 +640,7 @@ export class ProfileDTO {
      * Creates a new ProfileDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): ProfileDTO {
-        const $$createField2_0 = $$createType9;
+        const $$createField2_0 = $$createType13;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("policies" in $$parsedSource) {
             $$parsedSource["policies"] = $$createField2_0($$parsedSource["policies"]);
@@ -488,7 +676,7 @@ export class ProfileSaveDTO {
      * Creates a new ProfileSaveDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): ProfileSaveDTO {
-        const $$createField2_0 = $$createType9;
+        const $$createField2_0 = $$createType13;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("policies" in $$parsedSource) {
             $$parsedSource["policies"] = $$createField2_0($$parsedSource["policies"]);
@@ -542,6 +730,46 @@ export class ProxyDTO {
     static createFrom($$source: any = {}): ProxyDTO {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new ProxyDTO($$parsedSource as Partial<ProxyDTO>);
+    }
+}
+
+/**
+ * ProxyDraftDTO is returned after one-click add (no secrets).
+ */
+export class ProxyDraftDTO {
+    "id": string;
+    "name": string;
+    "kind": string;
+    "host": string;
+    "port": number;
+
+    /** Creates a new ProxyDraftDTO instance. */
+    constructor($$source: Partial<ProxyDraftDTO> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("kind" in $$source)) {
+            this["kind"] = "";
+        }
+        if (!("host" in $$source)) {
+            this["host"] = "";
+        }
+        if (!("port" in $$source)) {
+            this["port"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProxyDraftDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ProxyDraftDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProxyDraftDTO($$parsedSource as Partial<ProxyDraftDTO>);
     }
 }
 
@@ -765,12 +993,52 @@ export class SnapshotDTO {
      * Creates a new SnapshotDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): SnapshotDTO {
-        const $$createField13_0 = $$createType11;
+        const $$createField13_0 = $$createType15;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("proxies" in $$parsedSource) {
             $$parsedSource["proxies"] = $$createField13_0($$parsedSource["proxies"]);
         }
         return new SnapshotDTO($$parsedSource as Partial<SnapshotDTO>);
+    }
+}
+
+/**
+ * SuggestionDTO is a detected open local proxy banner row.
+ */
+export class SuggestionDTO {
+    "guideId": string;
+    "title": string;
+    "host": string;
+    "port": number;
+    "kind": string;
+
+    /** Creates a new SuggestionDTO instance. */
+    constructor($$source: Partial<SuggestionDTO> = {}) {
+        if (!("guideId" in $$source)) {
+            this["guideId"] = "";
+        }
+        if (!("title" in $$source)) {
+            this["title"] = "";
+        }
+        if (!("host" in $$source)) {
+            this["host"] = "";
+        }
+        if (!("port" in $$source)) {
+            this["port"] = 0;
+        }
+        if (!("kind" in $$source)) {
+            this["kind"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SuggestionDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SuggestionDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SuggestionDTO($$parsedSource as Partial<SuggestionDTO>);
     }
 }
 
@@ -783,7 +1051,11 @@ const $$createType4 = ApplicationDTO.createFrom;
 const $$createType5 = HelperDTO.createFrom;
 const $$createType6 = $Create.Array($$createType5);
 const $$createType7 = $Create.Map($Create.Any, $Create.Any);
-const $$createType8 = PolicyDTO.createFrom;
+const $$createType8 = GuideStepDTO.createFrom;
 const $$createType9 = $Create.Array($$createType8);
-const $$createType10 = ProxyRowDTO.createFrom;
+const $$createType10 = GuideEndpointDTO.createFrom;
 const $$createType11 = $Create.Array($$createType10);
+const $$createType12 = PolicyDTO.createFrom;
+const $$createType13 = $Create.Array($$createType12);
+const $$createType14 = ProxyRowDTO.createFrom;
+const $$createType15 = $Create.Array($$createType14);

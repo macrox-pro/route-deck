@@ -2,9 +2,12 @@ package wails
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 
+	"github.com/macrox-pro/route-deck/internal/application/port"
 	"github.com/macrox-pro/route-deck/internal/application/service"
 	"github.com/macrox-pro/route-deck/internal/domain"
 )
@@ -48,10 +51,11 @@ func (s *ProtectionService) Apply(ctx context.Context) (ApplyResultDTO, error) {
 	}
 	desiredID, desiredSet, err := s.Settings.Get(ctx)
 	if err != nil {
-		s.logger().Info("apply settings failed", "component", "wails.protection", "err", err)
+		s.logger().Error("apply settings failed", "component", "wails.protection", "err", err)
 		return ApplyResultDTO{}, fmt.Errorf("protection apply: %w", err)
 	}
 	if !desiredSet || desiredID == "" {
+		s.logger().Warn("apply skipped: desired profile not set", "component", "wails.protection")
 		return ApplyResultDTO{}, fmt.Errorf("protection apply: desired profile not set")
 	}
 	opID, err := s.newOperationID()
@@ -66,7 +70,7 @@ func (s *ProtectionService) Apply(ctx context.Context) (ApplyResultDTO, error) {
 	go func() {
 		applyCtx := context.Background()
 		if err := s.Coordinator.Apply(applyCtx, desiredID, opID); err != nil {
-			s.logger().Info("apply failed", "component", "wails.protection", "operation_id", opID, "err", err)
+			logProtectionFailure(s.logger(), "apply failed", opID, err)
 			emit(s.Emit, EventOperationFailed, map[string]any{
 				"operation_id": opID,
 				"error":        err.Error(),
@@ -99,7 +103,7 @@ func (s *ProtectionService) Stop(ctx context.Context) (ApplyResultDTO, error) {
 		"phase":        "stop_start",
 	})
 	if err := s.Coordinator.Stop(ctx, opID); err != nil {
-		s.logger().Info("stop failed", "component", "wails.protection", "operation_id", opID, "err", err)
+		logProtectionFailure(s.logger(), "stop failed", opID, err)
 		emit(s.Emit, EventOperationFailed, map[string]any{
 			"operation_id": opID,
 			"error":        err.Error(),
@@ -124,4 +128,30 @@ func (s *ProtectionService) newOperationID() (string, error) {
 		return s.NewID()
 	}
 	return service.NewID()
+}
+
+func logProtectionFailure(logger *slog.Logger, msg, operationID string, err error) {
+	attrs := []any{"component", "wails.protection", "operation_id", operationID, "err", err}
+	if isOperationalProtectionErr(err) {
+		logger.Warn(msg, attrs...)
+		return
+	}
+	logger.Error(msg, attrs...)
+}
+
+func isOperationalProtectionErr(err error) bool {
+	if errors.Is(err, service.ErrOperationInProgress) {
+		return true
+	}
+	msg := err.Error()
+	if strings.Contains(msg, "proxybridge not installed") {
+		return true
+	}
+	if strings.Contains(msg, string(port.BridgeLineGUIConflict)) {
+		return true
+	}
+	if strings.Contains(msg, string(port.BridgeLineAnotherCLI)) {
+		return true
+	}
+	return false
 }
