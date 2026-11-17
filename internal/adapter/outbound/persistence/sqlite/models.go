@@ -4,7 +4,7 @@ package sqlite
 type applicationModel struct {
 	ID          string `gorm:"column:id;primaryKey"`
 	DisplayName string `gorm:"column:display_name;not null"`
-	BundleID    string `gorm:"column:bundle_id;not null"`
+	BundleID    string `gorm:"column:bundle_id;not null;uniqueIndex"`
 	IconRef     string `gorm:"column:icon_ref;not null"`
 }
 
@@ -30,6 +30,7 @@ type proxyModel struct {
 	Kind        string `gorm:"column:kind;not null"`
 	Host        string `gorm:"column:host;not null"`
 	Port        int    `gorm:"column:port;not null"`
+	Username    string `gorm:"column:username;not null"`
 	KeychainRef string `gorm:"column:keychain_ref;not null"`
 	SendDomain  bool   `gorm:"column:send_domain;not null"`
 }
@@ -39,20 +40,33 @@ func (proxyModel) TableName() string { return "proxies" }
 // profileModel maps domain.Profile.
 type profileModel struct {
 	ID   string `gorm:"column:id;primaryKey"`
-	Name string `gorm:"column:name;not null"`
+	Name string `gorm:"column:name;not null;uniqueIndex"`
 }
 
 func (profileModel) TableName() string { return "profiles" }
 
 // applicationPolicyModel maps one ApplicationPolicy inside a profile.
 type applicationPolicyModel struct {
-	ProfileID  string               `gorm:"column:profile_id;primaryKey"`
-	ProcessID  string               `gorm:"column:process_id;primaryKey"`
-	ActionKind string               `gorm:"column:action_kind;not null"`
-	ProxyID    *string              `gorm:"column:proxy_id"`
-	Profile    profileModel         `gorm:"foreignKey:ProfileID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Process    processIdentityModel `gorm:"foreignKey:ProcessID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Proxy      *proxyModel          `gorm:"foreignKey:ProxyID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ProfileID     string               `gorm:"column:profile_id;primaryKey"`
+	ProcessID     string               `gorm:"column:process_id;primaryKey"`
+	ActionKind    string               `gorm:"column:action_kind;not null"`
+	ProxyID       *string              `gorm:"column:proxy_id"`
+	ProtocolScope string               `gorm:"column:protocol_scope;not null"`
+	UDPLimitation string               `gorm:"column:udp_limitation;not null"`
+	Profile       profileModel         `gorm:"foreignKey:ProfileID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Process       processIdentityModel `gorm:"foreignKey:ProcessID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Proxy         *proxyModel          `gorm:"foreignKey:ProxyID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 func (applicationPolicyModel) TableName() string { return "application_policies" }
+
+// settingsModel is a single-row settings table (id always 1).
+type settingsModel struct {
+	ID               int    `gorm:"column:id;primaryKey"`
+	DesiredProfileID string `gorm:"column:desired_profile_id;not null"`
+	DesiredSet       bool   `gorm:"column:desired_set;not null"`
+	ProxyBridgePath  string `gorm:"column:proxybridge_path;not null"`
+	DebugLogging     bool   `gorm:"column:debug_logging;not null"`
+}
+
+func (settingsModel) TableName() string { return "settings" }

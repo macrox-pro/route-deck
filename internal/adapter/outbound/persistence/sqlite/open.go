@@ -60,14 +60,14 @@ func Open(ctx context.Context, path string) (*DB, error) {
 		}
 	}
 
-	// AutoMigrate known catalog models only:
-	// applicationModel, processIdentityModel, proxyModel, profileModel, applicationPolicyModel.
+	// AutoMigrate known catalog models only.
 	if err := gormDB.WithContext(ctx).AutoMigrate(
 		&applicationModel{},
 		&processIdentityModel{},
 		&proxyModel{},
 		&profileModel{},
 		&applicationPolicyModel{},
+		&settingsModel{},
 	); err != nil {
 		_ = sqlDB.Close()
 		return nil, fmt.Errorf("sqlite automigrate: %w", err)

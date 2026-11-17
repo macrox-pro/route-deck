@@ -23,7 +23,7 @@ Each product event payload MUST include:
 
 `connection.observed` is not a v1 event. Activity shows RouteDeck events and health, not a parsed CLI connection stream.
 
-The scaffold event `time` was removed with RD-016. Product events above are not emitted yet.
+The scaffold event `time` was removed with RD-016. Product events are emitted from `main.go` / Protection and Proxies Wails services (RD-029+) with `EventEnvelope{schema,timestamp,payload}`.
 
 ## Rules
 

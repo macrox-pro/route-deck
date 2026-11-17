@@ -15,6 +15,8 @@ MUST NOT log:
 - Keychain item data
 - packet payloads
 
+Structured logging destinations, levels, redaction, and stable attribute keys: `docs/engineering/logging.md` (ADR-0008).
+
 ## Export
 
 Default export strips `password`. Putting secrets in an export requires an explicit user action in a future task. That task is not approved yet.

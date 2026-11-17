@@ -26,3 +26,21 @@ var ErrEmptyName = errors.New("empty name")
 
 // ErrUnsetAction is returned when a RoutingAction is the zero value.
 var ErrUnsetAction = errors.New("unset routing action")
+
+// ErrUnsetScope is returned when a Proxy policy has no protocol scope.
+var ErrUnsetScope = errors.New("unset protocol scope")
+
+// ErrUnknownProtocolScope is returned when a protocol scope token is unknown.
+var ErrUnknownProtocolScope = errors.New("unknown protocol scope")
+
+// ErrUnknownUDPLimitation is returned when a UDP limitation token is unknown.
+var ErrUnknownUDPLimitation = errors.New("unknown udp limitation")
+
+// ErrReferenced is returned when deleting an entity that a profile still references.
+var ErrReferenced = errors.New("entity is referenced")
+
+// ErrDuplicateBundleID is returned when an application bundle id already exists.
+var ErrDuplicateBundleID = errors.New("duplicate bundle id")
+
+// ErrDuplicateProfileName is returned when a profile name already exists.
+var ErrDuplicateProfileName = errors.New("duplicate profile name")

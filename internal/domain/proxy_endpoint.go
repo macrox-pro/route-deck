@@ -9,13 +9,20 @@ type ProxyEndpoint struct {
 	Kind        ProxyKind
 	Host        string
 	Port        int
+	Username    string
 	KeychainRef KeychainRef
 	SendDomain  bool
 }
 
-// NewProxyEndpoint returns a ProxyEndpoint with SendDomain true.
+// NewProxyEndpoint returns a ProxyEndpoint with SendDomain true and an empty username.
 // Empty host returns ErrEmptyHost. Port outside 1–65535 returns ErrInvalidPort.
 func NewProxyEndpoint(id ProxyID, name string, kind ProxyKind, host string, port int, ref KeychainRef) (ProxyEndpoint, error) {
+	return NewProxyEndpointWithUsername(id, name, kind, host, port, "", ref)
+}
+
+// NewProxyEndpointWithUsername returns a ProxyEndpoint with SendDomain true.
+// Empty host returns ErrEmptyHost. Port outside 1–65535 returns ErrInvalidPort.
+func NewProxyEndpointWithUsername(id ProxyID, name string, kind ProxyKind, host string, port int, username string, ref KeychainRef) (ProxyEndpoint, error) {
 	if host == "" {
 		return ProxyEndpoint{}, fmt.Errorf("new proxy endpoint: %w", ErrEmptyHost)
 	}
@@ -28,6 +35,7 @@ func NewProxyEndpoint(id ProxyID, name string, kind ProxyKind, host string, port
 		Kind:        kind,
 		Host:        host,
 		Port:        port,
+		Username:    username,
 		KeychainRef: ref,
 		SendDomain:  true,
 	}, nil

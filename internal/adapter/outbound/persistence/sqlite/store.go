@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/macrox-pro/route-deck/internal/application/port"
 	"github.com/macrox-pro/route-deck/internal/domain"
@@ -60,11 +61,32 @@ func (s *Store) Save(ctx context.Context, endpoint domain.ProxyEndpoint) error {
 		Kind:        string(endpoint.Kind),
 		Host:        endpoint.Host,
 		Port:        endpoint.Port,
+		Username:    endpoint.Username,
 		KeychainRef: string(endpoint.KeychainRef),
 		SendDomain:  endpoint.SendDomain,
 	}
 	if err := s.db.WithContext(ctx).Save(&row).Error; err != nil {
 		return fmt.Errorf("proxy save: %w", err)
+	}
+	return nil
+}
+
+// Delete removes a proxy by id when no policy references it.
+func (s *Store) Delete(ctx context.Context, id domain.ProxyID) error {
+	var count int64
+	if err := s.db.WithContext(ctx).Model(&applicationPolicyModel{}).
+		Where("proxy_id = ?", string(id)).Count(&count).Error; err != nil {
+		return fmt.Errorf("proxy delete: %w", err)
+	}
+	if count > 0 {
+		return fmt.Errorf("proxy delete: %w", domain.ErrReferenced)
+	}
+	res := s.db.WithContext(ctx).Where("id = ?", string(id)).Delete(&proxyModel{})
+	if res.Error != nil {
+		return fmt.Errorf("proxy delete: %w", res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return fmt.Errorf("proxy delete: %w", ErrNotFound)
 	}
 	return nil
 }
@@ -97,6 +119,14 @@ func (s *Store) ListApplications(ctx context.Context) ([]domain.Application, err
 
 // SaveApplication upserts an application.
 func (s *Store) SaveApplication(ctx context.Context, app domain.Application) error {
+	var existing applicationModel
+	err := s.db.WithContext(ctx).Where("bundle_id = ? AND id <> ?", app.BundleID, string(app.ID)).First(&existing).Error
+	if err == nil {
+		return fmt.Errorf("application save: %w", domain.ErrDuplicateBundleID)
+	}
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("application save: %w", err)
+	}
 	row := applicationModel{
 		ID:          string(app.ID),
 		DisplayName: app.DisplayName,
@@ -104,7 +134,7 @@ func (s *Store) SaveApplication(ctx context.Context, app domain.Application) err
 		IconRef:     app.IconRef,
 	}
 	if err := s.db.WithContext(ctx).Save(&row).Error; err != nil {
-		return fmt.Errorf("application save: %w", err)
+		return fmt.Errorf("application save: %w", mapUniqueError(err, domain.ErrDuplicateBundleID))
 	}
 	return nil
 }
@@ -192,10 +222,18 @@ func (s *Store) SaveProfile(ctx context.Context, profile domain.Profile) error {
 			return fmt.Errorf("profile save: %w", domain.ErrUnsetAction)
 		}
 	}
+	var existing profileModel
+	err := s.db.WithContext(ctx).Where("name = ? AND id <> ?", profile.Name, string(profile.ID)).First(&existing).Error
+	if err == nil {
+		return fmt.Errorf("profile save: %w", domain.ErrDuplicateProfileName)
+	}
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("profile save: %w", err)
+	}
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		row := profileModel{ID: string(profile.ID), Name: profile.Name}
 		if err := tx.Save(&row).Error; err != nil {
-			return fmt.Errorf("profile save: %w", err)
+			return fmt.Errorf("profile save: %w", mapUniqueError(err, domain.ErrDuplicateProfileName))
 		}
 		if err := tx.Where("profile_id = ?", string(profile.ID)).Delete(&applicationPolicyModel{}).Error; err != nil {
 			return fmt.Errorf("profile save delete policies: %w", err)
@@ -244,6 +282,36 @@ func (a applicationStore) List(ctx context.Context) ([]domain.Application, error
 func (a applicationStore) Save(ctx context.Context, app domain.Application) error {
 	return a.SaveApplication(ctx, app)
 }
+func (a applicationStore) Delete(ctx context.Context, id domain.ApplicationID) error {
+	var processIDs []string
+	if err := a.db.WithContext(ctx).Model(&processIdentityModel{}).
+		Where("application_id = ?", string(id)).Pluck("id", &processIDs).Error; err != nil {
+		return fmt.Errorf("application delete: %w", err)
+	}
+	if len(processIDs) > 0 {
+		var count int64
+		if err := a.db.WithContext(ctx).Model(&applicationPolicyModel{}).
+			Where("process_id IN ?", processIDs).Count(&count).Error; err != nil {
+			return fmt.Errorf("application delete: %w", err)
+		}
+		if count > 0 {
+			return fmt.Errorf("application delete: %w", domain.ErrReferenced)
+		}
+	}
+	return a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("application_id = ?", string(id)).Delete(&processIdentityModel{}).Error; err != nil {
+			return fmt.Errorf("application delete processes: %w", err)
+		}
+		res := tx.Where("id = ?", string(id)).Delete(&applicationModel{})
+		if res.Error != nil {
+			return fmt.Errorf("application delete: %w", res.Error)
+		}
+		if res.RowsAffected == 0 {
+			return fmt.Errorf("application delete: %w", ErrNotFound)
+		}
+		return nil
+	})
+}
 
 // processStore adapts Store to port.ProcessIdentityStore.
 type processStore struct{ *Store }
@@ -257,6 +325,16 @@ func (p processStore) List(ctx context.Context) ([]domain.ProcessIdentity, error
 func (p processStore) Save(ctx context.Context, identity domain.ProcessIdentity) error {
 	return p.SaveProcessIdentity(ctx, identity)
 }
+func (p processStore) Delete(ctx context.Context, id domain.ProcessIdentityID) error {
+	res := p.db.WithContext(ctx).Where("id = ?", string(id)).Delete(&processIdentityModel{})
+	if res.Error != nil {
+		return fmt.Errorf("process identity delete: %w", res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return fmt.Errorf("process identity delete: %w", ErrNotFound)
+	}
+	return nil
+}
 
 // profileStore adapts Store to port.ProfileStore.
 type profileStore struct{ *Store }
@@ -269,6 +347,21 @@ func (p profileStore) List(ctx context.Context) ([]domain.Profile, error) {
 }
 func (p profileStore) Save(ctx context.Context, profile domain.Profile) error {
 	return p.SaveProfile(ctx, profile)
+}
+func (p profileStore) Delete(ctx context.Context, id domain.ProfileID) error {
+	return p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("profile_id = ?", string(id)).Delete(&applicationPolicyModel{}).Error; err != nil {
+			return fmt.Errorf("profile delete policies: %w", err)
+		}
+		res := tx.Where("id = ?", string(id)).Delete(&profileModel{})
+		if res.Error != nil {
+			return fmt.Errorf("profile delete: %w", res.Error)
+		}
+		if res.RowsAffected == 0 {
+			return fmt.Errorf("profile delete: %w", ErrNotFound)
+		}
+		return nil
+	})
 }
 
 // Applications returns the ApplicationStore view of this Store.
@@ -305,12 +398,13 @@ func proxyToDomain(row proxyModel) (domain.ProxyEndpoint, error) {
 	if err != nil {
 		return domain.ProxyEndpoint{}, fmt.Errorf("proxy map: %w", err)
 	}
-	endpoint, err := domain.NewProxyEndpoint(
+	endpoint, err := domain.NewProxyEndpointWithUsername(
 		domain.ProxyID(row.ID),
 		row.Name,
 		kind,
 		row.Host,
 		row.Port,
+		row.Username,
 		domain.KeychainRef(row.KeychainRef),
 	)
 	if err != nil {
@@ -324,9 +418,15 @@ func policyToModel(profileID domain.ProfileID, policy domain.ApplicationPolicy) 
 	if !policy.Action.IsSet() {
 		return applicationPolicyModel{}, fmt.Errorf("policy map: %w", domain.ErrUnsetAction)
 	}
+	limitation := policy.UDPLimitation
+	if limitation == "" {
+		limitation = domain.UDPLimitationAbsent
+	}
 	row := applicationPolicyModel{
-		ProfileID: string(profileID),
-		ProcessID: string(policy.ProcessID),
+		ProfileID:     string(profileID),
+		ProcessID:     string(policy.ProcessID),
+		ProtocolScope: string(policy.ProtocolScope),
+		UDPLimitation: string(limitation),
 	}
 	if policy.Action.IsDirect() {
 		row.ActionKind = "direct"
@@ -365,8 +465,72 @@ func policyToDomain(row applicationPolicyModel) (domain.ApplicationPolicy, error
 	default:
 		return domain.ApplicationPolicy{}, fmt.Errorf("policy map: unknown action kind %q", row.ActionKind)
 	}
+	limitation := domain.UDPLimitation(row.UDPLimitation)
+	if limitation == "" {
+		limitation = domain.UDPLimitationAbsent
+	}
 	return domain.ApplicationPolicy{
-		ProcessID: domain.ProcessIdentityID(row.ProcessID),
-		Action:    action,
+		ProcessID:     domain.ProcessIdentityID(row.ProcessID),
+		Action:        action,
+		ProtocolScope: domain.ProtocolScope(row.ProtocolScope),
+		UDPLimitation: limitation,
 	}, nil
 }
+
+func mapUniqueError(err error, sentinel error) error {
+	if err == nil {
+		return nil
+	}
+	if strings.Contains(strings.ToUpper(err.Error()), "UNIQUE") {
+		return sentinel
+	}
+	return err
+}
+
+// GetSettings loads the single settings row (defaults when missing).
+func (s *Store) GetSettings(ctx context.Context) (port.Settings, error) {
+	var row settingsModel
+	err := s.db.WithContext(ctx).Where("id = ?", 1).First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return port.Settings{}, nil
+	}
+	if err != nil {
+		return port.Settings{}, fmt.Errorf("settings get: %w", err)
+	}
+	return port.Settings{
+		DesiredProfileID: domain.ProfileID(row.DesiredProfileID),
+		DesiredSet:       row.DesiredSet,
+		ProxyBridgePath:  row.ProxyBridgePath,
+		DebugLogging:     row.DebugLogging,
+	}, nil
+}
+
+// SaveSettings upserts the single settings row.
+func (s *Store) SaveSettings(ctx context.Context, settings port.Settings) error {
+	row := settingsModel{
+		ID:               1,
+		DesiredProfileID: string(settings.DesiredProfileID),
+		DesiredSet:       settings.DesiredSet,
+		ProxyBridgePath:  settings.ProxyBridgePath,
+		DebugLogging:     settings.DebugLogging,
+	}
+	if err := s.db.WithContext(ctx).Save(&row).Error; err != nil {
+		return fmt.Errorf("settings save: %w", err)
+	}
+	return nil
+}
+
+type settingsStore struct{ *Store }
+
+func (s settingsStore) Get(ctx context.Context) (port.Settings, error) {
+	return s.GetSettings(ctx)
+}
+
+func (s settingsStore) Save(ctx context.Context, settings port.Settings) error {
+	return s.SaveSettings(ctx, settings)
+}
+
+// Settings returns the SettingsStore view of this Store.
+func (s *Store) Settings() port.SettingsStore { return settingsStore{s} }
+
+var _ port.SettingsStore = settingsStore{}

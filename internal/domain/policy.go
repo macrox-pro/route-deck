@@ -90,3 +90,25 @@ func ParseProxyKind(s string) (ProxyKind, error) {
 		return "", fmt.Errorf("parse proxy kind %q: %w", s, ErrUnknownProxyKind)
 	}
 }
+
+// ParseProtocolScope returns a ProtocolScope for TCP, UDP, or BOTH.
+func ParseProtocolScope(s string) (ProtocolScope, error) {
+	scope := ProtocolScope(s)
+	switch scope {
+	case ProtocolScopeTCP, ProtocolScopeUDP, ProtocolScopeBOTH:
+		return scope, nil
+	default:
+		return "", fmt.Errorf("parse protocol scope %q: %w", s, ErrUnknownProtocolScope)
+	}
+}
+
+// ParseUDPLimitation returns a UDPLimitation for Absent or DirectUDP.
+func ParseUDPLimitation(s string) (UDPLimitation, error) {
+	limitation := UDPLimitation(s)
+	switch limitation {
+	case UDPLimitationAbsent, UDPLimitationDirectUDP:
+		return limitation, nil
+	default:
+		return "", fmt.Errorf("parse udp limitation %q: %w", s, ErrUnknownUDPLimitation)
+	}
+}

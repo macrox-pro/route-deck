@@ -8,9 +8,9 @@ Types below are conceptual. Implement them only in a READY task. Names are norma
 | --- | --- |
 | Application | User-facing app entry (display name, bundle id, icon ref) |
 | ProcessIdentity | Bundle id, executable name, path, and signing hints. Bundle id and executable name may be written into `processNames` |
-| ProxyEndpoint | Global proxy: type `socks5` or `http`, host, port, Keychain ref for the password, `sendDomain` |
-| Profile | Named set of rules. References proxy IDs. At most one profile is applied |
-| ApplicationPolicy | Policy for one process identity inside a profile: `Proxy`, `Direct`, or `Block` |
+| ProxyEndpoint | Global proxy: type `socks5` or `http`, host, port, optional username (SQLite), Keychain ref for the password, `sendDomain` |
+| Profile | Named set of rules. References proxy IDs. At most one profile is applied. Profile names are unique |
+| ApplicationPolicy | Policy for one process identity inside a profile: `Proxy`, `Direct`, or `Block`, plus `ProtocolScope` and `UDPLimitation`. A Proxy action requires a non-empty scope |
 | RoutingAction | `PROXY` (proxy id), `DIRECT`, or `BLOCK` |
 | ProtocolScope | `TCP`, `UDP`, or `BOTH` |
 | ProtectionSnapshot | Point-in-time BridgeState, per-proxy ProxyHealth, aggregate ProtectionState, coverage gaps |
@@ -32,6 +32,9 @@ Helper processes are not added to a rule until the user confirms them.
 - `ProtectionState.Active` requires bridge ready, profile confirmed, refs valid, and every protected app covered for required protocols.
 - Desired and applied may differ. UI shows both when they differ.
 - Passwords are not fields on the domain aggregate that get persisted. Store a Keychain reference.
+- Deleting a proxy or application that any profile references returns `ErrReferenced`.
+- Duplicate application bundle ids return `ErrDuplicateBundleID`. Duplicate profile names return `ErrDuplicateProfileName`.
+- Protocol outside a Proxy policy's scope compiles to `BLOCK` (covered). HTTP+UDP uses `BLOCK` or `DIRECT` per `UDPLimitation`; UDP is not covered either way (ADR-0008).
 
 ## Apply failure
 

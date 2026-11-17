@@ -6,11 +6,24 @@ MUST NOT invent methods. Read the installed module or the v3 docs before adding 
 
 ## Current product surface
 
-`main.go` registers `SnapshotService` with `Get(ctx) (SnapshotDTO, error)`. The Wails greeter template and `time` event are removed (RD-016).
+`main.go` registers these inbound services (RD-029 / RD-030). `ApplicationShouldTerminateAfterLastWindowClosed` remains `true` until the tray phase.
 
-`ApplicationShouldTerminateAfterLastWindowClosed` is `true`. The tray phase sets it to `false`. Do not change it until that task is READY.
+| Service | Methods |
+| --- | --- |
+| `SnapshotService` | `Get(ctx) (SnapshotDTO, error)` |
+| `ProtectionService` | `Apply(ctx) (ApplyResultDTO, error)`, `Stop(ctx) (ApplyResultDTO, error)` |
+| `ProxiesService` | `List`, `Save(ProxySaveDTO)`, `Delete(id)`, `ClearPassword(id)`, `Recheck` |
+| `ApplicationsService` | `List`, `ListInstalled`, `Icon(path)`, `AddFromPath(path)`, `ListProcessIdentities`, `PickAndAdd`, `ConfirmHelpers`, `Delete` |
+| `ProfilesService` | `List`, `Save(ProfileSaveDTO)`, `Copy`, `Rename`, `Delete`, `SetDesired` |
+| `SettingsService` | `Get`, `SetProxyBridgePath`, `SetDebugLogging`, `OpenLogsFolder` |
 
-## Target shape
+`Apply` returns an `operation_id` immediately and runs confirm asynchronously. Progress and failure use product events. The client must reload the snapshot after events; events are not proof of `Active`.
+
+Empty `password` on `ProxiesService.Save` for an existing id keeps the Keychain secret. Clearing a password is a separate `ClearPassword` call.
+
+`ApplicationsService.PickAndAdd` uses Wails `Dialog.OpenFile()` (verified in v3.0.0). `SettingsService.OpenLogsFolder` uses `Env.OpenFileManager` (verified in v3.0.0).
+
+## Pattern
 
 Wails services are inbound adapters:
 
@@ -21,23 +34,13 @@ Wails services are inbound adapters:
 
 They MUST NOT open GORM and MUST NOT call `exec.Command`.
 
-Long operations return an `operation_id`. Progress and failure use events. A successful call is not proof that routing works. The client loads a snapshot after the call.
-
-## Target services (names fixed, methods not invented)
-
-| Service | Responsibility |
-| --- | --- |
-| Snapshot | Return bridge, proxy health, protection, desired vs applied |
-| Proxies | CRUD for the global proxy catalog (password via Keychain port) |
-| Applications | List and select apps, helper confirmation |
-| Profiles | Create, copy, switch desired profile |
-| Protection | Apply and stop, returning the confirmed snapshot |
-
-Method signatures are specified in the READY task that adds them, after checking Wails v3 service binding rules. This file does not list fake signatures.
-
 ## Types
 
-Generated bindings are the TypeScript source for these DTOs. Hand-written duplicates are forbidden. Domain types and GORM models are not the DTO.
+Generated bindings under `frontend/bindings/.../inbound/wails/` are the TypeScript source for these DTOs. Hand-written duplicates are forbidden. Domain types and GORM models are not the DTO.
+
+`InstalledApplicationDTO` includes `isSystem` from the platform lister (ADR-0009). The UI filters with that flag; it MUST NOT hard-code OS paths.
+
+`SettingsDTO.discoveredProxyBridgePath` is filled by the application Settings use case via `BridgeLocator.Locate("")` (platform `PlatformPaths` only). The UI uses it as the ProxyBridge path placeholder and MUST NOT hard-code install locations.
 
 ## Errors
 

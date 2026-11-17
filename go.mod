@@ -3,9 +3,11 @@ module github.com/macrox-pro/route-deck
 go 1.26.0
 
 require (
+	github.com/keybase/go-keychain v0.0.1
 	github.com/wailsapp/wails/v3 v3.0.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.2
+	howett.net/plist v1.0.2-0.20250314012144-ee69052608d9
 )
 
 require (

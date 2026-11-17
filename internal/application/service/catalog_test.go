@@ -49,6 +49,14 @@ func (m *memProxyStore) Save(ctx context.Context, endpoint domain.ProxyEndpoint)
 	return nil
 }
 
+func (m *memProxyStore) Delete(ctx context.Context, id domain.ProxyID) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	delete(m.byID, id)
+	return nil
+}
+
 type memProfileStore struct {
 	byID  map[domain.ProfileID]domain.Profile
 	saved int
@@ -88,6 +96,14 @@ func (m *memProfileStore) Save(ctx context.Context, profile domain.Profile) erro
 	return nil
 }
 
+func (m *memProfileStore) Delete(ctx context.Context, id domain.ProfileID) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	delete(m.byID, id)
+	return nil
+}
+
 type noopAppStore struct{}
 
 func (noopAppStore) Get(context.Context, domain.ApplicationID) (domain.Application, error) {
@@ -95,6 +111,7 @@ func (noopAppStore) Get(context.Context, domain.ApplicationID) (domain.Applicati
 }
 func (noopAppStore) List(context.Context) ([]domain.Application, error) { return nil, nil }
 func (noopAppStore) Save(context.Context, domain.Application) error     { return nil }
+func (noopAppStore) Delete(context.Context, domain.ApplicationID) error { return nil }
 
 type noopProcessStore struct{}
 
@@ -103,6 +120,9 @@ func (noopProcessStore) Get(context.Context, domain.ProcessIdentityID) (domain.P
 }
 func (noopProcessStore) List(context.Context) ([]domain.ProcessIdentity, error) { return nil, nil }
 func (noopProcessStore) Save(context.Context, domain.ProcessIdentity) error     { return nil }
+func (noopProcessStore) Delete(context.Context, domain.ProcessIdentityID) error {
+	return nil
+}
 
 func TestSaveProfileRejectsUnresolvedAndUnset(t *testing.T) {
 	proxies := &memProxyStore{byID: map[domain.ProxyID]domain.ProxyEndpoint{}}

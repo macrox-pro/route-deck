@@ -6,6 +6,410 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
+ * AddApplicationResultDTO is returned after picking an app.
+ */
+export class AddApplicationResultDTO {
+    "application": ApplicationDTO;
+    "helpers": HelperDTO[];
+
+    /** Creates a new AddApplicationResultDTO instance. */
+    constructor($$source: Partial<AddApplicationResultDTO> = {}) {
+        if (!("application" in $$source)) {
+            this["application"] = (new ApplicationDTO());
+        }
+        if (!("helpers" in $$source)) {
+            this["helpers"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AddApplicationResultDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AddApplicationResultDTO {
+        const $$createField0_0 = $$createType0;
+        const $$createField1_0 = $$createType2;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("application" in $$parsedSource) {
+            $$parsedSource["application"] = $$createField0_0($$parsedSource["application"]);
+        }
+        if ("helpers" in $$parsedSource) {
+            $$parsedSource["helpers"] = $$createField1_0($$parsedSource["helpers"]);
+        }
+        return new AddApplicationResultDTO($$parsedSource as Partial<AddApplicationResultDTO>);
+    }
+}
+
+/**
+ * ApplicationDTO is one catalog application.
+ */
+export class ApplicationDTO {
+    "id": string;
+    "displayName": string;
+    "bundleId": string;
+
+    /** Creates a new ApplicationDTO instance. */
+    constructor($$source: Partial<ApplicationDTO> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("displayName" in $$source)) {
+            this["displayName"] = "";
+        }
+        if (!("bundleId" in $$source)) {
+            this["bundleId"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ApplicationDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ApplicationDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ApplicationDTO($$parsedSource as Partial<ApplicationDTO>);
+    }
+}
+
+/**
+ * ApplyResultDTO is returned immediately; confirmation arrives via events + snapshot.
+ */
+export class ApplyResultDTO {
+    "operationId": string;
+
+    /** Creates a new ApplyResultDTO instance. */
+    constructor($$source: Partial<ApplyResultDTO> = {}) {
+        if (!("operationId" in $$source)) {
+            this["operationId"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ApplyResultDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ApplyResultDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ApplyResultDTO($$parsedSource as Partial<ApplyResultDTO>);
+    }
+}
+
+/**
+ * EventEnvelope is the product event shape.
+ */
+export class EventEnvelope {
+    "schema": number;
+    "timestamp": string;
+    "payload": { [_ in string]?: any };
+
+    /** Creates a new EventEnvelope instance. */
+    constructor($$source: Partial<EventEnvelope> = {}) {
+        if (!("schema" in $$source)) {
+            this["schema"] = 0;
+        }
+        if (!("timestamp" in $$source)) {
+            this["timestamp"] = "";
+        }
+        if (!("payload" in $$source)) {
+            this["payload"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new EventEnvelope instance from a string or object.
+     */
+    static createFrom($$source: any = {}): EventEnvelope {
+        const $$createField2_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("payload" in $$parsedSource) {
+            $$parsedSource["payload"] = $$createField2_0($$parsedSource["payload"]);
+        }
+        return new EventEnvelope($$parsedSource as Partial<EventEnvelope>);
+    }
+}
+
+/**
+ * HelperDTO is a helper process candidate.
+ */
+export class HelperDTO {
+    "bundleId": string;
+    "executableName": string;
+    "path": string;
+    "displayName": string;
+
+    /** Creates a new HelperDTO instance. */
+    constructor($$source: Partial<HelperDTO> = {}) {
+        if (!("bundleId" in $$source)) {
+            this["bundleId"] = "";
+        }
+        if (!("executableName" in $$source)) {
+            this["executableName"] = "";
+        }
+        if (!("path" in $$source)) {
+            this["path"] = "";
+        }
+        if (!("displayName" in $$source)) {
+            this["displayName"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new HelperDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): HelperDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new HelperDTO($$parsedSource as Partial<HelperDTO>);
+    }
+}
+
+/**
+ * InstalledApplicationDTO is one browsable installed application.
+ */
+export class InstalledApplicationDTO {
+    "displayName": string;
+    "bundleId": string;
+    "path": string;
+    "inCatalog": boolean;
+    "isSystem": boolean;
+
+    /** Creates a new InstalledApplicationDTO instance. */
+    constructor($$source: Partial<InstalledApplicationDTO> = {}) {
+        if (!("displayName" in $$source)) {
+            this["displayName"] = "";
+        }
+        if (!("bundleId" in $$source)) {
+            this["bundleId"] = "";
+        }
+        if (!("path" in $$source)) {
+            this["path"] = "";
+        }
+        if (!("inCatalog" in $$source)) {
+            this["inCatalog"] = false;
+        }
+        if (!("isSystem" in $$source)) {
+            this["isSystem"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new InstalledApplicationDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): InstalledApplicationDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new InstalledApplicationDTO($$parsedSource as Partial<InstalledApplicationDTO>);
+    }
+}
+
+/**
+ * PolicyDTO is one application policy row.
+ */
+export class PolicyDTO {
+    "processId": string;
+    "action": string;
+    "proxyId": string;
+    "protocolScope": string;
+    "udpLimitation": string;
+
+    /** Creates a new PolicyDTO instance. */
+    constructor($$source: Partial<PolicyDTO> = {}) {
+        if (!("processId" in $$source)) {
+            this["processId"] = "";
+        }
+        if (!("action" in $$source)) {
+            this["action"] = "";
+        }
+        if (!("proxyId" in $$source)) {
+            this["proxyId"] = "";
+        }
+        if (!("protocolScope" in $$source)) {
+            this["protocolScope"] = "";
+        }
+        if (!("udpLimitation" in $$source)) {
+            this["udpLimitation"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PolicyDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PolicyDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PolicyDTO($$parsedSource as Partial<PolicyDTO>);
+    }
+}
+
+/**
+ * ProcessIdentityDTO is a saved process identity.
+ */
+export class ProcessIdentityDTO {
+    "id": string;
+    "applicationId": string;
+    "bundleId": string;
+    "executableName": string;
+    "path": string;
+
+    /** Creates a new ProcessIdentityDTO instance. */
+    constructor($$source: Partial<ProcessIdentityDTO> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("applicationId" in $$source)) {
+            this["applicationId"] = "";
+        }
+        if (!("bundleId" in $$source)) {
+            this["bundleId"] = "";
+        }
+        if (!("executableName" in $$source)) {
+            this["executableName"] = "";
+        }
+        if (!("path" in $$source)) {
+            this["path"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProcessIdentityDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ProcessIdentityDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProcessIdentityDTO($$parsedSource as Partial<ProcessIdentityDTO>);
+    }
+}
+
+/**
+ * ProfileDTO is a profile with policies.
+ */
+export class ProfileDTO {
+    "id": string;
+    "name": string;
+    "policies": PolicyDTO[];
+
+    /** Creates a new ProfileDTO instance. */
+    constructor($$source: Partial<ProfileDTO> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("policies" in $$source)) {
+            this["policies"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProfileDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ProfileDTO {
+        const $$createField2_0 = $$createType5;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("policies" in $$parsedSource) {
+            $$parsedSource["policies"] = $$createField2_0($$parsedSource["policies"]);
+        }
+        return new ProfileDTO($$parsedSource as Partial<ProfileDTO>);
+    }
+}
+
+/**
+ * ProfileSaveDTO is create/update input.
+ */
+export class ProfileSaveDTO {
+    "id": string;
+    "name": string;
+    "policies": PolicyDTO[];
+
+    /** Creates a new ProfileSaveDTO instance. */
+    constructor($$source: Partial<ProfileSaveDTO> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("policies" in $$source)) {
+            this["policies"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProfileSaveDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ProfileSaveDTO {
+        const $$createField2_0 = $$createType5;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("policies" in $$parsedSource) {
+            $$parsedSource["policies"] = $$createField2_0($$parsedSource["policies"]);
+        }
+        return new ProfileSaveDTO($$parsedSource as Partial<ProfileSaveDTO>);
+    }
+}
+
+/**
+ * ProxyDTO is a catalog proxy without secrets.
+ */
+export class ProxyDTO {
+    "id": string;
+    "name": string;
+    "kind": string;
+    "host": string;
+    "port": number;
+    "username": string;
+    "hasPassword": boolean;
+
+    /** Creates a new ProxyDTO instance. */
+    constructor($$source: Partial<ProxyDTO> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("kind" in $$source)) {
+            this["kind"] = "";
+        }
+        if (!("host" in $$source)) {
+            this["host"] = "";
+        }
+        if (!("port" in $$source)) {
+            this["port"] = 0;
+        }
+        if (!("username" in $$source)) {
+            this["username"] = "";
+        }
+        if (!("hasPassword" in $$source)) {
+            this["hasPassword"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProxyDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ProxyDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProxyDTO($$parsedSource as Partial<ProxyDTO>);
+    }
+}
+
+/**
  * ProxyRowDTO is one proxy in the snapshot payload.
  */
 export class ProxyRowDTO {
@@ -38,16 +442,130 @@ export class ProxyRowDTO {
 }
 
 /**
+ * ProxySaveDTO is the save input. Empty Password keeps the stored secret on edit.
+ */
+export class ProxySaveDTO {
+    "id": string;
+    "name": string;
+    "kind": string;
+    "host": string;
+    "port": number;
+    "username": string;
+    "password": string;
+
+    /** Creates a new ProxySaveDTO instance. */
+    constructor($$source: Partial<ProxySaveDTO> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("kind" in $$source)) {
+            this["kind"] = "";
+        }
+        if (!("host" in $$source)) {
+            this["host"] = "";
+        }
+        if (!("port" in $$source)) {
+            this["port"] = 0;
+        }
+        if (!("username" in $$source)) {
+            this["username"] = "";
+        }
+        if (!("password" in $$source)) {
+            this["password"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProxySaveDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ProxySaveDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProxySaveDTO($$parsedSource as Partial<ProxySaveDTO>);
+    }
+}
+
+/**
+ * SettingsDTO is the settings payload.
+ */
+export class SettingsDTO {
+    "proxyBridgePath": string;
+
+    /**
+     * DiscoveredProxyBridgePath comes from BridgeLocator.Locate with an empty
+     * custom path (platform documented locations). Settings UI uses it as placeholder.
+     */
+    "discoveredProxyBridgePath": string;
+    "debugLogging": boolean;
+    "desiredId": string;
+    "desiredSet": boolean;
+    "bridgeState": string;
+    "bridgeVersion": string;
+    "versionKnown": boolean;
+    "compatibilityWarning": string;
+
+    /** Creates a new SettingsDTO instance. */
+    constructor($$source: Partial<SettingsDTO> = {}) {
+        if (!("proxyBridgePath" in $$source)) {
+            this["proxyBridgePath"] = "";
+        }
+        if (!("discoveredProxyBridgePath" in $$source)) {
+            this["discoveredProxyBridgePath"] = "";
+        }
+        if (!("debugLogging" in $$source)) {
+            this["debugLogging"] = false;
+        }
+        if (!("desiredId" in $$source)) {
+            this["desiredId"] = "";
+        }
+        if (!("desiredSet" in $$source)) {
+            this["desiredSet"] = false;
+        }
+        if (!("bridgeState" in $$source)) {
+            this["bridgeState"] = "";
+        }
+        if (!("bridgeVersion" in $$source)) {
+            this["bridgeVersion"] = "";
+        }
+        if (!("versionKnown" in $$source)) {
+            this["versionKnown"] = false;
+        }
+        if (!("compatibilityWarning" in $$source)) {
+            this["compatibilityWarning"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SettingsDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SettingsDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SettingsDTO($$parsedSource as Partial<SettingsDTO>);
+    }
+}
+
+/**
  * SnapshotDTO is the frontend snapshot. Domain types are not exposed.
  */
 export class SnapshotDTO {
     "bridge": string;
     "protection": string;
     "versionKnown": boolean;
+    "version": string;
+    "bridgePath": string;
+    "compatibilityWarning": string;
     "desiredSet": boolean;
     "desiredId": string;
     "appliedId": string;
     "appliedConfirmed": boolean;
+    "desiredDiffersFromApplied": boolean;
+    "recheckPending": boolean;
     "databaseError": string;
     "proxies": ProxyRowDTO[];
 
@@ -62,6 +580,15 @@ export class SnapshotDTO {
         if (!("versionKnown" in $$source)) {
             this["versionKnown"] = false;
         }
+        if (!("version" in $$source)) {
+            this["version"] = "";
+        }
+        if (!("bridgePath" in $$source)) {
+            this["bridgePath"] = "";
+        }
+        if (!("compatibilityWarning" in $$source)) {
+            this["compatibilityWarning"] = "";
+        }
         if (!("desiredSet" in $$source)) {
             this["desiredSet"] = false;
         }
@@ -73,6 +600,12 @@ export class SnapshotDTO {
         }
         if (!("appliedConfirmed" in $$source)) {
             this["appliedConfirmed"] = false;
+        }
+        if (!("desiredDiffersFromApplied" in $$source)) {
+            this["desiredDiffersFromApplied"] = false;
+        }
+        if (!("recheckPending" in $$source)) {
+            this["recheckPending"] = false;
         }
         if (!("databaseError" in $$source)) {
             this["databaseError"] = "";
@@ -88,15 +621,21 @@ export class SnapshotDTO {
      * Creates a new SnapshotDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): SnapshotDTO {
-        const $$createField8_0 = $$createType1;
+        const $$createField13_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("proxies" in $$parsedSource) {
-            $$parsedSource["proxies"] = $$createField8_0($$parsedSource["proxies"]);
+            $$parsedSource["proxies"] = $$createField13_0($$parsedSource["proxies"]);
         }
         return new SnapshotDTO($$parsedSource as Partial<SnapshotDTO>);
     }
 }
 
 // Private type creation functions
-const $$createType0 = ProxyRowDTO.createFrom;
-const $$createType1 = $Create.Array($$createType0);
+const $$createType0 = ApplicationDTO.createFrom;
+const $$createType1 = HelperDTO.createFrom;
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = $Create.Map($Create.Any, $Create.Any);
+const $$createType4 = PolicyDTO.createFrom;
+const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = ProxyRowDTO.createFrom;
+const $$createType7 = $Create.Array($$createType6);

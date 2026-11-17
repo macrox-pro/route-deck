@@ -6,4 +6,21 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
-Object.freeze($Create.Events);
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as wails$0 from "../../../../macrox-pro/route-deck/internal/adapter/inbound/wails/models.js";
+
+function configure() {
+    Object.freeze(Object.assign($Create.Events, {
+        "operation.failed": $$createType0,
+        "operation.progress": $$createType0,
+        "protection.state.changed": $$createType0,
+        "proxy.health.changed": $$createType0,
+        "proxybridge.state.changed": $$createType0,
+    }));
+}
+
+// Private type creation functions
+const $$createType0 = wails$0.EventEnvelope.createFrom;
+
+configure();

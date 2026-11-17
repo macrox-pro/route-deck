@@ -7,8 +7,18 @@ import (
 	"testing"
 
 	"github.com/macrox-pro/route-deck/internal/adapter/outbound/persistence/sqlite"
+	"github.com/macrox-pro/route-deck/internal/application/port"
 	"github.com/macrox-pro/route-deck/internal/domain"
 )
+
+func portSettings(debug bool, desired string, bridgePath string) port.Settings {
+	return port.Settings{
+		DesiredProfileID: domain.ProfileID(desired),
+		DesiredSet:       desired != "",
+		ProxyBridgePath:  bridgePath,
+		DebugLogging:     debug,
+	}
+}
 
 func openTestDB(t *testing.T) *sqlite.DB {
 	t.Helper()
@@ -66,9 +76,9 @@ func TestRoundTripAggregates(t *testing.T) {
 		t.Fatalf("process mismatch: %+v", gotProc)
 	}
 
-	endpoint, err := domain.NewProxyEndpoint("proxy-1", "lab", domain.ProxyKindSOCKS5, "127.0.0.1", 1080, "kc-ref")
+	endpoint, err := domain.NewProxyEndpointWithUsername("proxy-1", "lab", domain.ProxyKindSOCKS5, "127.0.0.1", 1080, "alice", "kc-ref")
 	if err != nil {
-		t.Fatalf("NewProxyEndpoint: %v", err)
+		t.Fatalf("NewProxyEndpointWithUsername: %v", err)
 	}
 	if err := store.Save(ctx, endpoint); err != nil {
 		t.Fatalf("Save proxy: %v", err)
@@ -77,7 +87,7 @@ func TestRoundTripAggregates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get proxy: %v", err)
 	}
-	if gotProxy.ID != endpoint.ID || gotProxy.Host != endpoint.Host || gotProxy.Port != endpoint.Port || !gotProxy.SendDomain {
+	if gotProxy.ID != endpoint.ID || gotProxy.Host != endpoint.Host || gotProxy.Port != endpoint.Port || gotProxy.Username != "alice" || !gotProxy.SendDomain {
 		t.Fatalf("proxy mismatch: %+v", gotProxy)
 	}
 
@@ -85,9 +95,11 @@ func TestRoundTripAggregates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ProxyAction: %v", err)
 	}
-	profile, err := domain.NewProfile("profile-1", "Work", []domain.ApplicationPolicy{
-		{ProcessID: "proc-1", Action: action},
-	})
+	policy, err := domain.NewApplicationPolicy("proc-1", action, domain.ProtocolScopeBOTH, domain.UDPLimitationAbsent)
+	if err != nil {
+		t.Fatalf("NewApplicationPolicy: %v", err)
+	}
+	profile, err := domain.NewProfile("profile-1", "Work", []domain.ApplicationPolicy{policy})
 	if err != nil {
 		t.Fatalf("NewProfile: %v", err)
 	}
@@ -104,6 +116,21 @@ func TestRoundTripAggregates(t *testing.T) {
 	id, ok := gotProfile.Policies[0].Action.ProxyID()
 	if !ok || id != "proxy-1" {
 		t.Fatalf("policy proxy id = (%q, %v)", id, ok)
+	}
+	if gotProfile.Policies[0].ProtocolScope != domain.ProtocolScopeBOTH {
+		t.Fatalf("policy scope = %q", gotProfile.Policies[0].ProtocolScope)
+	}
+
+	settings := store.Settings()
+	if err := settings.Save(ctx, portSettings(true, "profile-1", "/usr/local/bin/proxybridge")); err != nil {
+		t.Fatalf("SaveSettings: %v", err)
+	}
+	gotSettings, err := settings.Get(ctx)
+	if err != nil {
+		t.Fatalf("GetSettings: %v", err)
+	}
+	if !gotSettings.DebugLogging || !gotSettings.DesiredSet || gotSettings.DesiredProfileID != "profile-1" {
+		t.Fatalf("settings mismatch: %+v", gotSettings)
 	}
 
 	apps, err := store.Applications().List(ctx)
@@ -179,5 +206,65 @@ func TestGetMissingIsNotFound(t *testing.T) {
 	_, err := db.Store().Get(context.Background(), "nope")
 	if !errors.Is(err, sqlite.ErrNotFound) {
 		t.Fatalf("Get missing = %v, want ErrNotFound", err)
+	}
+}
+
+func TestDeleteReferencedProxyRejected(t *testing.T) {
+	db := openTestDB(t)
+	store := db.Store()
+	ctx := context.Background()
+
+	if err := store.Applications().Save(ctx, domain.Application{ID: "app-1", DisplayName: "Mail", BundleID: "com.apple.mail"}); err != nil {
+		t.Fatalf("SaveApplication: %v", err)
+	}
+	if err := store.ProcessIdentities().Save(ctx, domain.ProcessIdentity{
+		ID: "proc-1", ApplicationID: "app-1", BundleID: "com.apple.mail", ExecutableName: "Mail",
+	}); err != nil {
+		t.Fatalf("SaveProcessIdentity: %v", err)
+	}
+	endpoint, err := domain.NewProxyEndpoint("proxy-1", "lab", domain.ProxyKindSOCKS5, "127.0.0.1", 1080, "kc")
+	if err != nil {
+		t.Fatalf("NewProxyEndpoint: %v", err)
+	}
+	if err := store.Save(ctx, endpoint); err != nil {
+		t.Fatalf("Save proxy: %v", err)
+	}
+	action, err := domain.ProxyAction("proxy-1")
+	if err != nil {
+		t.Fatalf("ProxyAction: %v", err)
+	}
+	policy, err := domain.NewApplicationPolicy("proc-1", action, domain.ProtocolScopeTCP, "")
+	if err != nil {
+		t.Fatalf("NewApplicationPolicy: %v", err)
+	}
+	if err := store.Profiles().Save(ctx, domain.Profile{ID: "p1", Name: "Work", Policies: []domain.ApplicationPolicy{policy}}); err != nil {
+		t.Fatalf("SaveProfile: %v", err)
+	}
+	if err := store.Delete(ctx, "proxy-1"); !errors.Is(err, domain.ErrReferenced) {
+		t.Fatalf("Delete proxy = %v, want ErrReferenced", err)
+	}
+	if err := store.Applications().Delete(ctx, "app-1"); !errors.Is(err, domain.ErrReferenced) {
+		t.Fatalf("Delete app = %v, want ErrReferenced", err)
+	}
+}
+
+func TestDuplicateBundleAndProfileName(t *testing.T) {
+	db := openTestDB(t)
+	store := db.Store()
+	ctx := context.Background()
+
+	if err := store.Applications().Save(ctx, domain.Application{ID: "app-1", DisplayName: "Mail", BundleID: "com.apple.mail"}); err != nil {
+		t.Fatalf("SaveApplication: %v", err)
+	}
+	err := store.Applications().Save(ctx, domain.Application{ID: "app-2", DisplayName: "Other", BundleID: "com.apple.mail"})
+	if !errors.Is(err, domain.ErrDuplicateBundleID) {
+		t.Fatalf("duplicate bundle = %v, want ErrDuplicateBundleID", err)
+	}
+	if err := store.Profiles().Save(ctx, domain.Profile{ID: "p1", Name: "Work"}); err != nil {
+		t.Fatalf("SaveProfile: %v", err)
+	}
+	err = store.Profiles().Save(ctx, domain.Profile{ID: "p2", Name: "Work"})
+	if !errors.Is(err, domain.ErrDuplicateProfileName) {
+		t.Fatalf("duplicate name = %v, want ErrDuplicateProfileName", err)
 	}
 }

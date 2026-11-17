@@ -15,6 +15,133 @@ type Catalog struct {
 	Apps      port.ApplicationStore
 	Processes port.ProcessIdentityStore
 	Profiles  port.ProfileStore
+	Inspector port.ApplicationInspector
+	Installed port.InstalledApplicationLister
+	AppIcons  port.ApplicationIconReader
+}
+
+// InstalledRow is a browsable installed application with catalog membership.
+type InstalledRow struct {
+	DisplayName string
+	BundleID    string
+	Path        string
+	InCatalog   bool
+	IsSystem    bool
+}
+
+// ListInstalled returns platform-installed applications without writing SQLite.
+func (c *Catalog) ListInstalled(ctx context.Context) ([]InstalledRow, error) {
+	if c.Installed == nil {
+		return nil, fmt.Errorf("catalog list installed: lister not configured")
+	}
+	found, err := c.Installed.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("catalog list installed: %w", err)
+	}
+	catalogApps, err := c.Apps.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("catalog list installed: %w", err)
+	}
+	inCatalog := make(map[string]struct{}, len(catalogApps))
+	for _, app := range catalogApps {
+		inCatalog[app.BundleID] = struct{}{}
+	}
+	out := make([]InstalledRow, 0, len(found))
+	for _, app := range found {
+		_, ok := inCatalog[app.BundleID]
+		out = append(out, InstalledRow{
+			DisplayName: app.DisplayName,
+			BundleID:    app.BundleID,
+			Path:        app.Path,
+			InCatalog:   ok,
+			IsSystem:    app.IsSystem,
+		})
+	}
+	return out, nil
+}
+
+// ApplicationIconPNG returns a PNG icon for path through the icon port.
+func (c *Catalog) ApplicationIconPNG(ctx context.Context, path string) ([]byte, error) {
+	if c.AppIcons == nil {
+		return nil, fmt.Errorf("catalog application icon: reader not configured")
+	}
+	png, err := c.AppIcons.PNG(ctx, path)
+	if err != nil {
+		return nil, fmt.Errorf("catalog application icon: %w", err)
+	}
+	return png, nil
+}
+
+// AddApplicationFromPath inspects path and saves the main application + process identity.
+// Helper candidates are returned for ConfirmHelpers; they are not saved yet.
+func (c *Catalog) AddApplicationFromPath(ctx context.Context, path string) (domain.Application, port.InspectedApplication, error) {
+	if c.Inspector == nil {
+		return domain.Application{}, port.InspectedApplication{}, fmt.Errorf("catalog add application: inspector not configured")
+	}
+	inspected, err := c.Inspector.Inspect(ctx, path)
+	if err != nil {
+		return domain.Application{}, port.InspectedApplication{}, fmt.Errorf("catalog add application: %w", err)
+	}
+	apps, err := c.Apps.List(ctx)
+	if err != nil {
+		return domain.Application{}, port.InspectedApplication{}, fmt.Errorf("catalog add application: %w", err)
+	}
+	for _, app := range apps {
+		if app.BundleID == inspected.BundleID {
+			return domain.Application{}, port.InspectedApplication{}, fmt.Errorf("catalog add application: %w", domain.ErrDuplicateBundleID)
+		}
+	}
+	appID, err := newID()
+	if err != nil {
+		return domain.Application{}, port.InspectedApplication{}, err
+	}
+	procID, err := newID()
+	if err != nil {
+		return domain.Application{}, port.InspectedApplication{}, err
+	}
+	app := domain.Application{
+		ID:          domain.ApplicationID(appID),
+		DisplayName: inspected.DisplayName,
+		BundleID:    inspected.BundleID,
+	}
+	identity := domain.ProcessIdentity{
+		ID:             domain.ProcessIdentityID(procID),
+		ApplicationID:  app.ID,
+		BundleID:       inspected.Main.BundleID,
+		ExecutableName: inspected.Main.ExecutableName,
+		Path:           inspected.Main.Path,
+	}
+	if err := c.Apps.Save(ctx, app); err != nil {
+		return domain.Application{}, port.InspectedApplication{}, fmt.Errorf("catalog add application: %w", err)
+	}
+	if err := c.Processes.Save(ctx, identity); err != nil {
+		return domain.Application{}, port.InspectedApplication{}, fmt.Errorf("catalog add application: %w", err)
+	}
+	return app, inspected, nil
+}
+
+// ConfirmHelpers saves selected helper process identities under applicationID.
+func (c *Catalog) ConfirmHelpers(ctx context.Context, applicationID domain.ApplicationID, helpers []port.InspectedProcess) error {
+	for _, helper := range helpers {
+		if helper.BundleID == "" {
+			continue
+		}
+		id, err := newID()
+		if err != nil {
+			return err
+		}
+		identity := domain.ProcessIdentity{
+			ID:             domain.ProcessIdentityID(id),
+			ApplicationID:  applicationID,
+			BundleID:       helper.BundleID,
+			ExecutableName: helper.ExecutableName,
+			Path:           helper.Path,
+		}
+		if err := c.Processes.Save(ctx, identity); err != nil {
+			return fmt.Errorf("catalog confirm helpers: %w", err)
+		}
+	}
+	return nil
 }
 
 // SaveApplication upserts an application.
@@ -99,4 +226,89 @@ func (c *Catalog) ListProfiles(ctx context.Context) ([]domain.Profile, error) {
 		return nil, fmt.Errorf("catalog list profiles: %w", err)
 	}
 	return profiles, nil
+}
+
+// DeleteProxy removes a proxy when it is not referenced.
+func (c *Catalog) DeleteProxy(ctx context.Context, id domain.ProxyID) error {
+	if err := c.Proxies.Delete(ctx, id); err != nil {
+		return fmt.Errorf("catalog delete proxy: %w", err)
+	}
+	return nil
+}
+
+// DeleteApplication removes an application when it is not referenced.
+func (c *Catalog) DeleteApplication(ctx context.Context, id domain.ApplicationID) error {
+	if err := c.Apps.Delete(ctx, id); err != nil {
+		return fmt.Errorf("catalog delete application: %w", err)
+	}
+	return nil
+}
+
+// DeleteProfile removes a profile unless it is desired or applied.
+func (c *Catalog) DeleteProfile(ctx context.Context, id domain.ProfileID, desiredID, appliedID domain.ProfileID) error {
+	if id == desiredID || id == appliedID {
+		return fmt.Errorf("catalog delete profile: %w", domain.ErrReferenced)
+	}
+	if err := c.Profiles.Delete(ctx, id); err != nil {
+		return fmt.Errorf("catalog delete profile: %w", err)
+	}
+	return nil
+}
+
+// CopyProfile duplicates a profile under a new unique name.
+func (c *Catalog) CopyProfile(ctx context.Context, sourceID domain.ProfileID, newName string) (domain.Profile, error) {
+	source, err := c.Profiles.Get(ctx, sourceID)
+	if err != nil {
+		return domain.Profile{}, fmt.Errorf("catalog copy profile: %w", err)
+	}
+	if err := c.ensureUniqueProfileName(ctx, newName, ""); err != nil {
+		return domain.Profile{}, err
+	}
+	id, err := newID()
+	if err != nil {
+		return domain.Profile{}, err
+	}
+	copyProfile, err := domain.NewProfile(domain.ProfileID(id), newName, append([]domain.ApplicationPolicy(nil), source.Policies...))
+	if err != nil {
+		return domain.Profile{}, fmt.Errorf("catalog copy profile: %w", err)
+	}
+	if err := c.SaveProfile(ctx, copyProfile); err != nil {
+		return domain.Profile{}, err
+	}
+	return copyProfile, nil
+}
+
+// RenameProfile changes a profile name with uniqueness check.
+func (c *Catalog) RenameProfile(ctx context.Context, id domain.ProfileID, newName string) error {
+	profile, err := c.Profiles.Get(ctx, id)
+	if err != nil {
+		return fmt.Errorf("catalog rename profile: %w", err)
+	}
+	if err := c.ensureUniqueProfileName(ctx, newName, id); err != nil {
+		return err
+	}
+	profile.Name = newName
+	if err := c.SaveProfile(ctx, profile); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Catalog) ensureUniqueProfileName(ctx context.Context, name string, except domain.ProfileID) error {
+	if name == "" {
+		return fmt.Errorf("catalog profile name: %w", domain.ErrEmptyName)
+	}
+	profiles, err := c.Profiles.List(ctx)
+	if err != nil {
+		return fmt.Errorf("catalog profile name: %w", err)
+	}
+	for _, profile := range profiles {
+		if profile.ID == except {
+			continue
+		}
+		if profile.Name == name {
+			return fmt.Errorf("catalog profile name: %w", domain.ErrDuplicateProfileName)
+		}
+	}
+	return nil
 }

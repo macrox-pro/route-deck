@@ -87,6 +87,19 @@ TCP sent to a proxy that is down, rejects, or is silent is closed. The CLI does 
 | `trafficLoggingEnabled` | false unless a task needs fixtures. v1 Activity does not require CLI connection lines |
 | `closeToMenuBar`, `runAtStartup` | false. The CLI ignores them. RouteDeck tray is separate |
 
+## RouteDeck protocol-scope mapping (ADR-0008)
+
+Each application policy has a protocol scope (`TCP`, `UDP`, or `BOTH`) and an optional Direct-UDP limitation.
+
+| Situation | Compiled rule(s) | Coverage |
+| --- | --- | --- |
+| Proxy / Direct / Block within scope | One rule with that action and protocol | Per CONCEPTION coverage facts |
+| Protocol outside the selected scope | Separate rule with action `BLOCK` for that protocol | Covered (Block) |
+| HTTP proxy with UDP in scope, limitation Absent | UDP rule action `BLOCK` | UDP not covered |
+| HTTP proxy with UDP in scope, limitation DirectUDP | UDP rule action `DIRECT` | UDP not covered |
+
+`targetHosts` and `targetPorts` stay `*` in the vertical slice. Domain rules are out of scope.
+
 ## Internal vs wire format
 
 Domain types never match this JSON. The ProxyBridge adapter owns the DTO and serializer. Output MUST be deterministic for the same input (stable ordering).

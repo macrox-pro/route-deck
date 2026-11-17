@@ -4,8 +4,43 @@ import "fmt"
 
 // ApplicationPolicy is a policy for one process identity inside a profile.
 type ApplicationPolicy struct {
-	ProcessID ProcessIdentityID
-	Action    RoutingAction
+	ProcessID     ProcessIdentityID
+	Action        RoutingAction
+	ProtocolScope ProtocolScope
+	UDPLimitation UDPLimitation
+}
+
+// NewApplicationPolicy returns a policy. Proxy actions require a non-empty ProtocolScope.
+// Direct and Block may omit scope (treated as BOTH when compiling). Empty UDPLimitation
+// is normalized to Absent.
+func NewApplicationPolicy(processID ProcessIdentityID, action RoutingAction, scope ProtocolScope, limitation UDPLimitation) (ApplicationPolicy, error) {
+	if !action.IsSet() {
+		return ApplicationPolicy{}, fmt.Errorf("new application policy: %w", ErrUnsetAction)
+	}
+	if _, isProxy := action.ProxyID(); isProxy && scope == "" {
+		return ApplicationPolicy{}, fmt.Errorf("new application policy: %w", ErrUnsetScope)
+	}
+	if limitation == "" {
+		limitation = UDPLimitationAbsent
+	}
+	switch limitation {
+	case UDPLimitationAbsent, UDPLimitationDirectUDP:
+	default:
+		return ApplicationPolicy{}, fmt.Errorf("new application policy: %w", ErrUnknownUDPLimitation)
+	}
+	if scope != "" {
+		switch scope {
+		case ProtocolScopeTCP, ProtocolScopeUDP, ProtocolScopeBOTH:
+		default:
+			return ApplicationPolicy{}, fmt.Errorf("new application policy: %w", ErrUnknownProtocolScope)
+		}
+	}
+	return ApplicationPolicy{
+		ProcessID:     processID,
+		Action:        action,
+		ProtocolScope: scope,
+		UDPLimitation: limitation,
+	}, nil
 }
 
 // Profile is a named set of application policies that reference proxy ids.
