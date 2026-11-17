@@ -23,10 +23,60 @@ import type {
 type CatalogPolicyLine = {
     key: string;
     profileName: string;
-    processLabel: string;
     actionLabel: string;
+    identityCount: number;
     applied: boolean;
 };
+
+type HelperGroup = {
+    key: string;
+    bundleId: string;
+    label: string;
+    copyCount: number;
+    representative: HelperDTO;
+};
+
+/**
+ * ProxyBridge matches bundle id / executable name only (path with "/" never matches).
+ * Helpers that share a bundle id are one checkbox / one catalog identity.
+ */
+function groupHelpersByBundle(helpers: HelperDTO[]): HelperGroup[] {
+    const byBundle = new Map<string, HelperDTO[]>();
+    const withoutBundle: HelperDTO[] = [];
+    for (const helper of helpers) {
+        if (!helper.bundleId) {
+            withoutBundle.push(helper);
+            continue;
+        }
+        const list = byBundle.get(helper.bundleId) ?? [];
+        list.push(helper);
+        byBundle.set(helper.bundleId, list);
+    }
+    const groups: HelperGroup[] = [];
+    for (const [bundleId, members] of byBundle) {
+        const representative = members[0];
+        const title = representative.displayName || representative.executableName || bundleId;
+        const copyNote = members.length > 1 ? ` · ${members.length} copies` : "";
+        groups.push({
+            key: `bundle:${bundleId}`,
+            bundleId,
+            label: `${title}${copyNote} (${bundleId})`,
+            copyCount: members.length,
+            representative,
+        });
+    }
+    withoutBundle.forEach((helper, index) => {
+        const key = helper.path ? `path:${helper.path}` : `index:${index}`;
+        groups.push({
+            key,
+            bundleId: "",
+            label: `${helper.displayName || helper.executableName || "Helper"} (no bundle id)`,
+            copyCount: 1,
+            representative: helper,
+        });
+    });
+    return groups;
+}
 
 function actionLabel(action: string, proxyId: string, proxyNameById: Map<string, string>): string {
     switch (action) {
@@ -43,6 +93,14 @@ function actionLabel(action: string, proxyId: string, proxyNameById: Map<string,
     }
 }
 
+function uniqueIdentityCount(processes: ProcessIdentityDTO[]): number {
+    const keys = new Set<string>();
+    for (const process of processes) {
+        keys.add(process.bundleId || process.id);
+    }
+    return keys.size;
+}
+
 function buildCatalogPolicyLines(
     applicationID: string,
     processes: ProcessIdentityDTO[],
@@ -52,31 +110,45 @@ function buildCatalogPolicyLines(
     appliedConfirmed: boolean,
 ): CatalogPolicyLine[] {
     const processByID = new Map<string, ProcessIdentityDTO>();
-    const appProcessIDs = new Set<string>();
+    const appProcesses: ProcessIdentityDTO[] = [];
     for (const process of processes) {
         processByID.set(process.id, process);
         if (process.applicationId === applicationID) {
-            appProcessIDs.add(process.id);
+            appProcesses.push(process);
         }
     }
-    if (appProcessIDs.size === 0) {
+    if (appProcesses.length === 0) {
         return [];
     }
+    const appProcessIDs = new Set(appProcesses.map((process) => process.id));
 
+    // One compact line per profile + action (bundle-id duplicates collapse).
     const lines: CatalogPolicyLine[] = [];
     for (const profile of profiles) {
         const applied = appliedConfirmed && appliedId === profile.id;
+        type Bucket = { actionLabel: string; bundles: Set<string> };
+        const buckets = new Map<string, Bucket>();
         for (const policy of profile.policies ?? []) {
             if (!appProcessIDs.has(policy.processId)) {
                 continue;
             }
             const process = processByID.get(policy.processId);
-            const processLabel = process?.executableName || process?.bundleId || policy.processId;
+            const bundleKey = process?.bundleId || policy.processId;
+            const label = actionLabel(policy.action, policy.proxyId, proxyNameById);
+            const bucketKey = `${policy.action}:${policy.proxyId}:${label}`;
+            let bucket = buckets.get(bucketKey);
+            if (!bucket) {
+                bucket = { actionLabel: label, bundles: new Set() };
+                buckets.set(bucketKey, bucket);
+            }
+            bucket.bundles.add(bundleKey);
+        }
+        for (const [bucketKey, bucket] of buckets) {
             lines.push({
-                key: `${profile.id}:${policy.processId}:${policy.action}:${policy.proxyId}`,
+                key: `${profile.id}:${bucketKey}`,
                 profileName: profile.name || profile.id,
-                processLabel,
-                actionLabel: actionLabel(policy.action, policy.proxyId, proxyNameById),
+                actionLabel: bucket.actionLabel,
+                identityCount: bucket.bundles.size,
                 applied,
             });
         }
@@ -117,6 +189,7 @@ function CatalogRow({
     app,
     path,
     policyLines,
+    identityCount,
     needsHelperReview,
     busy,
     onDelete,
@@ -125,11 +198,15 @@ function CatalogRow({
     app: ApplicationDTO;
     path: string | undefined;
     policyLines: CatalogPolicyLine[];
+    identityCount: number;
     needsHelperReview: boolean;
     busy: boolean;
     onDelete: (id: string) => void;
     onReviewHelpers: (id: string) => void;
 }) {
+    const identityLabel =
+        identityCount === 1 ? "1 identity in catalog" : `${identityCount} identities in catalog`;
+
     return (
         <li className="flex flex-col gap-2 px-4 py-3 text-sm">
             <div className="flex items-center justify-between gap-3">
@@ -138,6 +215,7 @@ function CatalogRow({
                     <div className="min-w-0">
                         <p className="truncate font-medium text-primary">{app.displayName}</p>
                         <p className="truncate text-tertiary">{app.bundleId}</p>
+                        <p className="truncate text-xs text-tertiary">{identityLabel}</p>
                     </div>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
@@ -157,19 +235,25 @@ function CatalogRow({
             ) : null}
             {policyLines.length > 0 ? (
                 <ul className="flex flex-col gap-1 pl-11">
-                    {policyLines.map((line) => (
-                        <li key={line.key} className="truncate text-xs text-tertiary">
-                            <span className="text-secondary">{line.profileName}</span>
-                            {" · "}
-                            {line.processLabel}
-                            {" · "}
-                            {line.actionLabel}
-                            {" · "}
-                            {line.applied ? "Applied" : "Not applied"}
-                        </li>
-                    ))}
+                    {policyLines.map((line) => {
+                        const countLabel =
+                            line.identityCount === 1 ? "1 identity" : `${line.identityCount} identities`;
+                        return (
+                            <li key={line.key} className="truncate text-xs text-tertiary">
+                                <span className="text-secondary">{line.profileName}</span>
+                                {" · "}
+                                {line.actionLabel}
+                                {" · "}
+                                {countLabel}
+                                {" · "}
+                                {line.applied ? "Applied" : "Not applied"}
+                            </li>
+                        );
+                    })}
                 </ul>
-            ) : null}
+            ) : (
+                <p className="pl-11 text-xs text-tertiary">Not in any profile</p>
+            )}
         </li>
     );
 }
@@ -328,12 +412,21 @@ export function ApplicationsPage() {
         return map;
     }, [apps, processes, profiles, proxyNameById, snapshot?.appliedConfirmed, snapshot?.appliedId]);
 
+    const identityCountByApp = useMemo(() => {
+        const map = new Map<string, number>();
+        for (const app of apps) {
+            const appProcesses = processes.filter((process) => process.applicationId === app.id);
+            map.set(app.id, uniqueIdentityCount(appProcesses));
+        }
+        return map;
+    }, [apps, processes]);
+
     const applyAddResult = (result: Awaited<ReturnType<typeof ApplicationsService.AddFromPath>>) => {
         setPendingAppID(result.application.id);
         setHelpers(result.helpers ?? []);
         const initial: Record<string, boolean> = {};
-        for (const helper of result.helpers ?? []) {
-            initial[helper.path] = false;
+        for (const group of groupHelpersByBundle(result.helpers ?? [])) {
+            initial[group.key] = false;
         }
         setSelected(initial);
     };
@@ -380,21 +473,18 @@ export function ApplicationsPage() {
             const result = await ApplicationsService.InspectHelpers(applicationID);
             setPendingAppID(applicationID);
             setHelpers(result.helpers ?? []);
-            const known = new Set<string>();
+            const knownBundles = new Set<string>();
             for (const process of processes) {
                 if (process.applicationId !== applicationID) {
                     continue;
                 }
-                if (process.path) {
-                    known.add(process.path);
-                }
                 if (process.bundleId) {
-                    known.add(process.bundleId);
+                    knownBundles.add(process.bundleId);
                 }
             }
             const initial: Record<string, boolean> = {};
-            for (const helper of result.helpers ?? []) {
-                initial[helper.path] = known.has(helper.path) || known.has(helper.bundleId);
+            for (const group of groupHelpersByBundle(result.helpers ?? [])) {
+                initial[group.key] = !!group.bundleId && knownBundles.has(group.bundleId);
             }
             setSelected(initial);
             if ((result.helpers ?? []).length === 0) {
@@ -414,7 +504,9 @@ export function ApplicationsPage() {
         setBusy(true);
         setError(null);
         try {
-            const chosen = helpers.filter((helper) => selected[helper.path]);
+            const chosen = groupHelpersByBundle(helpers)
+                .filter((group) => selected[group.key] && group.bundleId)
+                .map((group) => group.representative);
             await ApplicationsService.ConfirmHelpers(pendingAppID, chosen);
             setPendingAppID(null);
             setHelpers([]);
@@ -466,15 +558,17 @@ export function ApplicationsPage() {
                 <section className="flex flex-col gap-3 rounded-lg p-4 ring-1 ring-secondary">
                     <h2 className="text-sm font-semibold text-secondary">Helper processes</h2>
                     <p className="text-sm text-tertiary">
-                        Select helpers to include as separate process identities. Unchecked helpers are never written into
-                        rules.
+                        Select helpers to include as separate process identities. Copies that share a bundle id are one
+                        checkbox — ProxyBridge matches bundle id / executable name, not file path. Unchecked helpers are
+                        never written into rules.
                     </p>
-                    {helpers.map((helper) => (
+                    {groupHelpersByBundle(helpers).map((group) => (
                         <Checkbox
-                            key={helper.path}
-                            label={`${helper.displayName || helper.executableName} (${helper.bundleId})`}
-                            isSelected={!!selected[helper.path]}
-                            onChange={(isSelected) => setSelected((prev) => ({ ...prev, [helper.path]: isSelected }))}
+                            key={group.key}
+                            value={group.key}
+                            label={group.label}
+                            isSelected={!!selected[group.key]}
+                            onChange={(isSelected) => setSelected((prev) => ({ ...prev, [group.key]: isSelected }))}
                         />
                     ))}
                     <div className="flex gap-2">
@@ -508,6 +602,7 @@ export function ApplicationsPage() {
                                 app={app}
                                 path={pathByAppID.get(app.id)}
                                 policyLines={policyLinesByApp.get(app.id) ?? []}
+                                identityCount={identityCountByApp.get(app.id) ?? 0}
                                 needsHelperReview={!!helperReviewNeeded[app.id]}
                                 busy={busy}
                                 onDelete={(id) => void onDelete(id)}

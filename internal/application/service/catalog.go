@@ -136,9 +136,29 @@ func (c *Catalog) InspectPath(ctx context.Context, path string) (port.InspectedA
 }
 
 // ConfirmHelpers saves selected helper process identities under applicationID.
+// ProxyBridge matches bundle id / executable name (not path), so a helper whose
+// bundle id is already catalogued for this application is skipped.
 func (c *Catalog) ConfirmHelpers(ctx context.Context, applicationID domain.ApplicationID, helpers []port.InspectedProcess) error {
+	existing, err := c.Processes.List(ctx)
+	if err != nil {
+		return fmt.Errorf("catalog confirm helpers: %w", err)
+	}
+	knownBundles := make(map[string]struct{})
+	for _, identity := range existing {
+		if identity.ApplicationID != applicationID || identity.BundleID == "" {
+			continue
+		}
+		knownBundles[identity.BundleID] = struct{}{}
+	}
+	seenInBatch := make(map[string]struct{})
 	for _, helper := range helpers {
 		if helper.BundleID == "" {
+			continue
+		}
+		if _, ok := knownBundles[helper.BundleID]; ok {
+			continue
+		}
+		if _, ok := seenInBatch[helper.BundleID]; ok {
 			continue
 		}
 		id, err := newID()
@@ -155,6 +175,8 @@ func (c *Catalog) ConfirmHelpers(ctx context.Context, applicationID domain.Appli
 		if err := c.Processes.Save(ctx, identity); err != nil {
 			return fmt.Errorf("catalog confirm helpers: %w", err)
 		}
+		seenInBatch[helper.BundleID] = struct{}{}
+		knownBundles[helper.BundleID] = struct{}{}
 	}
 	return nil
 }

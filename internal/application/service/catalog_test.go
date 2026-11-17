@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/macrox-pro/route-deck/internal/application/port"
 	"github.com/macrox-pro/route-deck/internal/application/service"
 	"github.com/macrox-pro/route-deck/internal/domain"
 )
@@ -122,6 +123,102 @@ func (noopProcessStore) List(context.Context) ([]domain.ProcessIdentity, error) 
 func (noopProcessStore) Save(context.Context, domain.ProcessIdentity) error     { return nil }
 func (noopProcessStore) Delete(context.Context, domain.ProcessIdentityID) error {
 	return nil
+}
+
+type recordingProcessStore struct {
+	rows []domain.ProcessIdentity
+}
+
+func (m *recordingProcessStore) Get(ctx context.Context, id domain.ProcessIdentityID) (domain.ProcessIdentity, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.ProcessIdentity{}, err
+	}
+	for _, row := range m.rows {
+		if row.ID == id {
+			return row, nil
+		}
+	}
+	return domain.ProcessIdentity{}, fmt.Errorf("missing")
+}
+
+func (m *recordingProcessStore) List(ctx context.Context) ([]domain.ProcessIdentity, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	out := make([]domain.ProcessIdentity, len(m.rows))
+	copy(out, m.rows)
+	return out, nil
+}
+
+func (m *recordingProcessStore) Save(ctx context.Context, identity domain.ProcessIdentity) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	for i, row := range m.rows {
+		if row.ID == identity.ID {
+			m.rows[i] = identity
+			return nil
+		}
+	}
+	m.rows = append(m.rows, identity)
+	return nil
+}
+
+func (m *recordingProcessStore) Delete(ctx context.Context, id domain.ProcessIdentityID) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	next := m.rows[:0]
+	for _, row := range m.rows {
+		if row.ID != id {
+			next = append(next, row)
+		}
+	}
+	m.rows = next
+	return nil
+}
+
+func TestConfirmHelpersSkipsDuplicateBundleID(t *testing.T) {
+	processes := &recordingProcessStore{rows: []domain.ProcessIdentity{
+		{
+			ID:             "proc-main",
+			ApplicationID:  "app-1",
+			BundleID:       "com.example.app",
+			ExecutableName: "App",
+		},
+		{
+			ID:             "proc-helper",
+			ApplicationID:  "app-1",
+			BundleID:       "com.example.helper",
+			ExecutableName: "HelperA",
+			Path:           "/tmp/HelperA.app/Contents/MacOS/HelperA",
+		},
+	}}
+	catalog := &service.Catalog{Processes: processes}
+	err := catalog.ConfirmHelpers(context.Background(), "app-1", []port.InspectedProcess{
+		{BundleID: "com.example.helper", ExecutableName: "HelperB", Path: "/tmp/HelperB.app/Contents/MacOS/HelperB"},
+		{BundleID: "com.example.helper", ExecutableName: "HelperC", Path: "/tmp/HelperC.app/Contents/MacOS/HelperC"},
+		{BundleID: "com.example.other", ExecutableName: "Other", Path: "/tmp/Other.app/Contents/MacOS/Other"},
+		{BundleID: "com.example.other", ExecutableName: "OtherCopy", Path: "/tmp/OtherCopy.app/Contents/MacOS/OtherCopy"},
+	})
+	if err != nil {
+		t.Fatalf("ConfirmHelpers: %v", err)
+	}
+	var helperCount, otherCount int
+	for _, row := range processes.rows {
+		switch row.BundleID {
+		case "com.example.helper":
+			helperCount++
+		case "com.example.other":
+			otherCount++
+		}
+	}
+	if helperCount != 1 {
+		t.Fatalf("helper bundle rows = %d, want 1 (existing kept, duplicates skipped)", helperCount)
+	}
+	if otherCount != 1 {
+		t.Fatalf("other bundle rows = %d, want 1 (batch deduped)", otherCount)
+	}
 }
 
 func TestSaveProfileRejectsUnresolvedAndUnset(t *testing.T) {

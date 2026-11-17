@@ -77,26 +77,82 @@ function policiesFromDrafts(drafts: Record<string, ProcessDraft>): PolicyDTO[] {
     return out;
 }
 
-function draftsFromPolicies(policies: PolicyDTO[]): Record<string, ProcessDraft> {
+/**
+ * ProxyBridge matches bundle id / executable name only (path never matches).
+ * Collapse catalog rows that share an application + bundle id onto one representative.
+ */
+function representativeByProcessID(processes: ProcessIdentityDTO[]): Map<string, string> {
+    const groups = new Map<string, ProcessIdentityDTO[]>();
+    for (const process of processes) {
+        const groupKey = `${process.applicationId}::${process.bundleId || process.id}`;
+        const list = groups.get(groupKey) ?? [];
+        list.push(process);
+        groups.set(groupKey, list);
+    }
+    const repFor = new Map<string, string>();
+    for (const members of groups.values()) {
+        const sorted = [...members].sort((a, b) => a.id.localeCompare(b.id));
+        const representativeID = sorted[0].id;
+        for (const member of sorted) {
+            repFor.set(member.id, representativeID);
+        }
+    }
+    return repFor;
+}
+
+function draftsFromPolicies(
+    policies: PolicyDTO[],
+    processes: ProcessIdentityDTO[],
+): Record<string, ProcessDraft> {
+    const repFor = representativeByProcessID(processes);
     const drafts: Record<string, ProcessDraft> = {};
     for (const policy of policies ?? []) {
         if (!policy.processId) {
             continue;
         }
-        drafts[policy.processId] = draftFromPolicy(policy);
+        const repID = repFor.get(policy.processId) ?? policy.processId;
+        if (!drafts[repID]) {
+            drafts[repID] = draftFromPolicy(policy);
+        }
     }
     return drafts;
+}
+
+type ProcessGroup = {
+    key: string;
+    representative: ProcessIdentityDTO;
+    copyCount: number;
+};
+
+function groupProcessesByBundle(processes: ProcessIdentityDTO[]): ProcessGroup[] {
+    const byBundle = new Map<string, ProcessIdentityDTO[]>();
+    for (const process of processes) {
+        const key = process.bundleId || `id:${process.id}`;
+        const list = byBundle.get(key) ?? [];
+        list.push(process);
+        byBundle.set(key, list);
+    }
+    const groups: ProcessGroup[] = [];
+    for (const [key, members] of byBundle) {
+        const sorted = [...members].sort((a, b) => a.id.localeCompare(b.id));
+        groups.push({
+            key,
+            representative: sorted[0],
+            copyCount: sorted.length,
+        });
+    }
+    return groups;
 }
 
 function splitAppProcesses(app: ApplicationDTO, processes: ProcessIdentityDTO[]) {
     const rows = processes.filter((process) => process.applicationId === app.id);
     const mains = rows.filter((process) => process.bundleId === app.bundleId);
     const helpers = rows.filter((process) => process.bundleId !== app.bundleId);
-    const main = mains[0];
-    const extraMains = mains.slice(1);
+    const mainSorted = [...mains].sort((a, b) => a.id.localeCompare(b.id));
+    const main = mainSorted[0];
     return {
         main,
-        helpers: [...extraMains, ...helpers],
+        helperGroups: groupProcessesByBundle(helpers),
         iconPath: appBundlePath(main?.path) || appBundlePath(rows[0]?.path),
     };
 }
@@ -197,7 +253,7 @@ function ApplicationPolicyRow({
     onDraftChange: (processId: string, patch: Partial<ProcessDraft>) => void;
     onApplyToHelpers: (appId: string) => void;
 }) {
-    const { main, helpers, iconPath } = useMemo(() => splitAppProcesses(app, processes), [app, processes]);
+    const { main, helperGroups, iconPath } = useMemo(() => splitAppProcesses(app, processes), [app, processes]);
     const mainDraft = main ? (drafts[main.id] ?? NONE_DRAFT()) : NONE_DRAFT();
 
     return (
@@ -224,18 +280,21 @@ function ApplicationPolicyRow({
                 ) : null}
             </div>
 
-            {helpers.length > 0 ? (
-                <ul className="flex flex-col gap-2 border-l border-secondary pl-4 ml-4">
-                    {helpers.map((helper) => {
+            {helperGroups.length > 0 ? (
+                <ul className="ml-4 flex flex-col gap-2 border-l border-secondary pl-4">
+                    {helperGroups.map((group) => {
+                        const helper = group.representative;
                         const draft = drafts[helper.id] ?? NONE_DRAFT();
+                        const copyNote = group.copyCount > 1 ? ` · ${group.copyCount} copies` : "";
                         return (
                             <li
-                                key={helper.id}
+                                key={group.key}
                                 className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
                             >
                                 <div className="min-w-0 pl-2">
                                     <p className="truncate text-sm text-primary">
                                         {helper.executableName || helper.bundleId}
+                                        {copyNote}
                                     </p>
                                     <p className="truncate text-xs text-tertiary">{helper.bundleId}</p>
                                 </div>
@@ -327,7 +386,7 @@ export function ProfilesPage() {
     const onEdit = (profile: ProfileDTO) => {
         setEditID(profile.id);
         setName(profile.name);
-        setDrafts(draftsFromPolicies(profile.policies ?? []));
+        setDrafts(draftsFromPolicies(profile.policies ?? [], processes));
     };
 
     const onCopy = async (id: string, sourceName: string) => {
@@ -386,19 +445,20 @@ export function ProfilesPage() {
         if (!app) {
             return;
         }
-        const { main, helpers } = splitAppProcesses(app, processes);
-        if (!main || helpers.length === 0) {
+        const { main, helperGroups } = splitAppProcesses(app, processes);
+        if (!main || helperGroups.length === 0) {
             return;
         }
         const source = drafts[main.id] ?? NONE_DRAFT();
         setDrafts((prev) => {
             const next = { ...prev };
-            for (const helper of helpers) {
+            for (const group of helperGroups) {
+                const processId = group.representative.id;
                 if (!source.action) {
-                    delete next[helper.id];
+                    delete next[processId];
                     continue;
                 }
-                next[helper.id] = {
+                next[processId] = {
                     action: source.action,
                     proxyId: source.proxyId,
                     protocolScope: source.protocolScope,
