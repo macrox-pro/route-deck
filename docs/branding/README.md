@@ -2,6 +2,8 @@
 
 Canonical app icon: `route-deck-icon.png` in this folder.
 
+README hero banner: `readme-banner.jpg` (1024×512). Use only as the GitHub README header; do not treat it as the Dock / DMG icon master.
+
 Motif: layered glass “deck” tiles and a white Y-shaped split-route arrow on a deep blue field with magenta and cyan edges.
 
 ## Palette (cues, not a full design system)
@@ -20,15 +22,16 @@ Untitled UI `frontend/src/styles/theme.css` may still use the CLI default purple
 
 | Surface | Rule |
 | --- | --- |
-| App icon / Dock / DMG | Derive from this master |
-| README / CONCEPTION | Link this file |
+| App icon / Dock / DMG | Derive from `route-deck-icon.png` |
+| README hero | `readme-banner.jpg` |
+| README / CONCEPTION | Link this folder |
 | Tray (later) | May need a simplified mark; do not invent it here |
 
 ## Do not
 
 - Redraw or replace the motif without owner approval
 - Treat Wails template icons under `build/` as the brand master
-- Commit a second “official” PNG elsewhere
+- Commit a second “official” app-icon PNG elsewhere (the README banner is a separate asset)
 
 ## Install into the Wails build
 

@@ -1,0 +1,61 @@
+name: build-macos
+
+# Packages RouteDeck.app for smoke and internal distribution.
+# Ad-hoc codesign only (Taskfile). No Developer ID and no notarization.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: macos-14
+    env:
+      CGO_ENABLED: "1"
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.0"
+          cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Wails CLI
+        # Isolate from repo GOFLAGS; CLI is not built via this module's vendor/.
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Package RouteDeck.app
+        env:
+          GOFLAGS: -mod=vendor
+        run: wails3 task darwin:package
+
+      - name: Zip app bundle
+        run: |
+          test -d bin/RouteDeck.app
+          ditto -c -k --keepParent bin/RouteDeck.app bin/RouteDeck.app.zip
+
+      - name: Upload RouteDeck.app.zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: RouteDeck-macos-${{ github.sha }}
+          path: bin/RouteDeck.app.zip
+          if-no-files-found: error

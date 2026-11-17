@@ -12,9 +12,13 @@ v1 ships a macOS `.app` built with Wails v3.0.0. No Windows or Linux product bui
 - Supported ProxyBridge version range recorded from RD-005
 - Release notes list fail-open limits: no kill switch, UDP vs HTTP, restart gap
 
+## CI package (no notarization)
+
+`.github/workflows/build-macos.yml` runs `wails3 task darwin:package` and uploads `RouteDeck.app.zip`. That build uses Taskfile ad-hoc codesign only. It is for smoke and internal testers, not Gatekeeper-clean public distribution.
+
 ## Signing
 
-If a Developer ID cert is present, sign and notarize using Wails v3 docs for the installed version. If not, the release notes MUST say the build is unsigned and what Gatekeeper will do.
+If a Developer ID cert is present, sign and notarize using Wails v3 docs for the installed version (local or a future CI job). If not, the release notes MUST say the build is unsigned / ad-hoc only and what Gatekeeper will do (Right-click → Open, Keychain re-prompts on rebuild).
 
 ## Install notes for users
 

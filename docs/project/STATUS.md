@@ -1,15 +1,15 @@
 # Project Status
 
-Updated: 2026-11-17 22:30 UTC
-Updated by: agent (RD-049..RD-056 editor dialogs epic → REVIEW)
+Updated: 2026-11-17 19:55 UTC
+Updated by: agent (RD-057 CI macOS package workflow → REVIEW)
 
 ## Current phase
 
-Editor dialogs, helper groups, and Dock badge epic implemented locally; awaiting owner smoke and commits.
+CI can package an unsigned `RouteDeck.app` for smoke; editor-dialogs epic still awaiting owner smoke/commits.
 
 ## Current task
 
-RD-056
+RD-057
 
 ## State
 
@@ -17,12 +17,12 @@ REVIEW
 
 ## Completed
 
-- Still in Active (REVIEW, not archived): RD-007, RD-033, RD-037..RD-056
+- Still in Active (REVIEW, not archived): RD-007, RD-033, RD-037..RD-057
 - DONE archive: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-036 except REVIEW gaps)
 
 ## In progress
 
-- None. Waiting on owner UX smoke and commits.
+- None. Waiting on owner push for remote `build-macos` evidence and UX smoke commits.
 
 ## Blockers
 
@@ -43,20 +43,20 @@ REVIEW
 - Proxy client icons only when host/port matches a documented Setup guide endpoint
 - Quitting with a dirty editor discards edits (ADR-0014 known limitation)
 - Old duplicate ProcessIdentity rows for one bundle id are collapsed at compile time, not migrated in SQLite
+- CI `build-macos` artifact is ad-hoc codesign only (Gatekeeper will warn); arm64 (`macos-14`) only
 
 ## Next actions
 
-1. Owner: `wails3 dev` smoke per HANDOFF (profile/proxy/helpers dialogs, sync confirm, Dock `!` badge).
-2. Owner commits (suggested messages in HANDOFF). Agent MUST NOT commit.
+1. Owner commits RD-057 (and prior REVIEW work as desired). Agent MUST NOT commit.
+2. Owner: push and confirm Actions → `build-macos` uploads `RouteDeck.app.zip`.
+3. Owner: `wails3 dev` smoke for RD-049..RD-056 per prior HANDOFF if not done.
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `go test ./internal/...` | PASS |
-| `golangci-lint run ./...` | PASS (0 issues) |
-| `cd frontend && npm run build` | PASS |
-| `wails3 build` | PASS |
-| macOS dialog/Dock smoke | NOT RUN (owner) |
+| `test -f .github/workflows/build-macos.yml` | PASS |
+| `golangci-lint run ./...` | PASS (0 issues; cache write warnings in sandbox) |
+| Remote `build-macos` Actions run | NOT RUN (not pushed) |
 
 Environment: macOS darwin/arm64; module `github.com/macrox-pro/route-deck`; Go `1.26.0`; Wails v3.0.0

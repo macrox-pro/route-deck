@@ -14,6 +14,17 @@ wails3 task darwin:package
 
 That produces `bin/RouteDeck.app` with executable `Contents/MacOS/route-deck` (`APP_BUNDLE_NAME` vs `APP_NAME` in `Taskfile.yml`). Confirm the task name with `wails3 task --list` if this fails. Do not invent a second build system.
 
+## GitHub Actions (unsigned package)
+
+Workflow: `.github/workflows/build-macos.yml`.
+
+- Triggers: `workflow_dispatch`, push to `main`, tags `v*`
+- Runner: `macos-14` (arm64)
+- Command: `wails3 task darwin:package` with `CGO_ENABLED=1` and `GOFLAGS=-mod=vendor`
+- Artifact: `RouteDeck.app.zip` (ad-hoc codesign from the Taskfile only)
+- MUST NOT require Developer ID or notarization in this workflow
+- PR check gate stays `.github/workflows/ci.yml` (tests, lint, frontend build only)
+
 Dev loop:
 
 ```bash

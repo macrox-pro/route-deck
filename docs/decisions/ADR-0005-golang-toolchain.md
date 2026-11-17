@@ -25,7 +25,8 @@ Wails v3.0.0 requires Go 1.26 or newer. The scaffold `go.mod` declares `go 1.26.
 ## Consequences
 
 - `golangci-lint run ./...` is part of Go DoD.
-- CI (RD-007) is `.github/workflows/ci.yml`: same lint config, `go test ./...`, and `npm run build` in `frontend/`. No ESLint step.
+- CI check gate (RD-007) is `.github/workflows/ci.yml`: same lint config, `go test ./...`, and `npm run build` in `frontend/`. No ESLint step.
+- CI macOS package (RD-057) is `.github/workflows/build-macos.yml`: `wails3 task darwin:package`, ad-hoc codesign only, artifact zip. No Developer ID / notarization in that workflow.
 
 ## Follow-up
 
