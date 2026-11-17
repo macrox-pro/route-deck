@@ -120,6 +120,21 @@ func (c *Catalog) AddApplicationFromPath(ctx context.Context, path string) (doma
 	return app, inspected, nil
 }
 
+// InspectPath inspects an application bundle without writing the catalog.
+func (c *Catalog) InspectPath(ctx context.Context, path string) (port.InspectedApplication, error) {
+	if c.Inspector == nil {
+		return port.InspectedApplication{}, fmt.Errorf("catalog inspect: inspector not configured")
+	}
+	if path == "" {
+		return port.InspectedApplication{}, fmt.Errorf("catalog inspect: empty path")
+	}
+	inspected, err := c.Inspector.Inspect(ctx, path)
+	if err != nil {
+		return port.InspectedApplication{}, fmt.Errorf("catalog inspect: %w", err)
+	}
+	return inspected, nil
+}
+
 // ConfirmHelpers saves selected helper process identities under applicationID.
 func (c *Catalog) ConfirmHelpers(ctx context.Context, applicationID domain.ApplicationID, helpers []port.InspectedProcess) error {
 	for _, helper := range helpers {

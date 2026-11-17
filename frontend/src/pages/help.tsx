@@ -49,6 +49,36 @@ export function HelpPage() {
                 </div>
             )}
 
+            <section className="flex flex-col gap-2 rounded-lg p-4 ring-1 ring-secondary">
+                <h2 className="text-lg font-semibold text-primary">Protection states</h2>
+                <ul className="list-disc space-y-1 pl-5 text-sm text-tertiary">
+                    <li>
+                        <span className="text-secondary">Applied</span> — the CLI confirmed a profile. Not the same as Active.
+                    </li>
+                    <li>
+                        <span className="text-secondary">Active</span> — routing confirmed and every protected app (Proxy or
+                        Block) is fully covered.
+                    </li>
+                    <li>
+                        <span className="text-secondary">Degraded</span> — rules are in effect, but there is a gap (for example
+                        health “TCP OK, UDP unavailable”).
+                    </li>
+                    <li>
+                        <span className="text-secondary">Inactive</span> — nothing to protect, or only Direct policies after
+                        Apply.
+                    </li>
+                    <li>
+                        <span className="text-secondary">Unprotected</span> — rules are not in effect (stopped, conflict, or
+                        confirm failed).
+                    </li>
+                </ul>
+                <p className="text-sm text-tertiary">
+                    Health labels on the Dashboard and Proxies pages are English display text; the wire tokens in logs stay
+                    unchanged. Helper processes must be confirmed explicitly — otherwise their traffic can bypass Proxy or
+                    Block.
+                </p>
+            </section>
+
             <section className="flex flex-col gap-4">
                 <div>
                     <h2 className="text-lg font-semibold text-primary">ProxyBridge</h2>

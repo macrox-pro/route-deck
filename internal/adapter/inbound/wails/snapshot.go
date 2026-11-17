@@ -14,6 +14,9 @@ import (
 type ProxyRowDTO struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`
+	Kind   string `json:"kind"`
+	Host   string `json:"host"`
+	Port   int    `json:"port"`
 	Health string `json:"health"`
 }
 
@@ -73,6 +76,9 @@ func mapSnapshot(result service.SnapshotResult) SnapshotDTO {
 		proxies = append(proxies, ProxyRowDTO{
 			ID:     string(row.ID),
 			Name:   row.Name,
+			Kind:   string(row.Kind),
+			Host:   row.Host,
+			Port:   row.Port,
 			Health: string(row.Health),
 		})
 	}

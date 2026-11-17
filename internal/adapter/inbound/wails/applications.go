@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"path/filepath"
+	"strings"
 
 	"github.com/macrox-pro/route-deck/internal/application/port"
 	"github.com/macrox-pro/route-deck/internal/application/service"
@@ -206,6 +208,72 @@ func mapAddResult(saved domain.Application, inspected port.InspectedApplication)
 		},
 		Helpers: helpers,
 	}
+}
+
+// InspectHelpers re-inspects the application bundle for helper candidates (ADR-0008).
+// It does not save helpers; callers must ConfirmHelpers explicitly.
+func (s *ApplicationsService) InspectHelpers(ctx context.Context, applicationID string) (AddApplicationResultDTO, error) {
+	if s == nil || s.Catalog == nil {
+		return AddApplicationResultDTO{}, fmt.Errorf("applications service: not configured")
+	}
+	appID, err := domain.ParseApplicationID(applicationID)
+	if err != nil {
+		return AddApplicationResultDTO{}, fmt.Errorf("inspect helpers: %w", err)
+	}
+	apps, err := s.Catalog.ListApplications(ctx)
+	if err != nil {
+		return AddApplicationResultDTO{}, fmt.Errorf("inspect helpers: %w", err)
+	}
+	var app domain.Application
+	foundApp := false
+	for _, row := range apps {
+		if row.ID == appID {
+			app = row
+			foundApp = true
+			break
+		}
+	}
+	if !foundApp {
+		return AddApplicationResultDTO{}, fmt.Errorf("inspect helpers: application not found")
+	}
+	identities, err := s.Catalog.ListProcessIdentities(ctx)
+	if err != nil {
+		return AddApplicationResultDTO{}, fmt.Errorf("inspect helpers: %w", err)
+	}
+	bundlePath := ""
+	for _, identity := range identities {
+		if identity.ApplicationID != appID {
+			continue
+		}
+		if p := appBundlePath(identity.Path); p != "" {
+			bundlePath = p
+			break
+		}
+	}
+	if bundlePath == "" {
+		return AddApplicationResultDTO{}, fmt.Errorf("inspect helpers: no application bundle path")
+	}
+	inspected, err := s.Catalog.InspectPath(ctx, bundlePath)
+	if err != nil {
+		s.logger().Warn("inspect helpers failed", "component", "wails.applications", "err", err)
+		return AddApplicationResultDTO{}, err
+	}
+	return mapAddResult(app, inspected), nil
+}
+
+func appBundlePath(processPath string) string {
+	p := filepath.Clean(processPath)
+	for p != "." && p != "/" {
+		if strings.HasSuffix(strings.ToLower(p), ".app") {
+			return p
+		}
+		parent := filepath.Dir(p)
+		if parent == p {
+			break
+		}
+		p = parent
+	}
+	return ""
 }
 
 // ConfirmHelpers saves selected helpers for an application.

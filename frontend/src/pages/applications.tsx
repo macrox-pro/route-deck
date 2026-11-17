@@ -4,6 +4,8 @@ import { Button } from "@/components/base/buttons/button";
 import { Checkbox } from "@/components/base/checkbox/checkbox";
 import { Input } from "@/components/base/input/input";
 import { useSnapshot } from "@/hooks/use-snapshot";
+import { appBundlePath } from "@/utils/app-bundle-path";
+import { loadAppIcon } from "@/utils/load-app-icon";
 import {
     ApplicationsService,
     ProfilesService,
@@ -23,8 +25,7 @@ type CatalogPolicyLine = {
     profileName: string;
     processLabel: string;
     actionLabel: string;
-    inForce: boolean;
-    protectionWhenInForce: string;
+    applied: boolean;
 };
 
 function actionLabel(action: string, proxyId: string, proxyNameById: Map<string, string>): string {
@@ -49,7 +50,6 @@ function buildCatalogPolicyLines(
     proxyNameById: Map<string, string>,
     appliedId: string,
     appliedConfirmed: boolean,
-    protection: string,
 ): CatalogPolicyLine[] {
     const processByID = new Map<string, ProcessIdentityDTO>();
     const appProcessIDs = new Set<string>();
@@ -65,7 +65,7 @@ function buildCatalogPolicyLines(
 
     const lines: CatalogPolicyLine[] = [];
     for (const profile of profiles) {
-        const inForce = appliedConfirmed && appliedId === profile.id;
+        const applied = appliedConfirmed && appliedId === profile.id;
         for (const policy of profile.policies ?? []) {
             if (!appProcessIDs.has(policy.processId)) {
                 continue;
@@ -77,61 +77,11 @@ function buildCatalogPolicyLines(
                 profileName: profile.name || profile.id,
                 processLabel,
                 actionLabel: actionLabel(policy.action, policy.proxyId, proxyNameById),
-                inForce,
-                protectionWhenInForce: inForce ? protection || "Unknown" : "",
+                applied,
             });
         }
     }
     return lines;
-}
-
-// Cap concurrent Icon RPC so opening Applications does not stampede AppKit.
-const ICON_FETCH_LIMIT = 2;
-let iconFetchesActive = 0;
-const iconFetchWaiters: Array<() => void> = [];
-const iconFetchByPath = new Map<string, Promise<string | null>>();
-
-async function acquireIconSlot(): Promise<void> {
-    if (iconFetchesActive < ICON_FETCH_LIMIT) {
-        iconFetchesActive += 1;
-        return;
-    }
-    await new Promise<void>((resolve) => {
-        iconFetchWaiters.push(resolve);
-    });
-    iconFetchesActive += 1;
-}
-
-function releaseIconSlot(): void {
-    iconFetchesActive -= 1;
-    const next = iconFetchWaiters.shift();
-    if (next) {
-        next();
-    }
-}
-
-function loadAppIcon(path: string): Promise<string | null> {
-    const existing = iconFetchByPath.get(path);
-    if (existing) {
-        return existing;
-    }
-    const pending = (async () => {
-        await acquireIconSlot();
-        try {
-            // Wails v3 maps []byte to a base64 string in TypeScript bindings.
-            const encoded = await ApplicationsService.Icon(path);
-            if (!encoded) {
-                return null;
-            }
-            return `data:image/png;base64,${encoded}`;
-        } catch {
-            return null;
-        } finally {
-            releaseIconSlot();
-        }
-    })();
-    iconFetchByPath.set(path, pending);
-    return pending;
 }
 
 function useAppIcon(path: string | undefined, enabled: boolean) {
@@ -167,14 +117,18 @@ function CatalogRow({
     app,
     path,
     policyLines,
+    needsHelperReview,
     busy,
     onDelete,
+    onReviewHelpers,
 }: {
     app: ApplicationDTO;
     path: string | undefined;
     policyLines: CatalogPolicyLine[];
+    needsHelperReview: boolean;
     busy: boolean;
     onDelete: (id: string) => void;
+    onReviewHelpers: (id: string) => void;
 }) {
     return (
         <li className="flex flex-col gap-2 px-4 py-3 text-sm">
@@ -186,10 +140,21 @@ function CatalogRow({
                         <p className="truncate text-tertiary">{app.bundleId}</p>
                     </div>
                 </div>
-                <Button color="secondary-destructive" size="sm" isLoading={busy} onClick={() => onDelete(app.id)}>
-                    Delete
-                </Button>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                    <Button color="secondary" size="sm" isLoading={busy} onClick={() => onReviewHelpers(app.id)}>
+                        Review helpers…
+                    </Button>
+                    <Button color="secondary-destructive" size="sm" isLoading={busy} onClick={() => onDelete(app.id)}>
+                        Delete
+                    </Button>
+                </div>
             </div>
+            {needsHelperReview ? (
+                <p className="pl-11 text-xs text-warning-primary">
+                    This app may have helper processes that are not in the catalog. Unconfirmed helpers are not written into
+                    rules, so their traffic can bypass Proxy or Block.
+                </p>
+            ) : null}
             {policyLines.length > 0 ? (
                 <ul className="flex flex-col gap-1 pl-11">
                     {policyLines.map((line) => (
@@ -200,14 +165,7 @@ function CatalogRow({
                             {" · "}
                             {line.actionLabel}
                             {" · "}
-                            {line.inForce ? (
-                                <>
-                                    In force
-                                    {line.protectionWhenInForce ? ` · ${line.protectionWhenInForce}` : ""}
-                                </>
-                            ) : (
-                                "Not in force"
-                            )}
+                            {line.applied ? "Applied" : "Not applied"}
                         </li>
                     ))}
                 </ul>
@@ -257,6 +215,7 @@ export function ApplicationsPage() {
     const [pendingAppID, setPendingAppID] = useState<string | null>(null);
     const [helpers, setHelpers] = useState<HelperDTO[]>([]);
     const [selected, setSelected] = useState<Record<string, boolean>>({});
+    const [helperReviewNeeded, setHelperReviewNeeded] = useState<Record<string, boolean>>({});
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
 
@@ -275,6 +234,34 @@ export function ApplicationsPage() {
             setProfiles(profileRows);
             setProcesses(processRows);
             setProxies(proxyRows);
+
+            const knownByApp = new Map<string, Set<string>>();
+            for (const process of processRows) {
+                let set = knownByApp.get(process.applicationId);
+                if (!set) {
+                    set = new Set();
+                    knownByApp.set(process.applicationId, set);
+                }
+                set.add(process.path);
+                set.add(process.bundleId);
+            }
+
+            const review: Record<string, boolean> = {};
+            await Promise.all(
+                catalog.map(async (app) => {
+                    try {
+                        const result = await ApplicationsService.InspectHelpers(app.id);
+                        const known = knownByApp.get(app.id) ?? new Set();
+                        const missing = (result.helpers ?? []).some(
+                            (helper) => !known.has(helper.path) && !known.has(helper.bundleId),
+                        );
+                        review[app.id] = missing;
+                    } catch {
+                        review[app.id] = false;
+                    }
+                }),
+            );
+            setHelperReviewNeeded(review);
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
         }
@@ -297,14 +284,31 @@ export function ApplicationsPage() {
         });
     }, [filter, installed, showSystem]);
 
-    // ApplicationDTO has no path; Icon needs a .app path from the installed index.
-    const installedPathByBundle = useMemo(() => {
+    const pathByAppID = useMemo(() => {
         const map = new Map<string, string>();
+        const installedPathByBundle = new Map<string, string>();
         for (const row of installed) {
-            map.set(row.bundleId, row.path);
+            installedPathByBundle.set(row.bundleId, row.path);
+        }
+        for (const app of apps) {
+            const fromInstalled = installedPathByBundle.get(app.bundleId);
+            if (fromInstalled) {
+                map.set(app.id, fromInstalled);
+                continue;
+            }
+            for (const process of processes) {
+                if (process.applicationId !== app.id) {
+                    continue;
+                }
+                const bundle = appBundlePath(process.path);
+                if (bundle) {
+                    map.set(app.id, bundle);
+                    break;
+                }
+            }
         }
         return map;
-    }, [installed]);
+    }, [apps, installed, processes]);
 
     const proxyNameById = useMemo(() => {
         const map = new Map<string, string>();
@@ -318,15 +322,11 @@ export function ApplicationsPage() {
         const map = new Map<string, CatalogPolicyLine[]>();
         const appliedId = snapshot?.appliedId ?? "";
         const appliedConfirmed = snapshot?.appliedConfirmed ?? false;
-        const protection = snapshot?.protection ?? "Unknown";
         for (const app of apps) {
-            map.set(
-                app.id,
-                buildCatalogPolicyLines(app.id, processes, profiles, proxyNameById, appliedId, appliedConfirmed, protection),
-            );
+            map.set(app.id, buildCatalogPolicyLines(app.id, processes, profiles, proxyNameById, appliedId, appliedConfirmed));
         }
         return map;
-    }, [apps, processes, profiles, proxyNameById, snapshot?.appliedConfirmed, snapshot?.appliedId, snapshot?.protection]);
+    }, [apps, processes, profiles, proxyNameById, snapshot?.appliedConfirmed, snapshot?.appliedId]);
 
     const applyAddResult = (result: Awaited<ReturnType<typeof ApplicationsService.AddFromPath>>) => {
         setPendingAppID(result.application.id);
@@ -373,6 +373,40 @@ export function ApplicationsPage() {
         }
     };
 
+    const onReviewHelpers = async (applicationID: string) => {
+        setBusy(true);
+        setError(null);
+        try {
+            const result = await ApplicationsService.InspectHelpers(applicationID);
+            setPendingAppID(applicationID);
+            setHelpers(result.helpers ?? []);
+            const known = new Set<string>();
+            for (const process of processes) {
+                if (process.applicationId !== applicationID) {
+                    continue;
+                }
+                if (process.path) {
+                    known.add(process.path);
+                }
+                if (process.bundleId) {
+                    known.add(process.bundleId);
+                }
+            }
+            const initial: Record<string, boolean> = {};
+            for (const helper of result.helpers ?? []) {
+                initial[helper.path] = known.has(helper.path) || known.has(helper.bundleId);
+            }
+            setSelected(initial);
+            if ((result.helpers ?? []).length === 0) {
+                setError("No helper processes found in this application bundle.");
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setBusy(false);
+        }
+    };
+
     const onConfirmHelpers = async () => {
         if (!pendingAppID) {
             return;
@@ -409,7 +443,14 @@ export function ApplicationsPage() {
     return (
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between gap-4">
-                <h1 className="text-display-xs font-semibold text-primary">Applications</h1>
+                <div>
+                    <h1 className="text-display-xs font-semibold text-primary">Applications</h1>
+                    <p className="mt-1 max-w-2xl text-sm text-tertiary">
+                        Applied means this profile is confirmed on the CLI. It is not the same as Protection Active. Helper
+                        processes that are not confirmed are never written into rules, so their traffic can bypass Proxy or
+                        Block.
+                    </p>
+                </div>
                 <Button color="primary" size="md" isLoading={busy} onClick={() => void onPick()}>
                     Add from disk…
                 </Button>
@@ -425,7 +466,8 @@ export function ApplicationsPage() {
                 <section className="flex flex-col gap-3 rounded-lg p-4 ring-1 ring-secondary">
                     <h2 className="text-sm font-semibold text-secondary">Helper processes</h2>
                     <p className="text-sm text-tertiary">
-                        Select helpers to include as separate process identities. Unchecked helpers are never written into rules.
+                        Select helpers to include as separate process identities. Unchecked helpers are never written into
+                        rules.
                     </p>
                     {helpers.map((helper) => (
                         <Checkbox
@@ -464,10 +506,12 @@ export function ApplicationsPage() {
                             <CatalogRow
                                 key={app.id}
                                 app={app}
-                                path={installedPathByBundle.get(app.bundleId)}
+                                path={pathByAppID.get(app.id)}
                                 policyLines={policyLinesByApp.get(app.id) ?? []}
+                                needsHelperReview={!!helperReviewNeeded[app.id]}
                                 busy={busy}
                                 onDelete={(id) => void onDelete(id)}
+                                onReviewHelpers={(id) => void onReviewHelpers(id)}
                             />
                         ))
                     )}

@@ -89,6 +89,8 @@ func run() error {
 		db = opened
 		store := db.Store()
 		snapshotter.Proxies = store
+		snapshotter.Profiles = store.Profiles()
+		snapshotter.Processes = store.ProcessIdentities()
 		snapshotter.Settings = store.Settings()
 		settingsStore = store.Settings()
 		settings, settingsErr := settingsStore.Get(ctx)

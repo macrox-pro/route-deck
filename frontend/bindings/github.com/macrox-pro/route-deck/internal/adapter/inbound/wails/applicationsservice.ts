@@ -47,6 +47,16 @@ export function Icon(path: string): $CancellablePromise<string> {
 }
 
 /**
+ * InspectHelpers re-inspects the application bundle for helper candidates (ADR-0008).
+ * It does not save helpers; callers must ConfirmHelpers explicitly.
+ */
+export function InspectHelpers(applicationID: string): $CancellablePromise<$models.AddApplicationResultDTO> {
+    return $Call.ByID(2205293018, applicationID).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+/**
  * List returns applications.
  */
 export function List(): $CancellablePromise<$models.ApplicationDTO[]> {

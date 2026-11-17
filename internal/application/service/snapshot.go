@@ -13,6 +13,9 @@ import (
 type ProxyHealthRow struct {
 	ID     domain.ProxyID
 	Name   string
+	Kind   domain.ProxyKind
+	Host   string
+	Port   int
 	Health domain.ProxyHealth
 }
 
@@ -37,6 +40,8 @@ type SnapshotResult struct {
 // Snapshotter builds honest protection snapshots.
 type Snapshotter struct {
 	Proxies       port.ProxyStore
+	Profiles      port.ProfileStore
+	Processes     port.ProcessIdentityStore
 	Settings      port.SettingsStore
 	Locator       port.BridgeLocator
 	DatabaseError string
@@ -154,11 +159,38 @@ func (s *Snapshotter) Snapshot(ctx context.Context) (SnapshotResult, error) {
 				health = h
 			}
 		}
-		rows = append(rows, ProxyHealthRow{ID: proxy.ID, Name: proxy.Name, Health: health})
+		rows = append(rows, ProxyHealthRow{
+			ID:     proxy.ID,
+			Name:   proxy.Name,
+			Kind:   proxy.Kind,
+			Host:   proxy.Host,
+			Port:   proxy.Port,
+			Health: health,
+		})
 		proxyFacts = append(proxyFacts, domain.ProxyFact{ID: proxy.ID, Health: health})
 	}
 	result.Proxies = rows
 	facts.Proxies = proxyFacts
+
+	if s.AppliedConfirmed && s.AppliedID != "" {
+		if s.Profiles == nil || s.Processes == nil {
+			return SnapshotResult{}, fmt.Errorf("snapshot: profiles or processes store not configured")
+		}
+		profile, err := s.Profiles.Get(ctx, s.AppliedID)
+		if err != nil {
+			return SnapshotResult{}, fmt.Errorf("snapshot applied profile: %w", err)
+		}
+		identities, err := s.Processes.List(ctx)
+		if err != nil {
+			return SnapshotResult{}, fmt.Errorf("snapshot process identities: %w", err)
+		}
+		plan, err := domain.BuildRulePlan(profile, proxies, identities)
+		if err != nil {
+			return SnapshotResult{}, fmt.Errorf("snapshot rule plan: %w", err)
+		}
+		facts.Apps = plan.Apps
+	}
+
 	result.Protection = domain.DeriveProtection(facts)
 	s.logger().Debug("snapshot built",
 		"component", "snapshotter",

@@ -1,12 +1,19 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HelpCircle } from "@untitledui/icons";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
 import { ProtectionBadge } from "@/components/application/protection-badge/protection-badge";
+import { ProxyListIcon } from "@/components/application/proxy-list-icon/proxy-list-icon";
 import { SetupChecklist } from "@/components/application/setup-guide/setup-checklist";
 import { SuggestionBanner } from "@/components/application/setup-guide/suggestion-banner";
 import { Button } from "@/components/base/buttons/button";
 import { useSnapshot } from "@/hooks/use-snapshot";
-import { ProtectionService } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import { matchProxyGuide } from "@/utils/match-proxy-guide";
+import { proxyHealthLabel } from "@/utils/proxy-health-label";
+import {
+    ProtectionService,
+    SetupGuidesService,
+} from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import type { GuideDTO } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 
 export function DashboardPage() {
     const { data, error, loading, reload } = useSnapshot();
@@ -14,6 +21,22 @@ export function DashboardPage() {
     const [busy, setBusy] = useState(false);
     const [operationID, setOperationID] = useState<string | null>(null);
     const [checklistKey, setChecklistKey] = useState(0);
+    const [guides, setGuides] = useState<GuideDTO[]>([]);
+
+    useEffect(() => {
+        void SetupGuidesService.List(false)
+            .then(setGuides)
+            .catch(() => setGuides([]));
+    }, []);
+
+    const proxyIconByID = useMemo(() => {
+        const map = new Map<string, { installedPath?: string; kind: string }>();
+        for (const proxy of data?.proxies ?? []) {
+            const match = matchProxyGuide(proxy.host || "127.0.0.1", proxy.port || 0, proxy.kind || "socks5", guides);
+            map.set(proxy.id, { installedPath: match.installedPath, kind: match.kindFallback });
+        }
+        return map;
+    }, [data?.proxies, guides]);
 
     if (loading && !data) {
         return (
@@ -56,7 +79,10 @@ export function DashboardPage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h1 className="text-display-xs font-semibold text-primary">Dashboard</h1>
-                    <p className="mt-1 text-sm text-tertiary">Protection state from Go. Events trigger a snapshot reload; they are not proof of Active.</p>
+                    <p className="mt-1 max-w-2xl text-sm text-tertiary">
+                        Protection comes from a Go snapshot after Apply. Events only trigger a reload — they are not proof of
+                        Active. Applied means the CLI confirmed a profile; it is not the same as Active.
+                    </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                     <Button color="secondary" size="md" iconLeading={HelpCircle} href="/help">
@@ -118,16 +144,28 @@ export function DashboardPage() {
                 </div>
             )}
 
+            <p className="text-sm text-tertiary">
+                Helper processes that are not confirmed are not in rules — their traffic can bypass Proxy or Block. Review
+                helpers on the Applications page.
+            </p>
+
             {operationID && <p className="text-xs text-tertiary">Last operation: {operationID}</p>}
 
             {data && (
                 <>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <ProtectionBadge protection={data.protection} />
-                        <span className="text-sm text-secondary">Bridge: {data.bridge || "Unknown"}</span>
-                        {data.version && <span className="text-sm text-tertiary">CLI {data.version}</span>}
-                        {data.desiredSet && <span className="text-sm text-tertiary">Desired: {data.desiredId || "—"}</span>}
-                        {data.appliedConfirmed && <span className="text-sm text-tertiary">Applied: {data.appliedId || "—"}</span>}
+                    <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <ProtectionBadge protection={data.protection} />
+                            <span className="text-sm text-secondary">Bridge: {data.bridge || "Unknown"}</span>
+                            {data.version && <span className="text-sm text-tertiary">CLI {data.version}</span>}
+                            {data.desiredSet && <span className="text-sm text-tertiary">Desired: {data.desiredId || "—"}</span>}
+                            {data.appliedConfirmed && <span className="text-sm text-tertiary">Applied: {data.appliedId || "—"}</span>}
+                        </div>
+                        <p className="max-w-2xl text-xs text-tertiary">
+                            Active: routing confirmed and every protected app fully covered. Degraded: rules in effect with a
+                            gap (for example TCP OK, UDP unavailable). Inactive: nothing to protect, or Direct-only policies.
+                            Unprotected: rules are not in effect. Applied ≠ Active.
+                        </p>
                     </div>
 
                     <section>
@@ -136,12 +174,18 @@ export function DashboardPage() {
                             <p className="text-sm text-tertiary">No proxies in the catalog.</p>
                         ) : (
                             <ul className="divide-y divide-secondary rounded-lg ring-1 ring-secondary">
-                                {data.proxies.map((proxy) => (
-                                    <li key={proxy.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                                        <span className="text-primary">{proxy.name || proxy.id}</span>
-                                        <span className="text-tertiary">{proxy.health}</span>
-                                    </li>
-                                ))}
+                                {data.proxies.map((proxy) => {
+                                    const icon = proxyIconByID.get(proxy.id);
+                                    return (
+                                        <li key={proxy.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                                            <div className="flex min-w-0 items-center gap-3">
+                                                <ProxyListIcon installedPath={icon?.installedPath} kind={icon?.kind || proxy.kind || "socks5"} />
+                                                <span className="truncate text-primary">{proxy.name || proxy.id}</span>
+                                            </div>
+                                            <span className="shrink-0 text-tertiary">{proxyHealthLabel(proxy.health)}</span>
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         )}
                     </section>

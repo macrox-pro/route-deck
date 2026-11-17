@@ -1,15 +1,15 @@
 # Project Status
 
-Updated: 2026-11-17 16:50 UTC
-Updated by: agent (RD-045 native dialogs)
+Updated: 2026-11-17 18:55 UTC
+Updated by: agent (RD-048 profiles app editor)
 
 ## Current phase
 
-Native GUI-conflict and extension-approval dialogs shipped locally; awaiting owner smoke.
+Profiles app-grouped editor shipped locally; awaiting owner smoke.
 
 ## Current task
 
-RD-045
+RD-048
 
 ## State
 
@@ -17,7 +17,10 @@ REVIEW
 
 ## Completed
 
-- RD-045: Native dialogs for GUI conflict + extension approval (REVIEW)
+- RD-048: Profiles app-grouped editor + Review helpers preselect (REVIEW)
+- RD-047: Profiles form layout + add-all (REVIEW; editor UX superseded by RD-048)
+- RD-046: Protection UX clarity (REVIEW)
+- RD-045: Native dialogs for GUI conflict + extension approval (REVIEW; may be uncommitted)
 - RD-044: Warn/Error severity for failure logs (REVIEW)
 - RD-040..RD-043: Setup guides batch (REVIEW)
 - RD-039: HTTP CONNECT health
@@ -28,11 +31,11 @@ REVIEW
 
 ## In progress
 
-- None. Waiting on owner dialog smoke and commits.
+- None. Waiting on owner UX smoke and commits.
 
 ## Blockers
 
-- RD-033 Apply→Active needs owner UI + extension approval (SOCKS5 endpoint is ready: Shadowrocket 127.0.0.1:1082, health TCPAvailableUDPUnavailable)
+- RD-033 Apply→Active owner smoke still pending
 
 ## Known limitations
 
@@ -45,18 +48,20 @@ REVIEW
 - Keychain prompts on unsigned rebuild expected
 - Another CLI / extension timeout still have no dedicated native dialog (out of RD-045 scope)
 - Dialog copy is English-only; message IDs ready for future i18n
+- Helper processes are never auto-confirmed (ADR-0008); Review helpers is explicit
+- Proxy client icons only when host/port matches a documented Setup guide endpoint
+- ConfirmHelpers remains additive (uncheck does not remove catalogued helpers)
 
 ## Next actions
 
-1. Owner: `wails3 dev` → Apply with ProxyBridge GUI open → Warning dialog; quit GUI.
-2. Owner: first-run Apply → Info dialog for extension approval; Allow in System Settings; Apply reaches Active.
-3. Owner commits (agent MUST NOT commit).
+1. Owner: `wails3 dev` smoke per HANDOFF (Profiles app list + Apply to helpers + Review helpers preselect).
+2. Owner commits. Agent MUST NOT commit.
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `go test ./internal/adapter/outbound/proxybridge/ ./internal/application/service/ ./internal/adapter/inbound/wails/` | PASS |
+| `cd frontend && npm run build` | PASS |
 | `golangci-lint run ./...` | PASS (0 issues) |
 
 Environment: macOS darwin/arm64; module `github.com/macrox-pro/route-deck`; Go `1.26.0`; Wails v3.0.0

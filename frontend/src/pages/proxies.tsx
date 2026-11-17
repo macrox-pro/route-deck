@@ -1,11 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { ProxyListIcon } from "@/components/application/proxy-list-icon/proxy-list-icon";
 import { SuggestionBanner } from "@/components/application/setup-guide/suggestion-banner";
 import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
 import { NativeSelect } from "@/components/base/select/select-native";
-import { ProxiesService } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
-import type { ProxyDTO } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import { useSnapshot } from "@/hooks/use-snapshot";
+import { matchProxyGuide } from "@/utils/match-proxy-guide";
+import { proxyHealthLabel } from "@/utils/proxy-health-label";
+import { ProxiesService, SetupGuidesService } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import type { GuideDTO, ProxyDTO } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 
 const guidePrefill: Record<string, { name: string; kind: string; host: string; port: string }> = {
     singbox: { name: "sing-box local", kind: "socks5", host: "127.0.0.1", port: "" },
@@ -24,7 +28,9 @@ const emptyForm = {
 
 export function ProxiesPage() {
     const [searchParams] = useSearchParams();
+    const { data: snapshot } = useSnapshot();
     const [rows, setRows] = useState<ProxyDTO[]>([]);
+    const [guides, setGuides] = useState<GuideDTO[]>([]);
     const [form, setForm] = useState(emptyForm);
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
@@ -33,7 +39,9 @@ export function ProxiesPage() {
     const reload = useCallback(async () => {
         setError(null);
         try {
-            setRows(await ProxiesService.List());
+            const [proxyRows, guideRows] = await Promise.all([ProxiesService.List(), SetupGuidesService.List(false)]);
+            setRows(proxyRows);
+            setGuides(guideRows);
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
         }
@@ -42,6 +50,23 @@ export function ProxiesPage() {
     useEffect(() => {
         void reload();
     }, [reload]);
+
+    const healthByID = useMemo(() => {
+        const map = new Map<string, string>();
+        for (const proxy of snapshot?.proxies ?? []) {
+            map.set(proxy.id, proxy.health);
+        }
+        return map;
+    }, [snapshot?.proxies]);
+
+    const iconByID = useMemo(() => {
+        const map = new Map<string, { installedPath?: string; kind: string }>();
+        for (const row of rows) {
+            const match = matchProxyGuide(row.host, row.port, row.kind, guides);
+            map.set(row.id, { installedPath: match.installedPath, kind: match.kindFallback });
+        }
+        return map;
+    }, [guides, rows]);
 
     useEffect(() => {
         const guideID = searchParams.get("guide");
@@ -217,30 +242,38 @@ export function ProxiesPage() {
                 {rows.length === 0 ? (
                     <li className="px-4 py-6 text-sm text-tertiary">No proxies yet.</li>
                 ) : (
-                    rows.map((row) => (
-                        <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
-                            <div>
-                                <p className="font-medium text-primary">{row.name || row.id}</p>
-                                <p className="text-tertiary">
-                                    {row.kind}://{row.host}:{row.port}
-                                    {row.hasPassword ? " · password set" : " · no password"}
-                                </p>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                <Button color="secondary" size="sm" onClick={() => onEdit(row)}>
-                                    Edit
-                                </Button>
-                                {row.hasPassword && (
-                                    <Button color="secondary" size="sm" isLoading={busy} onClick={() => void onClearPassword(row.id)}>
-                                        Clear password
+                    rows.map((row) => {
+                        const icon = iconByID.get(row.id);
+                        return (
+                            <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <ProxyListIcon installedPath={icon?.installedPath} kind={icon?.kind || row.kind} />
+                                    <div className="min-w-0">
+                                        <p className="font-medium text-primary">{row.name || row.id}</p>
+                                        <p className="text-tertiary">
+                                            {row.kind}://{row.host}:{row.port}
+                                            {row.hasPassword ? " · password set" : " · no password"}
+                                            {" · "}
+                                            {proxyHealthLabel(healthByID.get(row.id))}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button color="secondary" size="sm" onClick={() => onEdit(row)}>
+                                        Edit
                                     </Button>
-                                )}
-                                <Button color="secondary-destructive" size="sm" isLoading={busy} onClick={() => void onDelete(row.id)}>
-                                    Delete
-                                </Button>
-                            </div>
-                        </li>
-                    ))
+                                    {row.hasPassword && (
+                                        <Button color="secondary" size="sm" isLoading={busy} onClick={() => void onClearPassword(row.id)}>
+                                            Clear password
+                                        </Button>
+                                    )}
+                                    <Button color="secondary-destructive" size="sm" isLoading={busy} onClick={() => void onDelete(row.id)}>
+                                        Delete
+                                    </Button>
+                                </div>
+                            </li>
+                        );
+                    })
                 )}
             </ul>
         </div>

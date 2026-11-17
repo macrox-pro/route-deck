@@ -779,6 +779,9 @@ export class ProxyDraftDTO {
 export class ProxyRowDTO {
     "id": string;
     "name": string;
+    "kind": string;
+    "host": string;
+    "port": number;
     "health": string;
 
     /** Creates a new ProxyRowDTO instance. */
@@ -788,6 +791,15 @@ export class ProxyRowDTO {
         }
         if (!("name" in $$source)) {
             this["name"] = "";
+        }
+        if (!("kind" in $$source)) {
+            this["kind"] = "";
+        }
+        if (!("host" in $$source)) {
+            this["host"] = "";
+        }
+        if (!("port" in $$source)) {
+            this["port"] = 0;
         }
         if (!("health" in $$source)) {
             this["health"] = "";

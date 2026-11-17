@@ -81,26 +81,46 @@ func findHelpers(appPath string) ([]port.InspectedProcess, error) {
 		filepath.Join(appPath, "Contents", "Helpers"),
 	}
 	var helpers []port.InspectedProcess
+	seen := make(map[string]struct{})
 	for _, root := range roots {
-		entries, err := os.ReadDir(root)
-		if err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return nil, fmt.Errorf("macos inspect helpers: %w", err)
-		}
-		for _, entry := range entries {
-			name := entry.Name()
-			if !strings.HasSuffix(name, ".app") {
-				continue
-			}
-			helperPath := filepath.Join(root, name)
-			proc, err := readBundle(helperPath, true)
-			if err != nil {
-				continue
-			}
-			helpers = append(helpers, proc)
+		if err := walkHelperApps(root, &helpers, seen); err != nil {
+			return nil, err
 		}
 	}
 	return helpers, nil
+}
+
+// walkHelperApps collects nested .app bundles under Frameworks/Helpers (ADR-0008).
+// A found .app is a leaf: we do not walk inside it for further helpers.
+func walkHelperApps(root string, helpers *[]port.InspectedProcess, seen map[string]struct{}) error {
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("macos inspect helpers: %w", err)
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		path := filepath.Join(root, name)
+		if strings.HasSuffix(strings.ToLower(name), ".app") {
+			if _, ok := seen[path]; ok {
+				continue
+			}
+			proc, err := readBundle(path, true)
+			if err != nil {
+				continue
+			}
+			seen[path] = struct{}{}
+			*helpers = append(*helpers, proc)
+			continue
+		}
+		if !entry.IsDir() {
+			continue
+		}
+		if err := walkHelperApps(path, helpers, seen); err != nil {
+			return err
+		}
+	}
+	return nil
 }

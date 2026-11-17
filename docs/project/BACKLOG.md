@@ -17,6 +17,9 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 | ID | Status | Goal |
 | --- | --- | --- |
+| [`RD-048`](tasks/RD-048.md) | REVIEW | Profiles app-grouped editor (icon/Action/helpers + Apply to helpers); Review helpers preselect. |
+| [`RD-047`](tasks/RD-047.md) | REVIEW | Profiles form single-column layout; add-all processes by application (skip duplicates silently). |
+| [`RD-046`](tasks/RD-046.md) | REVIEW | Honest ProtectionState via snapshot Apps; Applied vs Protection UX; proxy/profile icons; health labels; helpers H2. |
 | [`RD-045`](tasks/RD-045.md) | REVIEW | Native dialogs for ProxyBridge GUI conflict and extension approval; remove Dashboard Conflict banner. |
 | [`RD-044`](tasks/RD-044.md) | REVIEW | Distinguish WARN and ERROR in RouteDeck logs so Activity severity matches. |
 | [`RD-040`](tasks/RD-040.md) | REVIEW | Ship Setup guides screen with VPN-client detection and Port open facts (ADR-0013). |

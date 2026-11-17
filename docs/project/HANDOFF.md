@@ -1,41 +1,43 @@
 # Handoff
 
-Timestamp: 2026-11-17 16:50 UTC
-Agent: agent (RD-045 native dialogs)
-Task ID: RD-045
+Timestamp: 2026-11-17 18:55 UTC
+Agent: agent (RD-048 profiles app editor)
+Task ID: RD-048
 Branch / commit: working tree (agent MUST NOT commit)
 
 ## Done
 
-- Classified `waiting for your approval` as `extension_approval` (non-fatal)
-- `Process.LineNotify` once per Start for extension approval → native Info dialog
-- Apply failure with `gui_conflict` → native Warning dialog
-- WaitConfirm GUI/another CLI sets `BridgeStateConflict`
-- Removed Dashboard Conflict banner
-- English copy with stable IDs in `usermsg.go` for future i18n
-- Contracts updated (`proxybridge-cli.md`, `wails-api.md`)
+- Profiles editor replaced with Applications-style list: all catalog apps, icon, name, Action (None/Proxy/Direct/Block) on the right
+- Confirmed helpers nested under each app with independent Action
+- **Apply app action to helpers** copies main Action (+ proxy fields) onto helpers; does not auto-cascade on main change
+- Flat policy rows and Add-all block removed; Save still writes per-process PolicyDTO (None omitted)
+- Review helpers pre-checks helpers already in ProcessIdentity (path/bundleId)
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `go test ./internal/adapter/outbound/proxybridge/ ./internal/application/service/ ./internal/adapter/inbound/wails/` | PASS |
-| `golangci-lint run ./...` | PASS (0 issues) |
-| `wails3 dev` GUI conflict + extension approval smoke | NOT RUN (owner) |
+| `cd frontend && npm run build` | PASS |
+| `golangci-lint run ./...` | PASS (0 issues; cache write warnings in sandbox) |
+| Owner smoke | NOT RUN (owner) |
 
 ## Exact next step
 
-Owner: `wails3 dev` → Apply with ProxyBridge.app open (expect Warning) → quit GUI → first-run Apply (expect Info approval dialog) → Allow in System Settings.
+Owner: `wails3 dev` → Profiles → set ChatGPT Block → Apply app action to helpers → Save → Applications Review helpers… shows previously confirmed helpers checked.
 
 ## Suggested commit message
 
 ```text
-show native dialogs for proxybridge gui conflict and extension approval (rd-045)
+replace profiles policy rows with app-grouped editor and preselect helpers (rd-048)
 ```
 
 ## Context to read
 
-- `docs/project/tasks/RD-045.md`
-- `internal/adapter/inbound/wails/usermsg.go`
-- `internal/adapter/inbound/wails/user_dialog.go`
-- `docs/contracts/proxybridge-cli.md`
+- `docs/project/tasks/RD-048.md`
+- `frontend/src/pages/profiles.tsx`
+- `frontend/src/pages/applications.tsx`
+
+## Notes
+
+- ConfirmHelpers remains additive; uncheck does not remove catalogued helpers (not in this task).
+- RD-046/RD-047 may still be uncommitted with RD-048.
