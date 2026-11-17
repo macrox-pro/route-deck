@@ -6,7 +6,7 @@ MUST NOT invent methods. Read the installed module or the v3 docs before adding 
 
 ## Current product surface
 
-`main.go` registers these inbound services (RD-029 / RD-030). `ApplicationShouldTerminateAfterLastWindowClosed` remains `true` until the tray phase.
+`main.go` registers these inbound services (RD-029 / RD-030 / RD-037). Tray lifecycle is ADR-0010 (`ApplicationShouldTerminateAfterLastWindowClosed: false`).
 
 | Service | Methods |
 | --- | --- |
@@ -15,13 +15,17 @@ MUST NOT invent methods. Read the installed module or the v3 docs before adding 
 | `ProxiesService` | `List`, `Save(ProxySaveDTO)`, `Delete(id)`, `ClearPassword(id)`, `Recheck` |
 | `ApplicationsService` | `List`, `ListInstalled`, `Icon(path)`, `AddFromPath(path)`, `ListProcessIdentities`, `PickAndAdd`, `ConfirmHelpers`, `Delete` |
 | `ProfilesService` | `List`, `Save(ProfileSaveDTO)`, `Copy`, `Rename`, `Delete`, `SetDesired` |
-| `SettingsService` | `Get`, `SetProxyBridgePath`, `SetDebugLogging`, `OpenLogsFolder` |
+| `SettingsService` | `Get`, `SetProxyBridgePath`, `SetDebugLogging`, `SetLaunchAtLogin`, `OpenLogsFolder` |
 
 `Apply` returns an `operation_id` immediately and runs confirm asynchronously. Progress and failure use product events. The client must reload the snapshot after events; events are not proof of `Active`.
 
 Empty `password` on `ProxiesService.Save` for an existing id keeps the Keychain secret. Clearing a password is a separate `ClearPassword` call.
 
-`ApplicationsService.PickAndAdd` uses Wails `Dialog.OpenFile()` (verified in v3.0.0). `SettingsService.OpenLogsFolder` uses `Env.OpenFileManager` (verified in v3.0.0).
+`ApplicationsService.PickAndAdd` uses Wails `Dialog.OpenFile()` (verified in v3.0.0). `SettingsService.OpenLogsFolder` uses `Env.OpenFileManager` (verified in v3.0.0). `SettingsService.SetLaunchAtLogin` uses Wails `app.Autostart` (verified in v3.0.0). OS registration is the source of truth; the flag is not stored in SQLite.
+
+## Tray (not a Wails service)
+
+`internal/adapter/inbound/tray` attaches a `SystemTray` from the composition root. Tray click opens the menu. Menu: Status (disabled), Open RouteDeck, Stop protection, Quit RouteDeck. No Apply from tray. Quit always uses `Dialog.Question`. See ADR-0010.
 
 ## Pattern
 
@@ -41,6 +45,8 @@ Generated bindings under `frontend/bindings/.../inbound/wails/` are the TypeScri
 `InstalledApplicationDTO` includes `isSystem` from the platform lister (ADR-0009). The UI filters with that flag; it MUST NOT hard-code OS paths.
 
 `SettingsDTO.discoveredProxyBridgePath` is filled by the application Settings use case via `BridgeLocator.Locate("")` (platform `PlatformPaths` only). The UI uses it as the ProxyBridge path placeholder and MUST NOT hard-code install locations.
+
+`SettingsDTO.launchAtLogin` comes from `Autostart.IsEnabled`.
 
 ## Errors
 

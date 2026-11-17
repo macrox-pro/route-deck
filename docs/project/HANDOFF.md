@@ -1,31 +1,34 @@
 # Handoff
 
-Timestamp: 2026-11-17 15:25 UTC
-Agent: agent (portable discovered ProxyBridge path + prior Applications polish)
-Task ID: RD-033 (current)
+Timestamp: 2026-11-17 16:05 UTC
+Agent: agent (Phase 7 tray + Launch at Login)
+Task ID: RD-037 (current; RD-035 and RD-036 also completed this session)
 Branch / commit: working tree (agent MUST NOT commit)
 
 ## Done
 
-- Applications: Catalog-first UI, system filter via portable `isSystem`, icon crash fix
-- Settings: `discoveredProxyBridgePath` placeholder via application `Settings` + `BridgeLocator`
-- `BridgeLocator.PlatformPaths()`; macOS paths in `paths_darwin.go`, empty on `!darwin`
-- Wails SettingsService thinned to DTO mapping over `service.Settings`
+- ADR-0010 Accepted: tray menu, Quit dialog always, Dock stays, monochrome template icon, Launch at Login
+- RD-035: `ShouldTerminate=false`, SystemTray, close→Hide, Open, Quit Question dialog
+- RD-036: live Status/tooltip from snapshot + bridge; Stop enabled only when CLI owned; Quit copy mentions Stop when owned
+- RD-037: `port.LaunchAtLogin` + Wails Autostart adapter; Settings toggle; bindings regenerated
+- Docs: lifecycle, wails-api, ROADMAP Phase 7, ADR-0008 pointer, BACKLOG tasks
 
 ## Files changed (high level)
 
-- `internal/application/port/{discover,bridge}.go`
-- `internal/application/service/{settings,catalog,protection_test}.go`
-- `internal/adapter/outbound/proxybridge/{locator,paths_*}.go`
-- `internal/adapter/outbound/macos/lister*.go`
-- `internal/adapter/inbound/wails/{settings,applications}.go`
-- `main.go`, `frontend/src/pages/{settings,applications}.tsx`, bindings
-- ADR-0008/0009, wails-api, STATUS/HANDOFF
+- `internal/adapter/inbound/tray/*` (controller, status helpers + tests, template icon)
+- `internal/adapter/outbound/autostart/wails.go`
+- `internal/application/port/launch.go`
+- `internal/application/service/settings.go`
+- `internal/adapter/inbound/wails/settings.go`
+- `main.go`
+- `frontend/src/pages/settings.tsx` + bindings
+- `docs/decisions/ADR-0010-tray-autostart.md`, ADR-0008 pointer
+- `docs/architecture/lifecycle.md`, `docs/contracts/wails-api.md`
+- `docs/project/tasks/RD-035.md` .. `RD-037.md`, STATUS, BACKLOG, HANDOFF, ROADMAP
 
 ## Decisions
 
-- Discovered path = `Locate("")` over adapter `PlatformPaths` only; UI must not hard-code install paths.
-- macOS `IsSystem` = outside `/Applications` and `~/Applications`.
+- See ADR-0010 closed table (no Apply from tray; Quit always via dialog; OS is Launch at Login source of truth).
 
 ## Verification
 
@@ -35,27 +38,28 @@ Branch / commit: working tree (agent MUST NOT commit)
 | `golangci-lint run ./...` | PASS (0 issues) |
 | `npm run build` (cwd `frontend/`) | PASS |
 | `wails3 generate bindings` | PASS |
-| `wails3 task run` | NOT RUN (owner confirm Settings placeholder + Applications) |
+| `wails3 task run` | NOT RUN (owner: close/open/quit dialog / Launch at Login) |
 | RD-033 live smoke | NOT RUN (owner SOCKS5) |
 
 ## Not done
 
+- Owner interactive tray + autostart smoke
 - RD-033 interactive scenarios
 - Agent did not commit
 
 ## Exact next step
 
-Owner: `wails3 task run` → Settings (placeholder shows discovered CLI path) and Applications (system checkbox).
+Owner: `wails3 task run` → close window (app stays; Dock + menu bar) → tray Open / Quit Cancel / Quit Confirm → Settings Launch at Login toggle.
 
 ## Suggested commit message
 
 ```text
-expose portable bridge discovery and isSystem flags through ports for settings and browse ui
+add macOS tray lifecycle with quit dialog and launch-at-login settings (rd-035..rd-037)
 ```
 
 ## Context to read
 
 - `AGENTS.md`
-- `docs/decisions/ADR-0008-vertical-slice-decisions.md`
-- `docs/decisions/ADR-0009-installed-application-browse.md`
-- `docs/project/tasks/RD-033.md`
+- `docs/decisions/ADR-0010-tray-autostart.md`
+- `docs/architecture/lifecycle.md`
+- `docs/project/tasks/RD-037.md`

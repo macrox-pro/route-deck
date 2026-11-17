@@ -52,6 +52,19 @@ export function SettingsPage() {
         }
     };
 
+    const onToggleLaunchAtLogin = async (enabled: boolean) => {
+        setBusy(true);
+        setError(null);
+        try {
+            const settings = await SettingsService.SetLaunchAtLogin(enabled);
+            setData(settings);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setBusy(false);
+        }
+    };
+
     const onOpenLogs = async () => {
         setBusy(true);
         setError(null);
@@ -96,6 +109,13 @@ export function SettingsPage() {
                     isSelected={!!data?.debugLogging}
                     isDisabled={busy}
                     onChange={(isSelected) => void onToggleDebug(isSelected)}
+                />
+                <Toggle
+                    label="Launch at Login"
+                    hint="Registers RouteDeck with the OS login items. Does not Apply protection automatically."
+                    isSelected={!!data?.launchAtLogin}
+                    isDisabled={busy}
+                    onChange={(isSelected) => void onToggleLaunchAtLogin(isSelected)}
                 />
             </section>
 

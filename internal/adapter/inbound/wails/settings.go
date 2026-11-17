@@ -24,12 +24,14 @@ type SettingsDTO struct {
 	// custom path (platform documented locations). Settings UI uses it as placeholder.
 	DiscoveredProxyBridgePath string `json:"discoveredProxyBridgePath"`
 	DebugLogging              bool   `json:"debugLogging"`
-	DesiredID                 string `json:"desiredId"`
-	DesiredSet                bool   `json:"desiredSet"`
-	BridgeState               string `json:"bridgeState"`
-	BridgeVersion             string `json:"bridgeVersion"`
-	VersionKnown              bool   `json:"versionKnown"`
-	CompatWarning             string `json:"compatibilityWarning"`
+	// LaunchAtLogin reflects OS Autostart registration (ADR-0010). Not stored in SQLite.
+	LaunchAtLogin bool   `json:"launchAtLogin"`
+	DesiredID     string `json:"desiredId"`
+	DesiredSet    bool   `json:"desiredSet"`
+	BridgeState   string `json:"bridgeState"`
+	BridgeVersion string `json:"bridgeVersion"`
+	VersionKnown  bool   `json:"versionKnown"`
+	CompatWarning string `json:"compatibilityWarning"`
 }
 
 func (s *SettingsService) logger() *slog.Logger {
@@ -44,6 +46,7 @@ func settingsDTO(view service.SettingsView) SettingsDTO {
 		ProxyBridgePath:           view.ProxyBridgePath,
 		DiscoveredProxyBridgePath: view.DiscoveredProxyBridgePath,
 		DebugLogging:              view.DebugLogging,
+		LaunchAtLogin:             view.LaunchAtLogin,
 		DesiredID:                 string(view.DesiredID),
 		DesiredSet:                view.DesiredSet,
 		BridgeState:               string(view.BridgeState),
@@ -83,6 +86,18 @@ func (s *SettingsService) SetDebugLogging(ctx context.Context, enabled bool) (Se
 		return SettingsDTO{}, fmt.Errorf("settings service: not configured")
 	}
 	view, err := s.Settings.SetDebugLogging(ctx, enabled)
+	if err != nil {
+		return SettingsDTO{}, err
+	}
+	return settingsDTO(view), nil
+}
+
+// SetLaunchAtLogin toggles OS Launch at Login via Autostart. It does not Apply.
+func (s *SettingsService) SetLaunchAtLogin(ctx context.Context, enabled bool) (SettingsDTO, error) {
+	if s == nil || s.Settings == nil {
+		return SettingsDTO{}, fmt.Errorf("settings service: not configured")
+	}
+	view, err := s.Settings.SetLaunchAtLogin(ctx, enabled)
 	if err != nil {
 		return SettingsDTO{}, err
 	}

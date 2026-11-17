@@ -17,6 +17,7 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 | ID | Status | Goal |
 | --- | --- | --- |
+| [`RD-037`](tasks/RD-037.md) | REVIEW | Settings Launch at Login via Wails Autostart without auto-Apply. |
 | [`RD-033`](tasks/RD-033.md) | REVIEW | Prove on macOS with real ProxyBridge 4.1.3 that Apply reaches Active, failures stay honest, and the log file traces each scenario without secrets. |
 | [`RD-007`](tasks/RD-007.md) | TODO | Define CI commands that match local checks. Do not require ESLint. |
 
@@ -24,6 +25,8 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 | ID | Status | Goal |
 | --- | --- | --- |
+| [`RD-036`](tasks/RD-036.md) | DONE | Tray Status/tooltip track protection; Stop when CLI owned; Quit dialog copy then Stop. |
+| [`RD-035`](tasks/RD-035.md) | DONE | Keep RouteDeck running when the window closes: menu-bar tray, Open restores the window, every Quit path shows a Question dialog. |
 | [`RD-034`](tasks/RD-034.md) | DONE | Browse installed macOS applications (with icons) behind ports, and add a chosen app to the catalog without auto-import. |
 | [`RD-032`](tasks/RD-032.md) | DONE | Edit multi-profile policies and Apply/Stop from Dashboard with honest banners and event-driven snapshot refresh. |
 | [`RD-031`](tasks/RD-031.md) | DONE | Ship Untitled UI forms for proxies, application picker with helper checklist, and Settings (path, debug logging, open logs folder). |

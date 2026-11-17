@@ -501,6 +501,11 @@ export class SettingsDTO {
      */
     "discoveredProxyBridgePath": string;
     "debugLogging": boolean;
+
+    /**
+     * LaunchAtLogin reflects OS Autostart registration (ADR-0010). Not stored in SQLite.
+     */
+    "launchAtLogin": boolean;
     "desiredId": string;
     "desiredSet": boolean;
     "bridgeState": string;
@@ -518,6 +523,9 @@ export class SettingsDTO {
         }
         if (!("debugLogging" in $$source)) {
             this["debugLogging"] = false;
+        }
+        if (!("launchAtLogin" in $$source)) {
+            this["launchAtLogin"] = false;
         }
         if (!("desiredId" in $$source)) {
             this["desiredId"] = "";

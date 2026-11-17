@@ -10,7 +10,9 @@ import (
 	"os"
 	"sync/atomic"
 
+	"github.com/macrox-pro/route-deck/internal/adapter/inbound/tray"
 	"github.com/macrox-pro/route-deck/internal/adapter/inbound/wails"
+	"github.com/macrox-pro/route-deck/internal/adapter/outbound/autostart"
 	"github.com/macrox-pro/route-deck/internal/adapter/outbound/keychain"
 	"github.com/macrox-pro/route-deck/internal/adapter/outbound/logfile"
 	"github.com/macrox-pro/route-deck/internal/adapter/outbound/macos"
@@ -175,6 +177,15 @@ func run() error {
 		Logger:   logger,
 	}
 
+	trayCtrl := &tray.Controller{
+		Snapshot: tray.Snapshotter{Snapshot: live.Snapshot},
+		Logger:   logger,
+	}
+	if protection != nil {
+		trayCtrl.Bridge = protection
+		trayCtrl.Protection = protection
+	}
+
 	application.RegisterEvent[wails.EventEnvelope](wails.EventProtectionStateChanged)
 	application.RegisterEvent[wails.EventEnvelope](wails.EventProxyHealthChanged)
 	application.RegisterEvent[wails.EventEnvelope](wails.EventProxyBridgeStateChanged)
@@ -198,8 +209,10 @@ func run() error {
 			Handler: application.AssetFileServerFS(assets),
 		},
 		Mac: application.MacOptions{
-			ApplicationShouldTerminateAfterLastWindowClosed: true,
+			ApplicationShouldTerminateAfterLastWindowClosed: false,
+			ActivationPolicy: application.ActivationPolicyRegular,
 		},
+		ShouldQuit: trayCtrl.ShouldQuit,
 		OnShutdown: func() {
 			logger.Info("shutdown begin", "component", "main")
 			if protection != nil {
@@ -207,6 +220,8 @@ func run() error {
 			}
 		},
 	})
+
+	appSettings.LaunchAtLogin = &autostart.Manager{Autostart: app.Autostart}
 
 	emit = func(name string, envelope wails.EventEnvelope) {
 		app.Event.Emit(name, envelope)
@@ -231,6 +246,7 @@ func run() error {
 				Schema:  1,
 				Payload: map[string]any{"reason": "wake"},
 			})
+			trayCtrl.OnProtectionEvent()
 		}()
 	})
 	app.Event.OnApplicationEvent(events.Common.NetworkChanged, func(_ *application.ApplicationEvent) {
@@ -245,10 +261,11 @@ func run() error {
 				Schema:  1,
 				Payload: map[string]any{"reason": "network"},
 			})
+			trayCtrl.OnProtectionEvent()
 		}()
 	})
 
-	app.Window.NewWithOptions(application.WebviewWindowOptions{
+	mainWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:     "MACROX RouteDeck",
 		Width:     1000,
 		Height:    618,
@@ -259,6 +276,20 @@ func run() error {
 		},
 		BackgroundColour: application.NewRGB(255, 255, 255),
 		URL:              "/",
+	})
+
+	trayCtrl.App = app
+	trayCtrl.Window = mainWindow
+	if err := trayCtrl.Attach(); err != nil {
+		return fmt.Errorf("route-deck: tray: %w", err)
+	}
+
+	refreshTray := func() { trayCtrl.OnProtectionEvent() }
+	app.Event.On(wails.EventProtectionStateChanged, func(_ *application.CustomEvent) {
+		refreshTray()
+	})
+	app.Event.On(wails.EventProxyBridgeStateChanged, func(_ *application.CustomEvent) {
+		refreshTray()
 	})
 
 	if err := app.Run(); err != nil {

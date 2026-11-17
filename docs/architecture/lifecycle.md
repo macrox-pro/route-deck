@@ -4,11 +4,9 @@ Wails process lifetime and ProxyBridge CLI lifetime are different. Stopping one 
 
 ## Wails
 
-Current scaffold sets `ApplicationShouldTerminateAfterLastWindowClosed: true` in `main.go`. That matches a demo window, not the product.
+`ApplicationShouldTerminateAfterLastWindowClosed` is `false` (ADR-0010). Closing the window Cancels destroy and Hides it. RouteDeck stays in the menu bar. The Dock icon stays for the process lifetime (`ActivationPolicyRegular`).
 
-When the tray phase starts, that flag MUST become `false`: closing the window keeps RouteDeck running. Quit is a separate action that stops the CLI and warns the user.
-
-Do not change `main.go` until the tray task is READY.
+Quit is a separate action (tray Quit, Cmd+Q, Dock Quit). Every Quit path shows a native Question dialog before exit is accepted. Cancel keeps the process resident. Confirm with a managed CLI stops that CLI gracefully, then quits. `OnShutdown` still stops the managed CLI as a safety net.
 
 ## ProxyBridge CLI
 
@@ -37,6 +35,6 @@ The CLI reads the profile at start. Changing rules means stop then start. There 
 
 Re-check proxy health and bridge state. MUST NOT keep showing `Active` across those events without a re-check.
 
-## Autostart (later)
+## Autostart
 
-Launching RouteDeck at login does not prove the VPN client is up. If the proxy is down, show degradation. MUST NOT flip policies to `Direct`.
+Launch at Login is controlled from Settings via Wails `app.Autostart`. OS registration is the source of truth. Launching RouteDeck at login does not prove the VPN client is up and MUST NOT auto-Apply. If the proxy is down, show degradation. MUST NOT flip policies to `Direct`.

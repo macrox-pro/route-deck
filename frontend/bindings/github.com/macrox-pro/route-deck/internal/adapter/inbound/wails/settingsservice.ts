@@ -40,6 +40,15 @@ export function SetDebugLogging(enabled: boolean): $CancellablePromise<$models.S
 }
 
 /**
+ * SetLaunchAtLogin toggles OS Launch at Login via Autostart. It does not Apply.
+ */
+export function SetLaunchAtLogin(enabled: boolean): $CancellablePromise<$models.SettingsDTO> {
+    return $Call.ByID(2952554646, enabled).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+/**
  * SetProxyBridgePath stores a custom path and rediscovers.
  */
 export function SetProxyBridgePath(path: string): $CancellablePromise<$models.SettingsDTO> {

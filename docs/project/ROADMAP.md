@@ -39,7 +39,7 @@ E11 depends on the coordinator (E08), not only on the UI shell. Tray restore of 
 | 4 CLI adapter | One managed process, stdin profile, parser fixtures |
 | 5 Slice | One app, one proxy, confirmed ProtectionState in UI snapshot |
 | 6 Surfaces | Dashboard, applications, proxies, profiles, activity, settings |
-| 7 Tray | Close window stays resident; quit stops CLI |
+| 7 Tray | Close window stays resident; quit dialog stops CLI; Launch at Login (ADR-0010) |
 | 8 Release | Reproducible macOS build; signing limits stated if unsigned |
 
 ## Screens (after the slice)

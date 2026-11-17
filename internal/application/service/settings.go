@@ -11,10 +11,11 @@ import (
 
 // Settings is the application use case for non-secret settings and bridge discovery.
 type Settings struct {
-	Store   port.SettingsStore
-	Locator port.BridgeLocator
-	Level   *slog.LevelVar
-	Logger  *slog.Logger
+	Store         port.SettingsStore
+	Locator       port.BridgeLocator
+	LaunchAtLogin port.LaunchAtLogin
+	Level         *slog.LevelVar
+	Logger        *slog.Logger
 }
 
 // SettingsView is store state plus locator results for the UI.
@@ -22,6 +23,7 @@ type SettingsView struct {
 	ProxyBridgePath           string
 	DiscoveredProxyBridgePath string
 	DebugLogging              bool
+	LaunchAtLogin             bool
 	DesiredID                 domain.ProfileID
 	DesiredSet                bool
 	BridgeState               domain.BridgeState
@@ -52,6 +54,14 @@ func (s *Settings) Get(ctx context.Context) (SettingsView, error) {
 		DebugLogging:    stored.DebugLogging,
 		DesiredSet:      stored.DesiredSet,
 		DesiredID:       stored.DesiredProfileID,
+	}
+	if s.LaunchAtLogin != nil {
+		enabled, launchErr := s.LaunchAtLogin.IsEnabled(ctx)
+		if launchErr != nil {
+			s.logger().Debug("launch at login status failed", "component", "settings", "err", launchErr)
+		} else {
+			view.LaunchAtLogin = enabled
+		}
 	}
 	if s.Locator == nil {
 		return view, nil
@@ -111,5 +121,17 @@ func (s *Settings) SetDebugLogging(ctx context.Context, enabled bool) (SettingsV
 		}
 	}
 	s.logger().Info("debug logging updated", "component", "settings", "enabled", enabled)
+	return s.Get(ctx)
+}
+
+// SetLaunchAtLogin registers or removes OS login launch. It does not Apply.
+func (s *Settings) SetLaunchAtLogin(ctx context.Context, enabled bool) (SettingsView, error) {
+	if s == nil || s.LaunchAtLogin == nil {
+		return SettingsView{}, fmt.Errorf("settings: launch at login not configured")
+	}
+	if err := s.LaunchAtLogin.SetEnabled(ctx, enabled); err != nil {
+		return SettingsView{}, fmt.Errorf("settings launch at login: %w", err)
+	}
+	s.logger().Info("launch at login updated", "component", "settings", "enabled", enabled)
 	return s.Get(ctx)
 }
