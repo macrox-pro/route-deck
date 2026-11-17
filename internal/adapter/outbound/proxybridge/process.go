@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os/exec"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -17,13 +18,16 @@ import (
 // Process manages one ProxyBridge CLI instance.
 type Process struct {
 	Logger *slog.Logger
+	// LineNotify is optional. Called for non-fatal user-action lines (once per Start for approval).
+	LineNotify func(class port.BridgeLineClass)
 
-	mu      sync.Mutex
-	cmd     *exec.Cmd
-	cancel  context.CancelFunc
-	ready   chan struct{}
-	failed  chan error
-	running bool
+	mu               sync.Mutex
+	cmd              *exec.Cmd
+	cancel           context.CancelFunc
+	ready            chan struct{}
+	failed           chan error
+	running          bool
+	approvalNotified atomic.Bool
 }
 
 var _ port.BridgeProcess = (*Process)(nil)
@@ -75,6 +79,7 @@ func (p *Process) Start(ctx context.Context, binaryPath string, profileJSON []by
 	p.ready = make(chan struct{})
 	p.failed = make(chan error, 1)
 	p.running = true
+	p.approvalNotified.Store(false)
 
 	go p.readLines(stdout)
 	go p.readLines(stderr)
@@ -113,6 +118,10 @@ func (p *Process) readLines(r io.Reader) {
 			select {
 			case p.failed <- fmt.Errorf("%s", class):
 			default:
+			}
+		case port.BridgeLineExtensionApproval:
+			if p.approvalNotified.CompareAndSwap(false, true) && p.LineNotify != nil {
+				p.LineNotify(class)
 			}
 		case port.BridgeLineUnclassified, port.BridgeLineProfileLoaded, port.BridgeLineTunnelStopped:
 			// logged only

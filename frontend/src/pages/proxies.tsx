@@ -161,7 +161,12 @@ export function ProxiesPage() {
             )}
 
             <section className="grid gap-3 rounded-lg p-4 ring-1 ring-secondary md:grid-cols-2">
-                <Input label="Name" value={form.name} onChange={(value) => setForm((f) => ({ ...f, name: value }))} />
+                <Input
+                    label="Name"
+                    value={form.name}
+                    placeholder="Shadowrocket"
+                    onChange={(value) => setForm((f) => ({ ...f, name: value }))}
+                />
                 <NativeSelect
                     label="Kind"
                     value={form.kind}
@@ -171,14 +176,29 @@ export function ProxiesPage() {
                         { label: "HTTP", value: "http" },
                     ]}
                 />
-                <Input label="Host" value={form.host} onChange={(value) => setForm((f) => ({ ...f, host: value }))} />
-                <Input label="Port" value={form.port} onChange={(value) => setForm((f) => ({ ...f, port: value }))} />
-                <Input label="Username" value={form.username} onChange={(value) => setForm((f) => ({ ...f, username: value }))} />
+                <Input
+                    label="Host"
+                    value={form.host}
+                    placeholder="127.0.0.1"
+                    onChange={(value) => setForm((f) => ({ ...f, host: value }))}
+                />
+                <Input
+                    label="Port"
+                    value={form.port}
+                    placeholder="1082"
+                    onChange={(value) => setForm((f) => ({ ...f, port: value }))}
+                />
+                <Input
+                    label="Username"
+                    value={form.username}
+                    placeholder="Optional"
+                    onChange={(value) => setForm((f) => ({ ...f, username: value }))}
+                />
                 <Input
                     label="Password"
                     type="password"
                     value={form.password}
-                    placeholder={form.id ? "Leave empty to keep" : undefined}
+                    placeholder={form.id ? "Leave empty to keep" : "Optional"}
                     onChange={(value) => setForm((f) => ({ ...f, password: value }))}
                 />
                 <div className="flex gap-2 md:col-span-2">

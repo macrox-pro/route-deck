@@ -65,17 +65,17 @@ Do not copy sample version strings from the docs (for example `4.1.0`) as the su
 
 One managed process. If the GUI is running, the CLI refuses to start (`The ProxyBridge app is running...`). If another CLI is already running, a second one is refused (`Another ProxyBridge CLI is already running.`). If the GUI starts later, the tunnel stops and the CLI exits 1 (`The tunnel was stopped by something else...`).
 
-On that conflict: set BridgeState `Conflict`, ProtectionState not protected, tell the user to quit the GUI, do not restart in a loop.
+On that conflict: set BridgeState `Conflict`, ProtectionState not protected, show a native Warning dialog telling the user to quit the GUI, do not restart in a loop.
 
 Stop: SIGINT/SIGTERM/SIGHUP clear rules (docs: Ctrl+C, SIGTERM, SIGHUP). If the extension does not answer, the CLI exits after 5 seconds. `SIGKILL` does not clear rules. After a kill -9, RouteDeck MUST NOT report protected.
 
-First-run extension approval can wait up to 5 minutes (`Timed out waiting for the extension...`).
+First-run extension approval prints `Extension: waiting for your approval...` (classified `extension_approval`, not a failure). RouteDeck shows a native Info dialog once per Apply start and keeps waiting. Approval can wait up to 5 minutes before `Timed out waiting for the extension...`.
 
 Graceful stop is signal, wait, then timeout. MUST NOT use context cancel as the only stop (it can kill immediately).
 
 ## Readiness
 
-`Extension: active` is not enough. The CLI docs say routing is on when it prints `Redirecting traffic. Press Ctrl+C to stop.` A profile load line looks like `Profile "<name>": N proxies, M rules applied`.
+`Extension: active` is not enough. The CLI docs say routing is on when it prints `Redirecting traffic. Press Ctrl+C to stop.` A profile load line looks like `Profile "<name>": N proxies, M rules applied`. Classifier also maps `waiting for your approval` to `extension_approval` (informational only).
 
 RouteDeck confirms apply only after the redirect-ready line (and no fatal error). Partial or unknown lines stay unclassified and MUST NOT flip state to `Active` by themselves.
 

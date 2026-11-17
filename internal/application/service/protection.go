@@ -111,7 +111,12 @@ func (p *Protection) Apply(ctx context.Context, profileID domain.ProfileID, oper
 		p.appliedID = ""
 		p.appliedConfirmed = false
 		p.mu.Unlock()
-		p.setBridge(domain.BridgeStateStopped)
+		confirmMsg := err.Error()
+		if strings.Contains(confirmMsg, string(port.BridgeLineAnotherCLI)) || strings.Contains(confirmMsg, string(port.BridgeLineGUIConflict)) {
+			p.setBridge(domain.BridgeStateConflict)
+		} else {
+			p.setBridge(domain.BridgeStateStopped)
+		}
 		if len(previousJSON) > 0 && previousID != "" {
 			p.logger().Info("apply rollback", "component", "coordinator", "operation_id", operationID, "profile_id", string(previousID))
 			if startErr := p.Process.Start(ctx, disc.Path, previousJSON); startErr == nil {

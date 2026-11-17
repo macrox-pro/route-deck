@@ -93,7 +93,7 @@ export function SettingsPage() {
                     hint="Absolute path checked before documented discovery locations."
                     value={path}
                     onChange={setPath}
-                    placeholder={data?.discoveredProxyBridgePath || "Not found in documented locations"}
+                    placeholder={data?.discoveredProxyBridgePath || "Absolute path to ProxyBridge binary"}
                 />
                 <div className="flex gap-2">
                     <Button color="primary" size="md" isLoading={busy} onClick={() => void onSavePath()}>

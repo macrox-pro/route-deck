@@ -312,6 +312,13 @@ func run() error {
 
 	trayCtrl.App = app
 	trayCtrl.Window = mainWindow
+	userDialog := &wails.NativeUserDialog{App: app, Window: mainWindow}
+	protectionService.Dialog = userDialog
+	bridgeProcess.LineNotify = func(class port.BridgeLineClass) {
+		if class == port.BridgeLineExtensionApproval {
+			userDialog.Info(wails.UserMsgExtensionApproval)
+		}
+	}
 	if err := trayCtrl.Attach(); err != nil {
 		return fmt.Errorf("route-deck: tray: %w", err)
 	}

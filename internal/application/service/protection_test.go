@@ -3,6 +3,7 @@ package service_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -213,6 +214,18 @@ func TestProtectionConflict(t *testing.T) {
 	}
 	if p.BridgeState() != domain.BridgeStateConflict {
 		t.Fatalf("bridge = %s", p.BridgeState())
+	}
+}
+
+func TestProtectionConfirmGUIConflict(t *testing.T) {
+	p, proc, _ := testProtection(t)
+	proc.confirmErr = fmt.Errorf("bridge process: %s", port.BridgeLineGUIConflict)
+	err := p.Apply(context.Background(), "prof-1", "op-gui")
+	if err == nil {
+		t.Fatal("expected confirm conflict")
+	}
+	if p.BridgeState() != domain.BridgeStateConflict {
+		t.Fatalf("bridge = %s, want Conflict", p.BridgeState())
 	}
 }
 

@@ -17,6 +17,7 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 | ID | Status | Goal |
 | --- | --- | --- |
+| [`RD-045`](tasks/RD-045.md) | REVIEW | Native dialogs for ProxyBridge GUI conflict and extension approval; remove Dashboard Conflict banner. |
 | [`RD-044`](tasks/RD-044.md) | REVIEW | Distinguish WARN and ERROR in RouteDeck logs so Activity severity matches. |
 | [`RD-040`](tasks/RD-040.md) | REVIEW | Ship Setup guides screen with VPN-client detection and Port open facts (ADR-0013). |
 | [`RD-041`](tasks/RD-041.md) | REVIEW | One-click Add this proxy from a guide (save + Recheck); form fallback without default port. |

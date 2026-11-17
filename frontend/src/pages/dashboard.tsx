@@ -100,12 +100,6 @@ export function DashboardPage() {
                 </div>
             )}
 
-            {data?.bridge === "Conflict" && (
-                <div className="rounded-lg bg-error-primary px-4 py-3 text-sm text-error-primary ring-1 ring-error_subtle" role="alert">
-                    Another ProxyBridge CLI is already running. Stop the other CLI, then Apply again. RouteDeck will not signal foreign processes.
-                </div>
-            )}
-
             {data?.desiredDiffersFromApplied && (
                 <div className="rounded-lg bg-warning-primary px-4 py-3 text-sm text-warning-primary ring-1 ring-warning_subtle" role="status">
                     Desired profile differs from the applied profile. Press Apply to put the desired profile into force.

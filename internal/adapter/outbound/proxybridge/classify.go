@@ -20,6 +20,8 @@ func ClassifyLine(line string) port.BridgeLineClass {
 		return port.BridgeLineAnotherCLI
 	case strings.Contains(s, "The tunnel was stopped by something else"):
 		return port.BridgeLineTunnelStopped
+	case strings.Contains(s, "waiting for your approval"):
+		return port.BridgeLineExtensionApproval
 	case strings.Contains(s, "Timed out waiting for the extension"):
 		return port.BridgeLineExtensionTimeout
 	case strings.Contains(s, "rule(s) were rejected by the extension"):

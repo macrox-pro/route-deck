@@ -29,6 +29,7 @@ type ProtectionService struct {
 	Settings    SettingsStoreReader
 	NewID       func() (string, error)
 	Emit        Emitter
+	Dialog      UserDialog
 	Logger      *slog.Logger
 }
 
@@ -71,6 +72,9 @@ func (s *ProtectionService) Apply(ctx context.Context) (ApplyResultDTO, error) {
 		applyCtx := context.Background()
 		if err := s.Coordinator.Apply(applyCtx, desiredID, opID); err != nil {
 			logProtectionFailure(s.logger(), "apply failed", opID, err)
+			if strings.Contains(err.Error(), string(port.BridgeLineGUIConflict)) && s.Dialog != nil {
+				s.Dialog.Warning(UserMsgGUIConflict)
+			}
 			emit(s.Emit, EventOperationFailed, map[string]any{
 				"operation_id": opID,
 				"error":        err.Error(),

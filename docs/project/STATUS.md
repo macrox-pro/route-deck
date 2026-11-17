@@ -1,15 +1,15 @@
 # Project Status
 
-Updated: 2026-11-17 14:45 UTC
-Updated by: agent (RD-044 log severity)
+Updated: 2026-11-17 16:50 UTC
+Updated by: agent (RD-045 native dialogs)
 
 ## Current phase
 
-Log severity WARN/ERROR shipped locally; awaiting owner Activity smoke.
+Native GUI-conflict and extension-approval dialogs shipped locally; awaiting owner smoke.
 
 ## Current task
 
-RD-044
+RD-045
 
 ## State
 
@@ -17,6 +17,7 @@ REVIEW
 
 ## Completed
 
+- RD-045: Native dialogs for GUI conflict + extension approval (REVIEW)
 - RD-044: Warn/Error severity for failure logs (REVIEW)
 - RD-040..RD-043: Setup guides batch (REVIEW)
 - RD-039: HTTP CONNECT health
@@ -27,7 +28,7 @@ REVIEW
 
 ## In progress
 
-- None. Waiting on owner review of Activity levels and commits.
+- None. Waiting on owner dialog smoke and commits.
 
 ## Blockers
 
@@ -42,18 +43,20 @@ REVIEW
 - Historical log lines stay INFO until new writes
 - HTTP CONNECT probes example.com:443
 - Keychain prompts on unsigned rebuild expected
+- Another CLI / extension timeout still have no dedicated native dialog (out of RD-045 scope)
+- Dialog copy is English-only; message IDs ready for future i18n
 
 ## Next actions
 
-1. Owner: `wails3 dev` → trigger Apply without desired profile → Activity shows WARN.
-2. Owner finishes RD-033 Apply→Active smoke.
+1. Owner: `wails3 dev` → Apply with ProxyBridge GUI open → Warning dialog; quit GUI.
+2. Owner: first-run Apply → Info dialog for extension approval; Allow in System Settings; Apply reaches Active.
 3. Owner commits (agent MUST NOT commit).
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `go test` (touched pkgs) | PASS |
+| `go test ./internal/adapter/outbound/proxybridge/ ./internal/application/service/ ./internal/adapter/inbound/wails/` | PASS |
 | `golangci-lint run ./...` | PASS (0 issues) |
 
 Environment: macOS darwin/arm64; module `github.com/macrox-pro/route-deck`; Go `1.26.0`; Wails v3.0.0

@@ -1,39 +1,41 @@
 # Handoff
 
-Timestamp: 2026-11-17 14:45 UTC
-Agent: agent (RD-044 log severity)
-Task ID: RD-044
+Timestamp: 2026-11-17 16:50 UTC
+Agent: agent (RD-045 native dialogs)
+Task ID: RD-045
 Branch / commit: working tree (agent MUST NOT commit)
 
 ## Done
 
-- Owner severity scale recorded in `docs/engineering/logging.md` (Info / Warn / Error)
-- Retargeted failure call sites under `internal/` and `main.go` from Info to Warn or Error
-- `service.ErrOperationInProgress` sentinel; Apply/Stop busy returns `errors.Is`
-- Apply/Stop Wails logging: Warn for busy / not installed / conflict; Error otherwise
-- Warn when Apply skipped (desired profile not set)
-- Classified ProxyBridge CLI lines stay Info (ADR-0008)
+- Classified `waiting for your approval` as `extension_approval` (non-fatal)
+- `Process.LineNotify` once per Start for extension approval → native Info dialog
+- Apply failure with `gui_conflict` → native Warning dialog
+- WaitConfirm GUI/another CLI sets `BridgeStateConflict`
+- Removed Dashboard Conflict banner
+- English copy with stable IDs in `usermsg.go` for future i18n
+- Contracts updated (`proxybridge-cli.md`, `wails-api.md`)
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `rg 'logger\(\)\.Info\("[^"]*fail' internal/ main.go` | PASS (no hits) |
-| `go test ./internal/application/service/ ./internal/adapter/inbound/wails/ ./internal/adapter/outbound/keychain/ ./internal/adapter/outbound/proxybridge/ ./internal/adapter/inbound/tray/` | PASS |
+| `go test ./internal/adapter/outbound/proxybridge/ ./internal/application/service/ ./internal/adapter/inbound/wails/` | PASS |
 | `golangci-lint run ./...` | PASS (0 issues) |
+| `wails3 dev` GUI conflict + extension approval smoke | NOT RUN (owner) |
 
 ## Exact next step
 
-Owner: restart or refresh `wails3 dev`, trigger a known failure (e.g. Apply without desired profile), confirm Activity shows WARN (not INFO). Then commit.
+Owner: `wails3 dev` → Apply with ProxyBridge.app open (expect Warning) → quit GUI → first-run Apply (expect Info approval dialog) → Allow in System Settings.
 
 ## Suggested commit message
 
 ```text
-log operational failures as warn and infra failures as error (rd-044)
+show native dialogs for proxybridge gui conflict and extension approval (rd-045)
 ```
 
 ## Context to read
 
-- `docs/engineering/logging.md`
-- `docs/project/tasks/RD-044.md`
-- `internal/adapter/inbound/wails/protection.go`
+- `docs/project/tasks/RD-045.md`
+- `internal/adapter/inbound/wails/usermsg.go`
+- `internal/adapter/inbound/wails/user_dialog.go`
+- `docs/contracts/proxybridge-cli.md`

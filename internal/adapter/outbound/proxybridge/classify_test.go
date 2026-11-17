@@ -17,6 +17,7 @@ func TestClassifyLine(t *testing.T) {
 		{"The ProxyBridge app is running...", port.BridgeLineGUIConflict},
 		{"Another ProxyBridge CLI is already running.", port.BridgeLineAnotherCLI},
 		{"The tunnel was stopped by something else...", port.BridgeLineTunnelStopped},
+		{"Extension: waiting for your approval. Open System Settings > Privacy & Security and click Allow, then enter your password. This is needed once.", port.BridgeLineExtensionApproval},
 		{"Timed out waiting for the extension...", port.BridgeLineExtensionTimeout},
 		{"warning: 2 rule(s) were rejected by the extension (invalid fields)", port.BridgeLineRejectedRules},
 		{"random noise", port.BridgeLineUnclassified},

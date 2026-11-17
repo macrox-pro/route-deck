@@ -29,14 +29,15 @@ type BridgeLineClass string
 
 // Bridge line classifications from CLI stdout/stderr.
 const (
-	BridgeLineUnclassified     BridgeLineClass = "unclassified"
-	BridgeLineRedirectReady    BridgeLineClass = "redirect_ready"
-	BridgeLineProfileLoaded    BridgeLineClass = "profile_loaded"
-	BridgeLineGUIConflict      BridgeLineClass = "gui_conflict"
-	BridgeLineAnotherCLI       BridgeLineClass = "another_cli"
-	BridgeLineTunnelStopped    BridgeLineClass = "tunnel_stopped"
-	BridgeLineExtensionTimeout BridgeLineClass = "extension_timeout"
-	BridgeLineRejectedRules    BridgeLineClass = "rejected_rules"
+	BridgeLineUnclassified      BridgeLineClass = "unclassified"
+	BridgeLineRedirectReady     BridgeLineClass = "redirect_ready"
+	BridgeLineProfileLoaded     BridgeLineClass = "profile_loaded"
+	BridgeLineGUIConflict       BridgeLineClass = "gui_conflict"
+	BridgeLineAnotherCLI        BridgeLineClass = "another_cli"
+	BridgeLineTunnelStopped     BridgeLineClass = "tunnel_stopped"
+	BridgeLineExtensionApproval BridgeLineClass = "extension_approval"
+	BridgeLineExtensionTimeout  BridgeLineClass = "extension_timeout"
+	BridgeLineRejectedRules     BridgeLineClass = "rejected_rules"
 )
 
 // BridgeProcess manages one ProxyBridge CLI process.

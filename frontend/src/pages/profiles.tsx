@@ -139,7 +139,7 @@ export function ProfilesPage() {
             )}
 
             <section className="flex flex-col gap-4 rounded-lg p-4 ring-1 ring-secondary">
-                <Input label="Profile name" value={name} onChange={setName} />
+                <Input label="Profile name" value={name} placeholder="Work" onChange={setName} />
                 {policies.map((policy, index) => (
                     <div key={index} className="grid gap-3 rounded-lg bg-secondary p-3 md:grid-cols-2">
                         <NativeSelect

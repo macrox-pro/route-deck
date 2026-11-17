@@ -21,6 +21,8 @@ MUST NOT invent methods. Read the installed module or the v3 docs before adding 
 
 `Apply` returns an `operation_id` immediately and runs confirm asynchronously. Progress and failure use product events. The client must reload the snapshot after events; events are not proof of `Active`.
 
+Native dialogs (not Wails service methods): GUI conflict on Apply failure uses `Dialog.Warning`; first-run extension approval during confirm uses `Dialog.Info` once per CLI start. Copy lives in `internal/adapter/inbound/wails/usermsg.go` with stable IDs for future i18n.
+
 Empty `password` on `ProxiesService.Save` for an existing id keeps the Keychain secret. Clearing a password is a separate `ClearPassword` call.
 
 `ApplicationsService.PickAndAdd` uses Wails `Dialog.OpenFile()` (verified in v3.0.0). `SettingsService.OpenLogsFolder` uses `Env.OpenFileManager` (verified in v3.0.0). `SettingsService.SetLaunchAtLogin` uses Wails `app.Autostart` (verified in v3.0.0). OS registration is the source of truth; the flag is not stored in SQLite.
