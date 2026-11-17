@@ -14,7 +14,7 @@ v1 ships a macOS `.app` built with Wails v3.0.0. No Windows or Linux product bui
 
 ## CI package (no notarization)
 
-`.github/workflows/build-macos.yml` runs `wails3 task darwin:package` and uploads `RouteDeck.app.zip`. That build uses Taskfile ad-hoc codesign only. It is for smoke and internal testers, not Gatekeeper-clean public distribution.
+`.github/workflows/build-macos.yml` runs `wails3 task darwin:package` with `APP_VERSION` / `APP_COMMIT` derived from the git tag (`v*` → semver without `v`, else `dev`) and short SHA, then uploads `RouteDeck.app.zip`. That build uses Taskfile ad-hoc codesign only. It is for smoke and internal testers, not Gatekeeper-clean public distribution. Prefer release tags of the form `vMAJOR.MINOR.PATCH`.
 
 ## Signing
 

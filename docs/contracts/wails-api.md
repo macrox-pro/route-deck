@@ -57,6 +57,8 @@ Generated bindings under `frontend/bindings/.../inbound/wails/` are the TypeScri
 
 `SettingsDTO.launchAtLogin` comes from `Autostart.IsEnabled`.
 
+`SettingsDTO.appVersion` / `appVersionLabel` / `appCommit` come from link-time `internal/buildmeta` (not SQLite). Untagged builds use `appVersion` `dev` and label `dev`. Tagged CI builds strip the leading `v` from `vMAJOR.MINOR.PATCH` into `appVersion` and set `appVersionLabel` to `vMAJOR.MINOR.PATCH`. `appCommit` is the short SHA when injected. The sidebar badge shows only `appVersionLabel`; Settings → About shows label and commit.
+
 ## Errors
 
 Return typed errors the UI can map. MUST NOT return a bare string that means “ok” when the CLI did not confirm.

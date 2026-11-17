@@ -8,6 +8,7 @@ import (
 
 	"github.com/macrox-pro/route-deck/internal/adapter/outbound/logfile"
 	"github.com/macrox-pro/route-deck/internal/application/service"
+	"github.com/macrox-pro/route-deck/internal/buildmeta"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -32,6 +33,12 @@ type SettingsDTO struct {
 	BridgeVersion string `json:"bridgeVersion"`
 	VersionKnown  bool   `json:"versionKnown"`
 	CompatWarning string `json:"compatibilityWarning"`
+	// AppVersion is the link-time marketing version ("dev" or "1.2.3").
+	AppVersion string `json:"appVersion"`
+	// AppVersionLabel is the short chrome label ("dev" or "v1.2.3").
+	AppVersionLabel string `json:"appVersionLabel"`
+	// AppCommit is the short git SHA when injected at link time; empty otherwise.
+	AppCommit string `json:"appCommit"`
 }
 
 func (s *SettingsService) logger() *slog.Logger {
@@ -53,6 +60,9 @@ func settingsDTO(view service.SettingsView) SettingsDTO {
 		BridgeVersion:             view.BridgeVersion,
 		VersionKnown:              view.VersionKnown,
 		CompatWarning:             view.CompatibilityWarning,
+		AppVersion:                buildmeta.Version,
+		AppVersionLabel:           buildmeta.DisplayVersion(),
+		AppCommit:                 buildmeta.Commit,
 	}
 }
 

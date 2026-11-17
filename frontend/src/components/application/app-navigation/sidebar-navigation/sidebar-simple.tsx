@@ -4,7 +4,7 @@ import { Button as AriaButton, Link as AriaLink } from "react-aria-components";
 import { Badge } from "@/components/base/badges/badges";
 import { Tooltip } from "@/components/base/tooltip/tooltip";
 import { RouteDeckMark } from "@/components/foundations/logo/route-deck-mark";
-import { APP_VERSION } from "@/config/app";
+import { APP_VERSION_FALLBACK } from "@/config/app";
 import { cx } from "@/utils/cx";
 import { NavAccountCard } from "../base-components/nav-account-card";
 import type { NavItemType } from "../config";
@@ -35,6 +35,8 @@ interface SidebarNavigationProps {
     collapsed?: boolean;
     /** Toggle expanded/collapsed. */
     onToggleCollapsed?: () => void;
+    /** Short chrome version label ("dev" or "v1.2.3"). */
+    versionLabel?: string;
     /** Additional CSS classes to apply to the sidebar. */
     className?: string;
 }
@@ -104,6 +106,7 @@ export const SidebarNavigationSimple = ({
     hideBorder = false,
     collapsed = false,
     onToggleCollapsed,
+    versionLabel = APP_VERSION_FALLBACK,
     className,
 }: SidebarNavigationProps) => {
     const width = collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH;
@@ -130,7 +133,7 @@ export const SidebarNavigationSimple = ({
                 </div>
                 <p className={cx("truncate text-sm font-semibold text-primary", collapsed && "hidden")}>RouteDeck</p>
                 <Badge color="gray" type="pill-color" size="sm" className={cx("shrink-0", collapsed && "hidden")}>
-                    {APP_VERSION}
+                    {versionLabel}
                 </Badge>
             </div>
 

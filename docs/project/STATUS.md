@@ -1,15 +1,15 @@
 # Project Status
 
-Updated: 2026-11-17 19:55 UTC
-Updated by: agent (RD-057 CI macOS package workflow → REVIEW)
+Updated: 2026-11-17 20:05 UTC
+Updated by: agent (RD-058 buildmeta version/commit → REVIEW)
 
 ## Current phase
 
-CI can package an unsigned `RouteDeck.app` for smoke; editor-dialogs epic still awaiting owner smoke/commits.
+CI packages unsigned `.app` with tag/commit identity; editor-dialogs epic still awaiting owner smoke/commits.
 
 ## Current task
 
-RD-057
+RD-058
 
 ## State
 
@@ -17,12 +17,12 @@ REVIEW
 
 ## Completed
 
-- Still in Active (REVIEW, not archived): RD-007, RD-033, RD-037..RD-057
+- Still in Active (REVIEW, not archived): RD-007, RD-033, RD-037..RD-058
 - DONE archive: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-036 except REVIEW gaps)
 
 ## In progress
 
-- None. Waiting on owner push for remote `build-macos` evidence and UX smoke commits.
+- None. Waiting on owner commits and remote `build-macos` evidence.
 
 ## Blockers
 
@@ -44,19 +44,21 @@ REVIEW
 - Quitting with a dirty editor discards edits (ADR-0014 known limitation)
 - Old duplicate ProcessIdentity rows for one bundle id are collapsed at compile time, not migrated in SQLite
 - CI `build-macos` artifact is ad-hoc codesign only (Gatekeeper will warn); arm64 (`macos-14`) only
+- Local `wails3 dev` always shows version `dev` (no ldflags injection in DEV builds)
 
 ## Next actions
 
-1. Owner commits RD-057 (and prior REVIEW work as desired). Agent MUST NOT commit.
-2. Owner: push and confirm Actions → `build-macos` uploads `RouteDeck.app.zip`.
-3. Owner: `wails3 dev` smoke for RD-049..RD-056 per prior HANDOFF if not done.
+1. Owner commits RD-057 + RD-058 (and prior REVIEW work as desired). Agent MUST NOT commit.
+2. Owner: push / tag `v*` and confirm Actions artifact + Settings About / sidebar label.
+3. Owner: `wails3 dev` smoke for RD-049..RD-056 if not done.
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `test -f .github/workflows/build-macos.yml` | PASS |
+| `go test ./internal/buildmeta/` | PASS |
 | `golangci-lint run ./...` | PASS (0 issues; cache write warnings in sandbox) |
-| Remote `build-macos` Actions run | NOT RUN (not pushed) |
+| `cd frontend && npm run build` | PASS |
+| Remote `build-macos` with tag | NOT RUN (not pushed) |
 
 Environment: macOS darwin/arm64; module `github.com/macrox-pro/route-deck`; Go `1.26.0`; Wails v3.0.0

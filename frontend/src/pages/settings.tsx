@@ -120,12 +120,24 @@ export function SettingsPage() {
             </section>
 
             {data && (
-                <section className="rounded-lg p-4 text-sm ring-1 ring-secondary">
-                    <h2 className="mb-2 font-semibold text-secondary">Bridge discovery</h2>
-                    <p className="text-tertiary">State: {data.bridgeState || "Unknown"}</p>
-                    <p className="text-tertiary">Version: {data.bridgeVersion || "—"} {data.versionKnown ? "(known)" : "(unknown)"}</p>
-                    {data.compatibilityWarning && <p className="mt-2 text-warning-primary">{data.compatibilityWarning}</p>}
-                </section>
+                <>
+                    <section className="rounded-lg p-4 text-sm ring-1 ring-secondary">
+                        <h2 className="mb-2 font-semibold text-secondary">About</h2>
+                        <p className="text-tertiary">Version: {data.appVersionLabel || "dev"}</p>
+                        <p className="text-tertiary">Commit: {data.appCommit || "—"}</p>
+                    </section>
+
+                    <section className="rounded-lg p-4 text-sm ring-1 ring-secondary">
+                        <h2 className="mb-2 font-semibold text-secondary">Bridge discovery</h2>
+                        <p className="text-tertiary">State: {data.bridgeState || "Unknown"}</p>
+                        <p className="text-tertiary">
+                            Version: {data.bridgeVersion || "—"} {data.versionKnown ? "(known)" : "(unknown)"}
+                        </p>
+                        {data.compatibilityWarning && (
+                            <p className="mt-2 text-warning-primary">{data.compatibilityWarning}</p>
+                        )}
+                    </section>
+                </>
             )}
         </div>
     );

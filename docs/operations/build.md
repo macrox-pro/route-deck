@@ -14,13 +14,27 @@ wails3 task darwin:package
 
 That produces `bin/RouteDeck.app` with executable `Contents/MacOS/route-deck` (`APP_BUNDLE_NAME` vs `APP_NAME` in `Taskfile.yml`). Confirm the task name with `wails3 task --list` if this fails. Do not invent a second build system.
 
+## Version identity
+
+Link-time package: `internal/buildmeta` (`Version`, `Commit`).
+
+```bash
+wails3 task darwin:package APP_VERSION=1.2.3 APP_COMMIT=$(git rev-parse --short=7 HEAD)
+```
+
+- Default without vars: `Version=dev`, empty `Commit` (local / `wails3 dev`)
+- Git tags: `v1.2.3` → pass `APP_VERSION=1.2.3` (no leading `v`)
+- UI sidebar / Settings label: `v1.2.3` or `dev` via `buildmeta.DisplayVersion`
+- `Info.plist` `CFBundleShortVersionString` / `CFBundleVersion`: numeric form, or `0.0.0` when `dev`
+
 ## GitHub Actions (unsigned package)
 
 Workflow: `.github/workflows/build-macos.yml`.
 
 - Triggers: `workflow_dispatch`, push to `main`, tags `v*`
 - Runner: `macos-14` (arm64)
-- Command: `wails3 task darwin:package` with `CGO_ENABLED=1` and `GOFLAGS=-mod=vendor`
+- Command: `wails3 task darwin:package APP_VERSION=… APP_COMMIT=…` with `CGO_ENABLED=1` and `GOFLAGS=-mod=vendor`
+- Tag `v*` → version without `v`; otherwise `dev`. Commit is `github.sha` short (7)
 - Artifact: `RouteDeck.app.zip` (ad-hoc codesign from the Taskfile only)
 - MUST NOT require Developer ID or notarization in this workflow
 - PR check gate stays `.github/workflows/ci.yml` (tests, lint, frontend build only)

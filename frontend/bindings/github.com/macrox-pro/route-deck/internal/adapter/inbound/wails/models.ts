@@ -973,6 +973,21 @@ export class SettingsDTO {
     "versionKnown": boolean;
     "compatibilityWarning": string;
 
+    /**
+     * AppVersion is the link-time marketing version ("dev" or "1.2.3").
+     */
+    "appVersion": string;
+
+    /**
+     * AppVersionLabel is the short chrome label ("dev" or "v1.2.3").
+     */
+    "appVersionLabel": string;
+
+    /**
+     * AppCommit is the short git SHA when injected at link time; empty otherwise.
+     */
+    "appCommit": string;
+
     /** Creates a new SettingsDTO instance. */
     constructor($$source: Partial<SettingsDTO> = {}) {
         if (!("proxyBridgePath" in $$source)) {
@@ -1004,6 +1019,15 @@ export class SettingsDTO {
         }
         if (!("compatibilityWarning" in $$source)) {
             this["compatibilityWarning"] = "";
+        }
+        if (!("appVersion" in $$source)) {
+            this["appVersion"] = "";
+        }
+        if (!("appVersionLabel" in $$source)) {
+            this["appVersionLabel"] = "";
+        }
+        if (!("appCommit" in $$source)) {
+            this["appCommit"] = "";
         }
 
         Object.assign(this, $$source);
