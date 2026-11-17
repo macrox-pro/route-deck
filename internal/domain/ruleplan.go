@@ -16,7 +16,7 @@ type RulePlan struct {
 	Apps  []AppCoverage
 }
 
-// BuildRulePlan compiles profile policies into rules and AppCoverage facts (ADR-0008).
+// BuildRulePlan compiles profile policies into rules and AppCoverage facts (ADR-0008 / ADR-0014).
 func BuildRulePlan(profile Profile, proxies []ProxyEndpoint, identities []ProcessIdentity) (RulePlan, error) {
 	known := make([]ProxyID, 0, len(proxies))
 	proxyByID := make(map[ProxyID]ProxyEndpoint, len(proxies))
@@ -27,11 +27,24 @@ func BuildRulePlan(profile Profile, proxies []ProxyEndpoint, identities []Proces
 	if err := ValidateProxyRefs(profile, known); err != nil {
 		return RulePlan{}, err
 	}
+	if err := ValidateMatchConflicts(profile, identities); err != nil {
+		return RulePlan{}, fmt.Errorf("build rule plan: %w", err)
+	}
 	identityByID := make(map[ProcessIdentityID]ProcessIdentity, len(identities))
 	for _, identity := range identities {
 		identityByID[identity.ID] = identity
 	}
 
+	// Count stored identities per bundle id (ADR-0014 collapse of pre-afb231c duplicates).
+	bundleCounts := make(map[string]int)
+	for _, identity := range identities {
+		if identity.BundleID == "" {
+			continue
+		}
+		bundleCounts[identity.BundleID]++
+	}
+
+	emittedBundle := make(map[string]struct{})
 	var rules []PlannedRule
 	var apps []AppCoverage
 	for _, policy := range profile.Policies {
@@ -42,7 +55,19 @@ func BuildRulePlan(profile Profile, proxies []ProxyEndpoint, identities []Proces
 		if !ok {
 			return RulePlan{}, fmt.Errorf("build rule plan: unknown process %q", policy.ProcessID)
 		}
+
+		// Collapse: several identities share a bundle id → one rule with that bundle id only.
+		if identity.BundleID != "" && bundleCounts[identity.BundleID] > 1 {
+			if _, done := emittedBundle[identity.BundleID]; done {
+				continue
+			}
+			emittedBundle[identity.BundleID] = struct{}{}
+		}
+
 		names := identity.MatchableNames()
+		if identity.BundleID != "" && bundleCounts[identity.BundleID] > 1 {
+			names = []string{identity.BundleID}
+		}
 		if len(names) == 0 {
 			return RulePlan{}, fmt.Errorf("build rule plan: no matchable names for %q", policy.ProcessID)
 		}

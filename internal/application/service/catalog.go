@@ -4,6 +4,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/macrox-pro/route-deck/internal/application/port"
 	"github.com/macrox-pro/route-deck/internal/domain"
@@ -135,50 +137,241 @@ func (c *Catalog) InspectPath(ctx context.Context, path string) (port.InspectedA
 	return inspected, nil
 }
 
-// ConfirmHelpers saves selected helper process identities under applicationID.
-// ProxyBridge matches bundle id / executable name (not path), so a helper whose
-// bundle id is already catalogued for this application is skipped.
+// HelperGroup is one bundle-id group for Review helpers and Profiles (ADR-0014).
+type HelperGroup struct {
+	BundleID        string
+	DisplayName     string
+	ExecutableNames []string
+	ProcessIDs      []domain.ProcessIdentityID
+	Confirmed       bool
+	Preselected     bool
+	IsUpdater       bool
+	SameDeveloper   bool
+	Representative  port.InspectedProcess
+}
+
+// ConfirmHelpers syncs selected helper groups under applicationID (ADR-0014).
+// Checked groups are upserted (one identity per bundle id; path/exec refreshed).
+// Unchecked groups delete every identity with that bundle id, or return ErrReferenced
+// when any profile references any of them. Policies are never deleted as a side effect.
 func (c *Catalog) ConfirmHelpers(ctx context.Context, applicationID domain.ApplicationID, helpers []port.InspectedProcess) error {
+	app, err := c.Apps.Get(ctx, applicationID)
+	if err != nil {
+		return fmt.Errorf("catalog confirm helpers: %w", err)
+	}
 	existing, err := c.Processes.List(ctx)
 	if err != nil {
 		return fmt.Errorf("catalog confirm helpers: %w", err)
 	}
-	knownBundles := make(map[string]struct{})
-	for _, identity := range existing {
-		if identity.ApplicationID != applicationID || identity.BundleID == "" {
+	profiles, err := c.Profiles.List(ctx)
+	if err != nil {
+		return fmt.Errorf("catalog confirm helpers: %w", err)
+	}
+	referenced := make(map[domain.ProcessIdentityID]struct{})
+	for _, profile := range profiles {
+		for _, policy := range profile.Policies {
+			referenced[policy.ProcessID] = struct{}{}
+		}
+	}
+
+	selected := make(map[string]port.InspectedProcess)
+	for _, helper := range helpers {
+		if helper.BundleID == "" || helper.BundleID == app.BundleID {
 			continue
 		}
-		knownBundles[identity.BundleID] = struct{}{}
+		if _, ok := selected[helper.BundleID]; ok {
+			continue
+		}
+		selected[helper.BundleID] = helper
 	}
-	seenInBatch := make(map[string]struct{})
-	for _, helper := range helpers {
+
+	byBundle := make(map[string][]domain.ProcessIdentity)
+	for _, identity := range existing {
+		if identity.ApplicationID != applicationID || identity.BundleID == "" || identity.BundleID == app.BundleID {
+			continue
+		}
+		byBundle[identity.BundleID] = append(byBundle[identity.BundleID], identity)
+	}
+
+	for bundleID, rows := range byBundle {
+		if _, keep := selected[bundleID]; keep {
+			continue
+		}
+		for _, row := range rows {
+			if _, ok := referenced[row.ID]; ok {
+				return fmt.Errorf("catalog confirm helpers: %w", domain.ErrReferenced)
+			}
+		}
+		for _, row := range rows {
+			if err := c.Processes.Delete(ctx, row.ID); err != nil {
+				return fmt.Errorf("catalog confirm helpers: %w", err)
+			}
+		}
+	}
+
+	for bundleID, helper := range selected {
+		rows := byBundle[bundleID]
+		if len(rows) == 0 {
+			id, err := newID()
+			if err != nil {
+				return err
+			}
+			identity := domain.ProcessIdentity{
+				ID:             domain.ProcessIdentityID(id),
+				ApplicationID:  applicationID,
+				BundleID:       helper.BundleID,
+				ExecutableName: helper.ExecutableName,
+				Path:           helper.Path,
+			}
+			if err := c.Processes.Save(ctx, identity); err != nil {
+				return fmt.Errorf("catalog confirm helpers: %w", err)
+			}
+			continue
+		}
+		// Refresh the first identity; leave sibling duplicates for compile-time collapse.
+		rep := rows[0]
+		rep.ExecutableName = helper.ExecutableName
+		rep.Path = helper.Path
+		rep.BundleID = helper.BundleID
+		if err := c.Processes.Save(ctx, rep); err != nil {
+			return fmt.Errorf("catalog confirm helpers: %w", err)
+		}
+	}
+	return nil
+}
+
+// HelperGroups returns Go-built helper groups for an application (ADR-0014).
+// ExecutableNames come from inspect candidates. Preselected follows Closed rules.
+func (c *Catalog) HelperGroups(ctx context.Context, applicationID domain.ApplicationID) ([]HelperGroup, int, error) {
+	app, err := c.Apps.Get(ctx, applicationID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("catalog helper groups: %w", err)
+	}
+	identities, err := c.Processes.List(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("catalog helper groups: %w", err)
+	}
+	bundlePath := ""
+	confirmed := make(map[string][]domain.ProcessIdentityID)
+	for _, identity := range identities {
+		if identity.ApplicationID != applicationID {
+			continue
+		}
+		if identity.BundleID == app.BundleID {
+			if bundlePath == "" {
+				bundlePath = appBundlePathFromProcess(identity.Path)
+			}
+			continue
+		}
+		if identity.BundleID != "" {
+			confirmed[identity.BundleID] = append(confirmed[identity.BundleID], identity.ID)
+		}
+		if bundlePath == "" {
+			bundlePath = appBundlePathFromProcess(identity.Path)
+		}
+	}
+	if bundlePath == "" || c.Inspector == nil {
+		return nil, 0, fmt.Errorf("catalog helper groups: no application bundle path")
+	}
+	inspected, err := c.Inspector.Inspect(ctx, bundlePath)
+	if err != nil {
+		return nil, 0, fmt.Errorf("catalog helper groups: %w", err)
+	}
+
+	type bucket struct {
+		members []port.InspectedProcess
+	}
+	order := make([]string, 0)
+	byBundle := make(map[string]*bucket)
+	for _, helper := range inspected.Helpers {
 		if helper.BundleID == "" {
 			continue
 		}
-		if _, ok := knownBundles[helper.BundleID]; ok {
-			continue
+		b, ok := byBundle[helper.BundleID]
+		if !ok {
+			b = &bucket{}
+			byBundle[helper.BundleID] = b
+			order = append(order, helper.BundleID)
 		}
-		if _, ok := seenInBatch[helper.BundleID]; ok {
-			continue
-		}
-		id, err := newID()
-		if err != nil {
-			return err
-		}
-		identity := domain.ProcessIdentity{
-			ID:             domain.ProcessIdentityID(id),
-			ApplicationID:  applicationID,
-			BundleID:       helper.BundleID,
-			ExecutableName: helper.ExecutableName,
-			Path:           helper.Path,
-		}
-		if err := c.Processes.Save(ctx, identity); err != nil {
-			return fmt.Errorf("catalog confirm helpers: %w", err)
-		}
-		seenInBatch[helper.BundleID] = struct{}{}
-		knownBundles[helper.BundleID] = struct{}{}
+		b.members = append(b.members, helper)
 	}
-	return nil
+
+	out := make([]HelperGroup, 0, len(order))
+	pending := 0
+	for _, bundleID := range order {
+		members := byBundle[bundleID].members
+		rep := members[0]
+		names := make([]string, 0, len(members))
+		for _, m := range members {
+			if m.ExecutableName != "" {
+				names = append(names, m.ExecutableName)
+			}
+		}
+		ids := confirmed[bundleID]
+		isConfirmed := len(ids) > 0
+		sameDev := sameDeveloperPrefix(app.BundleID, bundleID)
+		preselected := isConfirmed || (!rep.IsUpdater && sameDev)
+		if !isConfirmed {
+			pending++
+		}
+		display := rep.DisplayName
+		if display == "" {
+			display = rep.ExecutableName
+		}
+		out = append(out, HelperGroup{
+			BundleID:        bundleID,
+			DisplayName:     display,
+			ExecutableNames: names,
+			ProcessIDs:      ids,
+			Confirmed:       isConfirmed,
+			Preselected:     preselected,
+			IsUpdater:       rep.IsUpdater,
+			SameDeveloper:   sameDev,
+			Representative:  rep,
+		})
+	}
+	return out, pending, nil
+}
+
+func sameDeveloperPrefix(mainID, helperID string) bool {
+	mainParts := splitBundleLabels(mainID)
+	helperParts := splitBundleLabels(helperID)
+	if len(mainParts) < 2 || len(helperParts) < 2 {
+		return false
+	}
+	return mainParts[0] == helperParts[0] && mainParts[1] == helperParts[1]
+}
+
+func splitBundleLabels(id string) []string {
+	if id == "" {
+		return nil
+	}
+	parts := make([]string, 0, 4)
+	start := 0
+	for i := 0; i <= len(id); i++ {
+		if i == len(id) || id[i] == '.' {
+			if i > start {
+				parts = append(parts, id[start:i])
+			}
+			start = i + 1
+		}
+	}
+	return parts
+}
+
+func appBundlePathFromProcess(processPath string) string {
+	p := filepath.Clean(processPath)
+	for p != "." && p != "/" {
+		if strings.HasSuffix(strings.ToLower(p), ".app") {
+			return p
+		}
+		parent := filepath.Dir(p)
+		if parent == p {
+			break
+		}
+		p = parent
+	}
+	return ""
 }
 
 // SaveApplication upserts an application.
@@ -232,7 +425,7 @@ func (c *Catalog) ListProxies(ctx context.Context) ([]domain.ProxyEndpoint, erro
 	return proxies, nil
 }
 
-// SaveProfile rejects unset actions and unresolved proxy refs before any write.
+// SaveProfile rejects unset actions, unresolved proxy refs, and match conflicts before any write.
 func (c *Catalog) SaveProfile(ctx context.Context, profile domain.Profile) error {
 	for _, policy := range profile.Policies {
 		if !policy.Action.IsSet() {
@@ -248,6 +441,13 @@ func (c *Catalog) SaveProfile(ctx context.Context, profile domain.Profile) error
 		known = append(known, proxy.ID)
 	}
 	if err := domain.ValidateProxyRefs(profile, known); err != nil {
+		return fmt.Errorf("catalog save profile: %w", err)
+	}
+	identities, err := c.Processes.List(ctx)
+	if err != nil {
+		return fmt.Errorf("catalog save profile: %w", err)
+	}
+	if err := domain.ValidateMatchConflicts(profile, identities); err != nil {
 		return fmt.Errorf("catalog save profile: %w", err)
 	}
 	if err := c.Profiles.Save(ctx, profile); err != nil {

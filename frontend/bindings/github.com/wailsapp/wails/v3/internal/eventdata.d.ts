@@ -12,6 +12,7 @@ import type * as wails$0 from "../../../../macrox-pro/route-deck/internal/adapte
 declare module "@wailsio/runtime" {
     namespace Events {
         interface CustomEvents {
+            "catalog.changed": wails$0.EventEnvelope;
             "operation.failed": wails$0.EventEnvelope;
             "operation.progress": wails$0.EventEnvelope;
             "protection.state.changed": wails$0.EventEnvelope;

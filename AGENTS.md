@@ -17,7 +17,7 @@ Context may be compressed or lost. Prior chat is untrusted. Re-read after long g
 7. Matching packet in `docs/prompts/`
 8. The code and tests you will change
 
-Then change code. MUST NOT start from chat memory alone. MUST NOT `@` every file under `docs/project/tasks/` in one session.
+Then change code. MUST NOT start from chat memory alone. MUST NOT `@` every file under `docs/project/tasks/` in one session. DONE history is `docs/project/COMPLETED.md` (one-liners only; open on owner request).
 
 ## Source of truth
 

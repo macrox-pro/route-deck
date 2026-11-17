@@ -67,6 +67,10 @@ type InspectedProcess struct {
 	Path           string
 	DisplayName    string
 	IsHelper       bool
+	// IsUpdater is set by the platform adapter (for example Sparkle on macOS).
+	IsUpdater bool
+	// RealPath is the EvalSymlinks path used for dedupe. Empty when unused.
+	RealPath string
 }
 
 // InspectedApplication is the result of inspecting an application path.

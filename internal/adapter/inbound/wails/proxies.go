@@ -130,6 +130,7 @@ func (s *ProxiesService) Save(ctx context.Context, input ProxySaveDTO) (ProxyDTO
 		secret, loadErr := s.Secrets.Load(ctx, ref)
 		hasPassword = loadErr == nil && len(secret) > 0
 	}
+	emit(s.Emit, EventCatalogChanged, map[string]any{"reason": "save_proxy", "proxyId": id})
 	return ProxyDTO{
 		ID:          id,
 		Name:        endpoint.Name,
@@ -157,6 +158,7 @@ func (s *ProxiesService) Delete(ctx context.Context, id string) error {
 	if s.Secrets != nil {
 		_ = s.Secrets.Delete(ctx, domain.KeychainRef(id))
 	}
+	emit(s.Emit, EventCatalogChanged, map[string]any{"reason": "delete_proxy", "proxyId": id})
 	return nil
 }
 

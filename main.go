@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync/atomic"
 
+	"github.com/macrox-pro/route-deck/internal/adapter/inbound/dock"
 	"github.com/macrox-pro/route-deck/internal/adapter/inbound/tray"
 	"github.com/macrox-pro/route-deck/internal/adapter/inbound/wails"
 	"github.com/macrox-pro/route-deck/internal/adapter/outbound/autostart"
@@ -168,6 +169,10 @@ func run() error {
 		Protection: protection,
 		Logger:     logger,
 	}
+	editorDialogs := &wails.EditorDialogs{Logger: logger}
+	editorDialogsService := &wails.EditorDialogsService{Dialogs: editorDialogs, Logger: logger}
+	dockService := dock.NewWailsService()
+	dockAttacher := &dock.Attacher{Dock: dockService, Snapshot: live, Logger: logger}
 	appSettings := &service.Settings{
 		Store:   settingsStore,
 		Locator: locator,
@@ -223,6 +228,7 @@ func run() error {
 	application.RegisterEvent[wails.EventEnvelope](wails.EventProxyBridgeStateChanged)
 	application.RegisterEvent[wails.EventEnvelope](wails.EventOperationProgress)
 	application.RegisterEvent[wails.EventEnvelope](wails.EventOperationFailed)
+	application.RegisterEvent[wails.EventEnvelope](wails.EventCatalogChanged)
 
 	app := application.New(application.Options{
 		Name:        "route-deck",
@@ -238,6 +244,8 @@ func run() error {
 			application.NewService(settingsService),
 			application.NewService(activityService),
 			application.NewService(setupGuidesService),
+			application.NewService(editorDialogsService),
+			application.NewService(dockService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -262,6 +270,8 @@ func run() error {
 	}
 	protectionService.Emit = emit
 	proxiesService.Emit = emit
+	applicationsService.Emit = emit
+	profilesService.Emit = emit
 
 	app.Event.OnApplicationEvent(events.Common.SystemDidWake, func(_ *application.ApplicationEvent) {
 		logger.Info("system did wake", "component", "main")
@@ -312,8 +322,12 @@ func run() error {
 		URL:              "/",
 	})
 
+	editorDialogs.App = app
+	editorDialogs.Parent = mainWindow
+
 	trayCtrl.App = app
 	trayCtrl.Window = mainWindow
+	trayCtrl.FocusEditor = editorDialogs.FocusOpen
 	userDialog := &wails.NativeUserDialog{App: app, Window: mainWindow}
 	protectionService.Dialog = userDialog
 	bridgeProcess.LineNotify = func(class port.BridgeLineClass) {
@@ -326,12 +340,19 @@ func run() error {
 	}
 
 	refreshTray := func() { trayCtrl.OnProtectionEvent() }
+	refreshDock := func() { dockAttacher.Refresh(context.Background()) }
 	app.Event.On(wails.EventProtectionStateChanged, func(_ *application.CustomEvent) {
 		refreshTray()
+		refreshDock()
 	})
 	app.Event.On(wails.EventProxyBridgeStateChanged, func(_ *application.CustomEvent) {
 		refreshTray()
+		refreshDock()
 	})
+	app.Event.On(wails.EventProxyHealthChanged, func(_ *application.CustomEvent) {
+		refreshDock()
+	})
+	refreshDock()
 
 	if err := app.Run(); err != nil {
 		return fmt.Errorf("route-deck: %w", err)

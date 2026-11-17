@@ -5,7 +5,7 @@ Sources (principles only; no SaaS required):
 - https://prodmoh.com/blog/10-best-practices-for-cursor-users
 - https://www.vibecodingacademy.ai/blog/cursor-ai-best-practices-guide-2026
 
-Upstream input is `CONCEPTION.md` + Accepted ADRs + contracts + the READY task file under `docs/project/tasks/`. That set replaces a vague prompt. `docs/project/BACKLOG.md` is an index; open one `RD-*.md` only.
+Upstream input is `CONCEPTION.md` + Accepted ADRs + contracts + the READY task file under `docs/project/tasks/`. That set replaces a vague prompt. `docs/project/BACKLOG.md` is an index; open one `RD-*.md` only. DONE history is `docs/project/COMPLETED.md` (one-liners); do not load it unless the owner asks.
 
 ## Prompt shape
 

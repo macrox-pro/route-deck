@@ -10,10 +10,13 @@ Read this preface before the Untitled UI embed below. When they disagree, this p
 - Routing: `HashRouter` because the Wails asset server returns 404 for unknown deep paths.
 - Add components with `npx untitledui@latest add <name> --yes` from `frontend/`. MUST NOT run `init`.
 - MUST NOT encode Proxy / Direct / Block rules in TypeScript. After an action, load a snapshot.
+- Helper groups come from Go (`HelperGroupDTO`). MUST NOT re-group by bundle id in TypeScript (ADR-0014).
+- Profile/Proxy/Helpers create-edit use EditorDialogs windows (`/#/dialog/...`), not inline page forms. See `docs/engineering/desktop-ux.md`.
 - Unknown, Failed, and Unprotected MUST NOT look like Active.
 - ESLint is not a required gate. Frontend check is `npm run build` (tsc + Vite).
 - UI language is English. New files are kebab-case. React Aria imports use the `Aria*` prefix.
 - Prefer semantic color classes (`text-primary`, `bg-secondary`), not raw `gray-*` / `blue-*`.
+- `System.IsWindows` is only for dialog footer button order.
 
 <!-- @embed:start file="public-components/CLAUDE.md" -->
 ## Project Overview

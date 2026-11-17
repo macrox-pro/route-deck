@@ -71,7 +71,7 @@ Stop: SIGINT/SIGTERM/SIGHUP clear rules (docs: Ctrl+C, SIGTERM, SIGHUP). If the 
 
 First-run extension approval prints `Extension: waiting for your approval...` (classified `extension_approval`, not a failure). RouteDeck shows a native Info dialog once per Apply start and keeps waiting. Approval can wait up to 5 minutes before `Timed out waiting for the extension...`.
 
-Graceful stop is signal, wait, then timeout. MUST NOT use context cancel as the only stop (it can kill immediately).
+Graceful stop is SIGTERM, wait up to ~20s (CLI may need ~5s for extension cleanup), then SIGKILL with up to 3 kill+reap attempts (~5s each, 1s between). Start owns the single `cmd.Wait`; Stop only observes that exit channel. Exit after our stop signal counts as success even when `Wait` returns a non-zero status. `os.ErrProcessDone` on signal is success once reaped. MUST NOT surface a stop timeout to the UI when the process was killed and reaped. MUST NOT use context cancel as the only stop (it can kill immediately); kill retries ignore caller cancel. After SIGKILL, RouteDeck MUST NOT report protected.
 
 ## Readiness
 

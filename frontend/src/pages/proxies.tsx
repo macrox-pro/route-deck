@@ -1,40 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Events } from "@wailsio/runtime";
+import { ProxyHealthBadge } from "@/components/application/proxy-health-badge/proxy-health-badge";
 import { ProxyListIcon } from "@/components/application/proxy-list-icon/proxy-list-icon";
 import { SuggestionBanner } from "@/components/application/setup-guide/suggestion-banner";
 import { Button } from "@/components/base/buttons/button";
-import { Input } from "@/components/base/input/input";
-import { NativeSelect } from "@/components/base/select/select-native";
 import { useSnapshot } from "@/hooks/use-snapshot";
 import { matchProxyGuide } from "@/utils/match-proxy-guide";
-import { proxyHealthLabel } from "@/utils/proxy-health-label";
-import { ProxiesService, SetupGuidesService } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import {
+    EditorDialogsService,
+    ProxiesService,
+    SetupGuidesService,
+} from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 import type { GuideDTO, ProxyDTO } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 
-const guidePrefill: Record<string, { name: string; kind: string; host: string; port: string }> = {
-    singbox: { name: "sing-box local", kind: "socks5", host: "127.0.0.1", port: "" },
-    generic: { name: "Local proxy", kind: "socks5", host: "127.0.0.1", port: "" },
-};
-
-const emptyForm = {
-    id: "",
-    name: "",
-    kind: "socks5",
-    host: "",
-    port: "1080",
-    username: "",
-    password: "",
-};
-
 export function ProxiesPage() {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { data: snapshot } = useSnapshot();
     const [rows, setRows] = useState<ProxyDTO[]>([]);
     const [guides, setGuides] = useState<GuideDTO[]>([]);
-    const [form, setForm] = useState(emptyForm);
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
-    const [guideHint, setGuideHint] = useState<string | null>(null);
 
     const reload = useCallback(async () => {
         setError(null);
@@ -50,6 +36,26 @@ export function ProxiesPage() {
     useEffect(() => {
         void reload();
     }, [reload]);
+
+    useEffect(() => {
+        const unsub = Events.On("catalog.changed", () => {
+            void reload();
+        });
+        return () => {
+            unsub();
+        };
+    }, [reload]);
+
+    useEffect(() => {
+        const guideID = searchParams.get("guide");
+        if (!guideID) {
+            return;
+        }
+        void EditorDialogsService.OpenProxy("", guideID);
+        const next = new URLSearchParams(searchParams);
+        next.delete("guide");
+        setSearchParams(next, { replace: true });
+    }, [searchParams, setSearchParams]);
 
     const healthByID = useMemo(() => {
         const map = new Map<string, string>();
@@ -68,62 +74,10 @@ export function ProxiesPage() {
         return map;
     }, [guides, rows]);
 
-    useEffect(() => {
-        const guideID = searchParams.get("guide");
-        if (!guideID) {
+    const onDelete = async (id: string, name: string) => {
+        if (!window.confirm(`Delete this proxy?\n\n${name}`)) {
             return;
         }
-        const draft = guidePrefill[guideID];
-        if (!draft) {
-            return;
-        }
-        setForm({
-            id: "",
-            name: draft.name,
-            kind: draft.kind,
-            host: draft.host,
-            port: draft.port,
-            username: "",
-            password: "",
-        });
-        setGuideHint(`Enter the local port from your ${draft.name.replace(/ local$/i, "")} client, then save.`);
-    }, [searchParams]);
-
-    const onSave = async () => {
-        setBusy(true);
-        setError(null);
-        try {
-            await ProxiesService.Save({
-                id: form.id,
-                name: form.name,
-                kind: form.kind,
-                host: form.host,
-                port: Number(form.port) || 0,
-                username: form.username,
-                password: form.password,
-            });
-            setForm(emptyForm);
-            await reload();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    const onEdit = (row: ProxyDTO) => {
-        setForm({
-            id: row.id,
-            name: row.name,
-            kind: row.kind,
-            host: row.host,
-            port: String(row.port),
-            username: row.username,
-            password: "",
-        });
-    };
-
-    const onDelete = async (id: string) => {
         setBusy(true);
         setError(null);
         try {
@@ -166,9 +120,14 @@ export function ProxiesPage() {
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between gap-4">
                 <h1 className="text-display-xs font-semibold text-primary">Proxies</h1>
-                <Button color="secondary" size="md" isLoading={busy} onClick={() => void onRecheck()}>
-                    Recheck health
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button color="secondary" size="md" isLoading={busy} onClick={() => void onRecheck()}>
+                        Recheck health
+                    </Button>
+                    <Button color="primary" size="md" onClick={() => void EditorDialogsService.OpenProxy("", "")}>
+                        New proxy
+                    </Button>
+                </div>
             </div>
 
             {error && (
@@ -178,65 +137,6 @@ export function ProxiesPage() {
             )}
 
             <SuggestionBanner onAdded={() => void reload()} />
-
-            {guideHint && (
-                <div className="rounded-lg bg-secondary px-4 py-3 text-sm text-secondary ring-1 ring-secondary" role="status">
-                    {guideHint}
-                </div>
-            )}
-
-            <section className="grid gap-3 rounded-lg p-4 ring-1 ring-secondary md:grid-cols-2">
-                <Input
-                    label="Name"
-                    value={form.name}
-                    placeholder="Shadowrocket"
-                    onChange={(value) => setForm((f) => ({ ...f, name: value }))}
-                />
-                <NativeSelect
-                    label="Kind"
-                    value={form.kind}
-                    onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value }))}
-                    options={[
-                        { label: "SOCKS5", value: "socks5" },
-                        { label: "HTTP", value: "http" },
-                    ]}
-                />
-                <Input
-                    label="Host"
-                    value={form.host}
-                    placeholder="127.0.0.1"
-                    onChange={(value) => setForm((f) => ({ ...f, host: value }))}
-                />
-                <Input
-                    label="Port"
-                    value={form.port}
-                    placeholder="1082"
-                    onChange={(value) => setForm((f) => ({ ...f, port: value }))}
-                />
-                <Input
-                    label="Username"
-                    value={form.username}
-                    placeholder="Optional"
-                    onChange={(value) => setForm((f) => ({ ...f, username: value }))}
-                />
-                <Input
-                    label="Password"
-                    type="password"
-                    value={form.password}
-                    placeholder={form.id ? "Leave empty to keep" : "Optional"}
-                    onChange={(value) => setForm((f) => ({ ...f, password: value }))}
-                />
-                <div className="flex gap-2 md:col-span-2">
-                    <Button color="primary" size="md" isLoading={busy} onClick={() => void onSave()}>
-                        {form.id ? "Update proxy" : "Add proxy"}
-                    </Button>
-                    {form.id && (
-                        <Button color="secondary" size="md" onClick={() => setForm(emptyForm)}>
-                            Cancel edit
-                        </Button>
-                    )}
-                </div>
-            </section>
 
             <ul className="divide-y divide-secondary rounded-lg ring-1 ring-secondary">
                 {rows.length === 0 ? (
@@ -253,13 +153,18 @@ export function ProxiesPage() {
                                         <p className="text-tertiary">
                                             {row.kind}://{row.host}:{row.port}
                                             {row.hasPassword ? " · password set" : " · no password"}
-                                            {" · "}
-                                            {proxyHealthLabel(healthByID.get(row.id))}
                                         </p>
+                                        <div className="mt-1.5">
+                                            <ProxyHealthBadge health={healthByID.get(row.id)} />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                    <Button color="secondary" size="sm" onClick={() => onEdit(row)}>
+                                    <Button
+                                        color="secondary"
+                                        size="sm"
+                                        onClick={() => void EditorDialogsService.OpenProxy(row.id, "")}
+                                    >
                                         Edit
                                     </Button>
                                     {row.hasPassword && (
@@ -267,7 +172,12 @@ export function ProxiesPage() {
                                             Clear password
                                         </Button>
                                     )}
-                                    <Button color="secondary-destructive" size="sm" isLoading={busy} onClick={() => void onDelete(row.id)}>
+                                    <Button
+                                        color="secondary-destructive"
+                                        size="sm"
+                                        isLoading={busy}
+                                        onClick={() => void onDelete(row.id, row.name || row.id)}
+                                    >
                                         Delete
                                     </Button>
                                 </div>

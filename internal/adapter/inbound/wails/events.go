@@ -11,6 +11,7 @@ const (
 	EventProxyBridgeStateChanged = "proxybridge.state.changed"
 	EventOperationProgress       = "operation.progress"
 	EventOperationFailed         = "operation.failed"
+	EventCatalogChanged          = "catalog.changed"
 )
 
 // EventEnvelope is the product event shape.

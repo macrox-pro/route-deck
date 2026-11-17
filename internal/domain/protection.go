@@ -65,8 +65,11 @@ func DeriveProtection(facts ProtectionFacts) ProtectionState {
 		return ProtectionStateUnknown
 	}
 
-	if facts.Bridge == BridgeStateStarting || facts.Bridge == BridgeStateStopping {
+	if facts.Bridge == BridgeStateStarting {
 		return ProtectionStateInitializing
+	}
+	if facts.Bridge == BridgeStateStopping {
+		return ProtectionStateUnprotected
 	}
 
 	if (facts.ConfirmFailed && facts.RollbackFailed) || (facts.ConfirmFailed && facts.Applied == "") {

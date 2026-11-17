@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"path/filepath"
-	"strings"
 
 	"github.com/macrox-pro/route-deck/internal/application/port"
 	"github.com/macrox-pro/route-deck/internal/application/service"
@@ -17,6 +15,7 @@ import (
 type ApplicationsService struct {
 	Catalog *service.Catalog
 	Logger  *slog.Logger
+	Emit    Emitter
 }
 
 // ApplicationDTO is one catalog application.
@@ -32,12 +31,28 @@ type HelperDTO struct {
 	ExecutableName string `json:"executableName"`
 	Path           string `json:"path"`
 	DisplayName    string `json:"displayName"`
+	IsUpdater      bool   `json:"isUpdater"`
+}
+
+// HelperGroupDTO is one bundle-id group from Go (ADR-0014).
+type HelperGroupDTO struct {
+	BundleID        string    `json:"bundleId"`
+	DisplayName     string    `json:"displayName"`
+	ExecutableNames []string  `json:"executableNames"`
+	ProcessIDs      []string  `json:"processIds"`
+	Confirmed       bool      `json:"confirmed"`
+	Preselected     bool      `json:"preselected"`
+	IsUpdater       bool      `json:"isUpdater"`
+	SameDeveloper   bool      `json:"sameDeveloper"`
+	Representative  HelperDTO `json:"representative"`
 }
 
 // AddApplicationResultDTO is returned after picking an app.
 type AddApplicationResultDTO struct {
-	Application ApplicationDTO `json:"application"`
-	Helpers     []HelperDTO    `json:"helpers"`
+	Application  ApplicationDTO   `json:"application"`
+	Helpers      []HelperDTO      `json:"helpers"`
+	Groups       []HelperGroupDTO `json:"groups"`
+	PendingCount int              `json:"pendingCount"`
 }
 
 // ProcessIdentityDTO is a saved process identity.
@@ -156,7 +171,13 @@ func (s *ApplicationsService) AddFromPath(ctx context.Context, path string) (Add
 		s.logger().Warn("add application from path failed", "component", "wails.applications", "err", err)
 		return AddApplicationResultDTO{}, err
 	}
-	return mapAddResult(saved, inspected), nil
+	result := mapAddResult(saved, inspected)
+	if groups, pending, groupErr := s.Catalog.HelperGroups(ctx, saved.ID); groupErr == nil {
+		result.Groups = mapHelperGroups(groups)
+		result.PendingCount = pending
+	}
+	emit(s.Emit, EventCatalogChanged, map[string]any{"reason": "add_application", "applicationId": string(saved.ID)})
+	return result, nil
 }
 
 // PickAndAdd opens a native file dialog, inspects the .app, and saves the main bundle.
@@ -187,7 +208,13 @@ func (s *ApplicationsService) PickAndAdd(ctx context.Context) (AddApplicationRes
 		s.logger().Warn("add application failed", "component", "wails.applications", "err", err)
 		return AddApplicationResultDTO{}, err
 	}
-	return mapAddResult(saved, inspected), nil
+	result := mapAddResult(saved, inspected)
+	if groups, pending, groupErr := s.Catalog.HelperGroups(ctx, saved.ID); groupErr == nil {
+		result.Groups = mapHelperGroups(groups)
+		result.PendingCount = pending
+	}
+	emit(s.Emit, EventCatalogChanged, map[string]any{"reason": "add_application", "applicationId": string(saved.ID)})
+	return result, nil
 }
 
 func mapAddResult(saved domain.Application, inspected port.InspectedApplication) AddApplicationResultDTO {
@@ -198,6 +225,7 @@ func mapAddResult(saved domain.Application, inspected port.InspectedApplication)
 			ExecutableName: helper.ExecutableName,
 			Path:           helper.Path,
 			DisplayName:    helper.DisplayName,
+			IsUpdater:      helper.IsUpdater,
 		})
 	}
 	return AddApplicationResultDTO{
@@ -210,8 +238,51 @@ func mapAddResult(saved domain.Application, inspected port.InspectedApplication)
 	}
 }
 
-// InspectHelpers re-inspects the application bundle for helper candidates (ADR-0008).
-// It does not save helpers; callers must ConfirmHelpers explicitly.
+func mapHelperGroups(groups []service.HelperGroup) []HelperGroupDTO {
+	out := make([]HelperGroupDTO, 0, len(groups))
+	for _, group := range groups {
+		ids := make([]string, 0, len(group.ProcessIDs))
+		for _, id := range group.ProcessIDs {
+			ids = append(ids, string(id))
+		}
+		out = append(out, HelperGroupDTO{
+			BundleID:        group.BundleID,
+			DisplayName:     group.DisplayName,
+			ExecutableNames: group.ExecutableNames,
+			ProcessIDs:      ids,
+			Confirmed:       group.Confirmed,
+			Preselected:     group.Preselected,
+			IsUpdater:       group.IsUpdater,
+			SameDeveloper:   group.SameDeveloper,
+			Representative: HelperDTO{
+				BundleID:       group.Representative.BundleID,
+				ExecutableName: group.Representative.ExecutableName,
+				Path:           group.Representative.Path,
+				DisplayName:    group.Representative.DisplayName,
+				IsUpdater:      group.Representative.IsUpdater,
+			},
+		})
+	}
+	return out
+}
+
+// ListHelperGroups returns Go-built helper groups for an application (ADR-0014).
+func (s *ApplicationsService) ListHelperGroups(ctx context.Context, applicationID string) ([]HelperGroupDTO, error) {
+	if s == nil || s.Catalog == nil {
+		return nil, fmt.Errorf("applications service: not configured")
+	}
+	appID, err := domain.ParseApplicationID(applicationID)
+	if err != nil {
+		return nil, fmt.Errorf("list helper groups: %w", err)
+	}
+	groups, _, err := s.Catalog.HelperGroups(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+	return mapHelperGroups(groups), nil
+}
+
+// InspectHelpers re-inspects helpers and returns groups with pendingCount (ADR-0014).
 func (s *ApplicationsService) InspectHelpers(ctx context.Context, applicationID string) (AddApplicationResultDTO, error) {
 	if s == nil || s.Catalog == nil {
 		return AddApplicationResultDTO{}, fmt.Errorf("applications service: not configured")
@@ -225,58 +296,45 @@ func (s *ApplicationsService) InspectHelpers(ctx context.Context, applicationID 
 		return AddApplicationResultDTO{}, fmt.Errorf("inspect helpers: %w", err)
 	}
 	var app domain.Application
-	foundApp := false
+	found := false
 	for _, row := range apps {
 		if row.ID == appID {
 			app = row
-			foundApp = true
+			found = true
 			break
 		}
 	}
-	if !foundApp {
+	if !found {
 		return AddApplicationResultDTO{}, fmt.Errorf("inspect helpers: application not found")
 	}
-	identities, err := s.Catalog.ListProcessIdentities(ctx)
-	if err != nil {
-		return AddApplicationResultDTO{}, fmt.Errorf("inspect helpers: %w", err)
-	}
-	bundlePath := ""
-	for _, identity := range identities {
-		if identity.ApplicationID != appID {
-			continue
-		}
-		if p := appBundlePath(identity.Path); p != "" {
-			bundlePath = p
-			break
-		}
-	}
-	if bundlePath == "" {
-		return AddApplicationResultDTO{}, fmt.Errorf("inspect helpers: no application bundle path")
-	}
-	inspected, err := s.Catalog.InspectPath(ctx, bundlePath)
+	groups, pending, err := s.Catalog.HelperGroups(ctx, appID)
 	if err != nil {
 		s.logger().Warn("inspect helpers failed", "component", "wails.applications", "err", err)
 		return AddApplicationResultDTO{}, err
 	}
-	return mapAddResult(app, inspected), nil
-}
-
-func appBundlePath(processPath string) string {
-	p := filepath.Clean(processPath)
-	for p != "." && p != "/" {
-		if strings.HasSuffix(strings.ToLower(p), ".app") {
-			return p
-		}
-		parent := filepath.Dir(p)
-		if parent == p {
-			break
-		}
-		p = parent
+	helpers := make([]HelperDTO, 0, len(groups))
+	for _, group := range groups {
+		helpers = append(helpers, HelperDTO{
+			BundleID:       group.Representative.BundleID,
+			ExecutableName: group.Representative.ExecutableName,
+			Path:           group.Representative.Path,
+			DisplayName:    group.DisplayName,
+			IsUpdater:      group.IsUpdater,
+		})
 	}
-	return ""
+	return AddApplicationResultDTO{
+		Application: ApplicationDTO{
+			ID:          string(app.ID),
+			DisplayName: app.DisplayName,
+			BundleID:    app.BundleID,
+		},
+		Helpers:      helpers,
+		Groups:       mapHelperGroups(groups),
+		PendingCount: pending,
+	}, nil
 }
 
-// ConfirmHelpers saves selected helpers for an application.
+// ConfirmHelpers syncs selected helpers for an application (ADR-0014).
 func (s *ApplicationsService) ConfirmHelpers(ctx context.Context, applicationID string, helpers []HelperDTO) error {
 	if s == nil || s.Catalog == nil {
 		return fmt.Errorf("applications service: not configured")
@@ -293,9 +351,14 @@ func (s *ApplicationsService) ConfirmHelpers(ctx context.Context, applicationID 
 			Path:           helper.Path,
 			DisplayName:    helper.DisplayName,
 			IsHelper:       true,
+			IsUpdater:      helper.IsUpdater,
 		})
 	}
-	return s.Catalog.ConfirmHelpers(ctx, appID, inspected)
+	if err := s.Catalog.ConfirmHelpers(ctx, appID, inspected); err != nil {
+		return err
+	}
+	emit(s.Emit, EventCatalogChanged, map[string]any{"reason": "confirm_helpers", "applicationId": applicationID})
+	return nil
 }
 
 // Delete removes an application when unreferenced.
@@ -311,5 +374,6 @@ func (s *ApplicationsService) Delete(ctx context.Context, id string) error {
 		s.logger().Warn("application delete failed", "component", "wails.applications", "err", err)
 		return err
 	}
+	emit(s.Emit, EventCatalogChanged, map[string]any{"reason": "delete_application", "applicationId": id})
 	return nil
 }

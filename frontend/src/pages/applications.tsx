@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Events } from "@wailsio/runtime";
 import { SearchLg } from "@untitledui/icons";
 import { Button } from "@/components/base/buttons/button";
 import { Checkbox } from "@/components/base/checkbox/checkbox";
@@ -8,12 +9,13 @@ import { appBundlePath } from "@/utils/app-bundle-path";
 import { loadAppIcon } from "@/utils/load-app-icon";
 import {
     ApplicationsService,
+    EditorDialogsService,
     ProfilesService,
     ProxiesService,
 } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 import type {
     ApplicationDTO,
-    HelperDTO,
+    HelperGroupDTO,
     InstalledApplicationDTO,
     ProcessIdentityDTO,
     ProfileDTO,
@@ -27,56 +29,6 @@ type CatalogPolicyLine = {
     identityCount: number;
     applied: boolean;
 };
-
-type HelperGroup = {
-    key: string;
-    bundleId: string;
-    label: string;
-    copyCount: number;
-    representative: HelperDTO;
-};
-
-/**
- * ProxyBridge matches bundle id / executable name only (path with "/" never matches).
- * Helpers that share a bundle id are one checkbox / one catalog identity.
- */
-function groupHelpersByBundle(helpers: HelperDTO[]): HelperGroup[] {
-    const byBundle = new Map<string, HelperDTO[]>();
-    const withoutBundle: HelperDTO[] = [];
-    for (const helper of helpers) {
-        if (!helper.bundleId) {
-            withoutBundle.push(helper);
-            continue;
-        }
-        const list = byBundle.get(helper.bundleId) ?? [];
-        list.push(helper);
-        byBundle.set(helper.bundleId, list);
-    }
-    const groups: HelperGroup[] = [];
-    for (const [bundleId, members] of byBundle) {
-        const representative = members[0];
-        const title = representative.displayName || representative.executableName || bundleId;
-        const copyNote = members.length > 1 ? ` · ${members.length} copies` : "";
-        groups.push({
-            key: `bundle:${bundleId}`,
-            bundleId,
-            label: `${title}${copyNote} (${bundleId})`,
-            copyCount: members.length,
-            representative,
-        });
-    }
-    withoutBundle.forEach((helper, index) => {
-        const key = helper.path ? `path:${helper.path}` : `index:${index}`;
-        groups.push({
-            key,
-            bundleId: "",
-            label: `${helper.displayName || helper.executableName || "Helper"} (no bundle id)`,
-            copyCount: 1,
-            representative: helper,
-        });
-    });
-    return groups;
-}
 
 function actionLabel(action: string, proxyId: string, proxyNameById: Map<string, string>): string {
     switch (action) {
@@ -122,7 +74,6 @@ function buildCatalogPolicyLines(
     }
     const appProcessIDs = new Set(appProcesses.map((process) => process.id));
 
-    // One compact line per profile + action (bundle-id duplicates collapse).
     const lines: CatalogPolicyLine[] = [];
     for (const profile of profiles) {
         const applied = appliedConfirmed && appliedId === profile.id;
@@ -190,7 +141,8 @@ function CatalogRow({
     path,
     policyLines,
     identityCount,
-    needsHelperReview,
+    confirmedGroups,
+    pendingCount,
     busy,
     onDelete,
     onReviewHelpers,
@@ -199,7 +151,8 @@ function CatalogRow({
     path: string | undefined;
     policyLines: CatalogPolicyLine[];
     identityCount: number;
-    needsHelperReview: boolean;
+    confirmedGroups: HelperGroupDTO[];
+    pendingCount: number;
     busy: boolean;
     onDelete: (id: string) => void;
     onReviewHelpers: (id: string) => void;
@@ -227,11 +180,25 @@ function CatalogRow({
                     </Button>
                 </div>
             </div>
-            {needsHelperReview ? (
+            {pendingCount > 0 ? (
                 <p className="pl-11 text-xs text-warning-primary">
-                    This app may have helper processes that are not in the catalog. Unconfirmed helpers are not written into
-                    rules, so their traffic can bypass Proxy or Block.
+                    {pendingCount} helper group{pendingCount === 1 ? "" : "s"} may need review. Unconfirmed helpers are not
+                    written into rules, so their traffic can bypass Proxy or Block.
                 </p>
+            ) : null}
+            {confirmedGroups.length > 0 ? (
+                <ul className="flex flex-col gap-1 pl-11">
+                    {confirmedGroups.map((group) => {
+                        const count = group.executableNames?.length || 1;
+                        return (
+                            <li key={group.bundleId} className="truncate text-xs text-tertiary">
+                                {group.displayName || group.bundleId}
+                                {count > 1 ? ` · ${count} processes` : ""}
+                                {" · confirmed"}
+                            </li>
+                        );
+                    })}
+                </ul>
             ) : null}
             {policyLines.length > 0 ? (
                 <ul className="flex flex-col gap-1 pl-11">
@@ -296,10 +263,8 @@ export function ApplicationsPage() {
     const [proxies, setProxies] = useState<ProxyDTO[]>([]);
     const [filter, setFilter] = useState("");
     const [showSystem, setShowSystem] = useState(false);
-    const [pendingAppID, setPendingAppID] = useState<string | null>(null);
-    const [helpers, setHelpers] = useState<HelperDTO[]>([]);
-    const [selected, setSelected] = useState<Record<string, boolean>>({});
-    const [helperReviewNeeded, setHelperReviewNeeded] = useState<Record<string, boolean>>({});
+    const [pendingByApp, setPendingByApp] = useState<Record<string, number>>({});
+    const [groupsByApp, setGroupsByApp] = useState<Record<string, HelperGroupDTO[]>>({});
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
 
@@ -319,33 +284,22 @@ export function ApplicationsPage() {
             setProcesses(processRows);
             setProxies(proxyRows);
 
-            const knownByApp = new Map<string, Set<string>>();
-            for (const process of processRows) {
-                let set = knownByApp.get(process.applicationId);
-                if (!set) {
-                    set = new Set();
-                    knownByApp.set(process.applicationId, set);
-                }
-                set.add(process.path);
-                set.add(process.bundleId);
-            }
-
-            const review: Record<string, boolean> = {};
+            const pending: Record<string, number> = {};
+            const groups: Record<string, HelperGroupDTO[]> = {};
             await Promise.all(
                 catalog.map(async (app) => {
                     try {
                         const result = await ApplicationsService.InspectHelpers(app.id);
-                        const known = knownByApp.get(app.id) ?? new Set();
-                        const missing = (result.helpers ?? []).some(
-                            (helper) => !known.has(helper.path) && !known.has(helper.bundleId),
-                        );
-                        review[app.id] = missing;
+                        pending[app.id] = result.pendingCount ?? 0;
+                        groups[app.id] = (result.groups ?? []).filter((group) => group.confirmed);
                     } catch {
-                        review[app.id] = false;
+                        pending[app.id] = 0;
+                        groups[app.id] = [];
                     }
                 }),
             );
-            setHelperReviewNeeded(review);
+            setPendingByApp(pending);
+            setGroupsByApp(groups);
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
         }
@@ -353,6 +307,15 @@ export function ApplicationsPage() {
 
     useEffect(() => {
         void reload();
+    }, [reload]);
+
+    useEffect(() => {
+        const unsub = Events.On("catalog.changed", () => {
+            void reload();
+        });
+        return () => {
+            unsub();
+        };
     }, [reload]);
 
     const filteredInstalled = useMemo(() => {
@@ -421,14 +384,10 @@ export function ApplicationsPage() {
         return map;
     }, [apps, processes]);
 
-    const applyAddResult = (result: Awaited<ReturnType<typeof ApplicationsService.AddFromPath>>) => {
-        setPendingAppID(result.application.id);
-        setHelpers(result.helpers ?? []);
-        const initial: Record<string, boolean> = {};
-        for (const group of groupHelpersByBundle(result.helpers ?? [])) {
-            initial[group.key] = false;
+    const openHelpersIfNeeded = async (applicationID: string, pendingCount: number, helperCount: number) => {
+        if (pendingCount > 0 || helperCount > 0) {
+            await EditorDialogsService.OpenHelpers(applicationID);
         }
-        setSelected(initial);
     };
 
     const onPick = async () => {
@@ -439,8 +398,12 @@ export function ApplicationsPage() {
             if (!result?.application?.id) {
                 return;
             }
-            applyAddResult(result);
             await reload();
+            await openHelpersIfNeeded(
+                result.application.id,
+                result.pendingCount ?? 0,
+                (result.groups ?? result.helpers ?? []).length,
+            );
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             if (/cancelled|canceled/i.test(message)) {
@@ -457,8 +420,12 @@ export function ApplicationsPage() {
         setError(null);
         try {
             const result = await ApplicationsService.AddFromPath(path);
-            applyAddResult(result);
             await reload();
+            await openHelpersIfNeeded(
+                result.application.id,
+                result.pendingCount ?? 0,
+                (result.groups ?? result.helpers ?? []).length,
+            );
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
         } finally {
@@ -470,48 +437,7 @@ export function ApplicationsPage() {
         setBusy(true);
         setError(null);
         try {
-            const result = await ApplicationsService.InspectHelpers(applicationID);
-            setPendingAppID(applicationID);
-            setHelpers(result.helpers ?? []);
-            const knownBundles = new Set<string>();
-            for (const process of processes) {
-                if (process.applicationId !== applicationID) {
-                    continue;
-                }
-                if (process.bundleId) {
-                    knownBundles.add(process.bundleId);
-                }
-            }
-            const initial: Record<string, boolean> = {};
-            for (const group of groupHelpersByBundle(result.helpers ?? [])) {
-                initial[group.key] = !!group.bundleId && knownBundles.has(group.bundleId);
-            }
-            setSelected(initial);
-            if ((result.helpers ?? []).length === 0) {
-                setError("No helper processes found in this application bundle.");
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    const onConfirmHelpers = async () => {
-        if (!pendingAppID) {
-            return;
-        }
-        setBusy(true);
-        setError(null);
-        try {
-            const chosen = groupHelpersByBundle(helpers)
-                .filter((group) => selected[group.key] && group.bundleId)
-                .map((group) => group.representative);
-            await ApplicationsService.ConfirmHelpers(pendingAppID, chosen);
-            setPendingAppID(null);
-            setHelpers([]);
-            setSelected({});
-            await reload();
+            await EditorDialogsService.OpenHelpers(applicationID);
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
         } finally {
@@ -554,42 +480,6 @@ export function ApplicationsPage() {
                 </div>
             )}
 
-            {helpers.length > 0 && pendingAppID && (
-                <section className="flex flex-col gap-3 rounded-lg p-4 ring-1 ring-secondary">
-                    <h2 className="text-sm font-semibold text-secondary">Helper processes</h2>
-                    <p className="text-sm text-tertiary">
-                        Select helpers to include as separate process identities. Copies that share a bundle id are one
-                        checkbox — ProxyBridge matches bundle id / executable name, not file path. Unchecked helpers are
-                        never written into rules.
-                    </p>
-                    {groupHelpersByBundle(helpers).map((group) => (
-                        <Checkbox
-                            key={group.key}
-                            value={group.key}
-                            label={group.label}
-                            isSelected={!!selected[group.key]}
-                            onChange={(isSelected) => setSelected((prev) => ({ ...prev, [group.key]: isSelected }))}
-                        />
-                    ))}
-                    <div className="flex gap-2">
-                        <Button color="primary" size="md" isLoading={busy} onClick={() => void onConfirmHelpers()}>
-                            Confirm helpers
-                        </Button>
-                        <Button
-                            color="secondary"
-                            size="md"
-                            onClick={() => {
-                                setPendingAppID(null);
-                                setHelpers([]);
-                                setSelected({});
-                            }}
-                        >
-                            Skip helpers
-                        </Button>
-                    </div>
-                </section>
-            )}
-
             <section className="flex flex-col gap-3">
                 <h2 className="text-sm font-semibold text-secondary">Catalog</h2>
                 <ul className="divide-y divide-secondary rounded-lg ring-1 ring-secondary">
@@ -603,10 +493,11 @@ export function ApplicationsPage() {
                                 path={pathByAppID.get(app.id)}
                                 policyLines={policyLinesByApp.get(app.id) ?? []}
                                 identityCount={identityCountByApp.get(app.id) ?? 0}
-                                needsHelperReview={!!helperReviewNeeded[app.id]}
+                                confirmedGroups={groupsByApp[app.id] ?? []}
+                                pendingCount={pendingByApp[app.id] ?? 0}
                                 busy={busy}
-                                onDelete={(id) => void onDelete(id)}
-                                onReviewHelpers={(id) => void onReviewHelpers(id)}
+                                onDelete={(appID) => void onDelete(appID)}
+                                onReviewHelpers={(appID) => void onReviewHelpers(appID)}
                             />
                         ))
                     )}

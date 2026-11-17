@@ -12,6 +12,7 @@ import * as wails$0 from "../../../../macrox-pro/route-deck/internal/adapter/inb
 
 function configure() {
     Object.freeze(Object.assign($Create.Events, {
+        "catalog.changed": $$createType0,
         "operation.failed": $$createType0,
         "operation.progress": $$createType0,
         "protection.state.changed": $$createType0,

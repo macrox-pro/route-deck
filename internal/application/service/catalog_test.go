@@ -178,6 +178,24 @@ func (m *recordingProcessStore) Delete(ctx context.Context, id domain.ProcessIde
 	return nil
 }
 
+type memAppStore struct {
+	byID map[domain.ApplicationID]domain.Application
+}
+
+func (m *memAppStore) Get(ctx context.Context, id domain.ApplicationID) (domain.Application, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.Application{}, err
+	}
+	app, ok := m.byID[id]
+	if !ok {
+		return domain.Application{}, fmt.Errorf("missing")
+	}
+	return app, nil
+}
+func (m *memAppStore) List(context.Context) ([]domain.Application, error) { return nil, nil }
+func (m *memAppStore) Save(context.Context, domain.Application) error     { return nil }
+func (m *memAppStore) Delete(context.Context, domain.ApplicationID) error { return nil }
+
 func TestConfirmHelpersSkipsDuplicateBundleID(t *testing.T) {
 	processes := &recordingProcessStore{rows: []domain.ProcessIdentity{
 		{
@@ -194,7 +212,13 @@ func TestConfirmHelpersSkipsDuplicateBundleID(t *testing.T) {
 			Path:           "/tmp/HelperA.app/Contents/MacOS/HelperA",
 		},
 	}}
-	catalog := &service.Catalog{Processes: processes}
+	catalog := &service.Catalog{
+		Apps: &memAppStore{byID: map[domain.ApplicationID]domain.Application{
+			"app-1": {ID: "app-1", BundleID: "com.example.app", DisplayName: "App"},
+		}},
+		Processes: processes,
+		Profiles:  &memProfileStore{},
+	}
 	err := catalog.ConfirmHelpers(context.Background(), "app-1", []port.InspectedProcess{
 		{BundleID: "com.example.helper", ExecutableName: "HelperB", Path: "/tmp/HelperB.app/Contents/MacOS/HelperB"},
 		{BundleID: "com.example.helper", ExecutableName: "HelperC", Path: "/tmp/HelperC.app/Contents/MacOS/HelperC"},
@@ -205,19 +229,69 @@ func TestConfirmHelpersSkipsDuplicateBundleID(t *testing.T) {
 		t.Fatalf("ConfirmHelpers: %v", err)
 	}
 	var helperCount, otherCount int
+	var helperPath string
 	for _, row := range processes.rows {
 		switch row.BundleID {
 		case "com.example.helper":
 			helperCount++
+			helperPath = row.Path
 		case "com.example.other":
 			otherCount++
 		}
 	}
 	if helperCount != 1 {
-		t.Fatalf("helper bundle rows = %d, want 1 (existing kept, duplicates skipped)", helperCount)
+		t.Fatalf("helper bundle rows = %d, want 1", helperCount)
+	}
+	if helperPath != "/tmp/HelperB.app/Contents/MacOS/HelperB" {
+		t.Fatalf("helper path refreshed = %q, want HelperB", helperPath)
 	}
 	if otherCount != 1 {
 		t.Fatalf("other bundle rows = %d, want 1 (batch deduped)", otherCount)
+	}
+}
+
+func TestConfirmHelpersRemovesUnchecked(t *testing.T) {
+	processes := &recordingProcessStore{rows: []domain.ProcessIdentity{
+		{ID: "proc-main", ApplicationID: "app-1", BundleID: "com.example.app", ExecutableName: "App"},
+		{ID: "proc-helper", ApplicationID: "app-1", BundleID: "com.example.helper", ExecutableName: "Helper"},
+	}}
+	catalog := &service.Catalog{
+		Apps: &memAppStore{byID: map[domain.ApplicationID]domain.Application{
+			"app-1": {ID: "app-1", BundleID: "com.example.app"},
+		}},
+		Processes: processes,
+		Profiles:  &memProfileStore{},
+	}
+	err := catalog.ConfirmHelpers(context.Background(), "app-1", nil)
+	if err != nil {
+		t.Fatalf("ConfirmHelpers: %v", err)
+	}
+	for _, row := range processes.rows {
+		if row.BundleID == "com.example.helper" {
+			t.Fatalf("unchecked helper still present: %+v", row)
+		}
+	}
+}
+
+func TestConfirmHelpersReferenced(t *testing.T) {
+	processes := &recordingProcessStore{rows: []domain.ProcessIdentity{
+		{ID: "proc-main", ApplicationID: "app-1", BundleID: "com.example.app", ExecutableName: "App"},
+		{ID: "proc-helper", ApplicationID: "app-1", BundleID: "com.example.helper", ExecutableName: "Helper"},
+	}}
+	catalog := &service.Catalog{
+		Apps: &memAppStore{byID: map[domain.ApplicationID]domain.Application{
+			"app-1": {ID: "app-1", BundleID: "com.example.app"},
+		}},
+		Processes: processes,
+		Profiles: &memProfileStore{byID: map[domain.ProfileID]domain.Profile{
+			"p1": {ID: "p1", Name: "Work", Policies: []domain.ApplicationPolicy{
+				{ProcessID: "proc-helper", Action: domain.BlockAction()},
+			}},
+		}},
+	}
+	err := catalog.ConfirmHelpers(context.Background(), "app-1", nil)
+	if !errors.Is(err, domain.ErrReferenced) {
+		t.Fatalf("error = %v, want ErrReferenced", err)
 	}
 }
 

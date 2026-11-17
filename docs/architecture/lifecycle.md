@@ -4,9 +4,13 @@ Wails process lifetime and ProxyBridge CLI lifetime are different. Stopping one 
 
 ## Wails
 
-`ApplicationShouldTerminateAfterLastWindowClosed` is `false` (ADR-0010). Closing the window Cancels destroy and Hides it. RouteDeck stays in the menu bar. The Dock icon stays for the process lifetime (`ActivationPolicyRegular`).
+`ApplicationShouldTerminateAfterLastWindowClosed` is `false` (ADR-0010). Closing the **main** window Cancels destroy and Hides it. RouteDeck stays in the menu bar. The Dock icon stays for the process lifetime (`ActivationPolicyRegular`).
 
-Quit is a separate action (tray Quit, Cmd+Q, Dock Quit). Every Quit path shows a native Question dialog before exit is accepted. Cancel keeps the process resident. Confirm with a managed CLI stops that CLI gracefully, then quits. `OnShutdown` still stops the managed CLI as a safety net.
+Editor dialog windows (`profile`, `proxy`, `helpers`) are separate Wails windows (ADR-0014). Closing an editor destroys that window and re-enables the main window. Dirty editors ask before close. Tray "Open RouteDeck" focuses an open editor when present, otherwise shows the main window.
+
+Dock badge `!` appears when a profile is applied and ProtectionState is not Active (ADR-0014). Unsupported platforms log once at Debug.
+
+Quit is a separate action (tray Quit, Cmd+Q, Dock Quit). Every Quit path shows a native Question dialog before exit is accepted. Cancel keeps the process resident. Confirm with a managed CLI stops that CLI gracefully, then quits. `OnShutdown` still stops the managed CLI as a safety net. Quitting with a dirty editor discards edits (known limitation).
 
 ## ProxyBridge CLI
 

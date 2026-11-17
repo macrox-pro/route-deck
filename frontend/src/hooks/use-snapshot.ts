@@ -9,6 +9,7 @@ const REFRESH_EVENTS = [
     "proxybridge.state.changed",
     "operation.progress",
     "operation.failed",
+    "catalog.changed",
 ] as const;
 
 export function useSnapshot() {

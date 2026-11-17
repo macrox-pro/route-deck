@@ -112,9 +112,7 @@ func TestDeriveProtection(t *testing.T) {
 			name: "step4",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
-				f.Bridge = domain.BridgeStateFailed
-				f.ConfirmFailed = true
-				f.RollbackFailed = true
+				f.Bridge = domain.BridgeStateStopping
 				return f
 			}(),
 			want: domain.ProtectionStateUnprotected,
@@ -124,12 +122,23 @@ func TestDeriveProtection(t *testing.T) {
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Bridge = domain.BridgeStateFailed
+				f.ConfirmFailed = true
+				f.RollbackFailed = true
+				return f
+			}(),
+			want: domain.ProtectionStateUnprotected,
+		},
+		{
+			name: "step6",
+			in: func() domain.ProtectionFacts {
+				f := quietFacts()
+				f.Bridge = domain.BridgeStateFailed
 				return f
 			}(),
 			want: domain.ProtectionStateFailed,
 		},
 		{
-			name: "step6",
+			name: "step7",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Bridge = domain.BridgeStateConflict
@@ -138,7 +147,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateUnprotected,
 		},
 		{
-			name: "step7",
+			name: "step8",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Bridge = domain.BridgeStateNotInstalled
@@ -147,7 +156,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateInactive,
 		},
 		{
-			name: "step8",
+			name: "step9",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Bridge = domain.BridgeStateStopped
@@ -156,7 +165,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateUnprotected,
 		},
 		{
-			name: "step9",
+			name: "step10",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Bridge = domain.BridgeStateStopped
@@ -166,7 +175,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateInactive,
 		},
 		{
-			name: "step10",
+			name: "step11",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.AppliedConfirmed = false
@@ -175,7 +184,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateUnprotected,
 		},
 		{
-			name: "step11",
+			name: "step12",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Apps = []domain.AppCoverage{directOnly}
@@ -184,7 +193,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateInactive,
 		},
 		{
-			name: "step12",
+			name: "step13",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Apps = []domain.AppCoverage{covered}
@@ -194,7 +203,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateActive,
 		},
 		{
-			name: "step12_block",
+			name: "step13_block",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Apps = []domain.AppCoverage{blockCovered}
@@ -203,7 +212,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateActive,
 		},
 		{
-			name: "step12_udp_not_required",
+			name: "step13_udp_not_required",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Apps = []domain.AppCoverage{udpNotRequired}
@@ -213,7 +222,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateActive,
 		},
 		{
-			name: "step13",
+			name: "step14",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Apps = []domain.AppCoverage{covered, open}
@@ -223,7 +232,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateDegraded,
 		},
 		{
-			name: "step13_udp_required",
+			name: "step14_udp_required",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Apps = []domain.AppCoverage{udpRequiredGap}
@@ -233,7 +242,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateDegraded,
 		},
 		{
-			name: "step13_proxy_unavailable",
+			name: "step14_proxy_unavailable",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Apps = []domain.AppCoverage{covered}
@@ -246,7 +255,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateDegraded,
 		},
 		{
-			name: "step13_auth_failed",
+			name: "step14_auth_failed",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Apps = []domain.AppCoverage{covered}
@@ -259,7 +268,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateDegraded,
 		},
 		{
-			name: "step13_tcp_available_udp_unavailable",
+			name: "step14_tcp_available_udp_unavailable",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Apps = []domain.AppCoverage{tcpUDPUnavailableApp}
@@ -272,7 +281,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateDegraded,
 		},
 		{
-			name: "step13_dns_incomplete",
+			name: "step14_dns_incomplete",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Apps = []domain.AppCoverage{covered}
@@ -284,7 +293,7 @@ func TestDeriveProtection(t *testing.T) {
 			want: domain.ProtectionStateDegraded,
 		},
 		{
-			name: "step14",
+			name: "step15",
 			in: func() domain.ProtectionFacts {
 				f := quietFacts()
 				f.Apps = []domain.AppCoverage{open}

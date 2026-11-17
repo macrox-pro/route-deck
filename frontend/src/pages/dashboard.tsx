@@ -2,26 +2,29 @@ import { useEffect, useMemo, useState } from "react";
 import { HelpCircle } from "@untitledui/icons";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
 import { ProtectionBadge } from "@/components/application/protection-badge/protection-badge";
+import { ProxyHealthBadge } from "@/components/application/proxy-health-badge/proxy-health-badge";
 import { ProxyListIcon } from "@/components/application/proxy-list-icon/proxy-list-icon";
 import { SetupChecklist } from "@/components/application/setup-guide/setup-checklist";
 import { SuggestionBanner } from "@/components/application/setup-guide/suggestion-banner";
 import { Button } from "@/components/base/buttons/button";
 import { useSnapshot } from "@/hooks/use-snapshot";
 import { matchProxyGuide } from "@/utils/match-proxy-guide";
-import { proxyHealthLabel } from "@/utils/proxy-health-label";
 import {
     ProtectionService,
     SetupGuidesService,
 } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 import type { GuideDTO } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 
+type DashboardPending = "apply" | "stop" | "refresh" | null;
+
 export function DashboardPage() {
     const { data, error, loading, reload } = useSnapshot();
     const [actionError, setActionError] = useState<string | null>(null);
-    const [busy, setBusy] = useState(false);
+    const [pending, setPending] = useState<DashboardPending>(null);
     const [operationID, setOperationID] = useState<string | null>(null);
     const [checklistKey, setChecklistKey] = useState(0);
     const [guides, setGuides] = useState<GuideDTO[]>([]);
+    const actionsLocked = pending !== null;
 
     useEffect(() => {
         void SetupGuidesService.List(false)
@@ -47,7 +50,7 @@ export function DashboardPage() {
     }
 
     const onApply = async () => {
-        setBusy(true);
+        setPending("apply");
         setActionError(null);
         try {
             const result = await ProtectionService.Apply();
@@ -56,12 +59,12 @@ export function DashboardPage() {
         } catch (err) {
             setActionError(err instanceof Error ? err.message : String(err));
         } finally {
-            setBusy(false);
+            setPending(null);
         }
     };
 
     const onStop = async () => {
-        setBusy(true);
+        setPending("stop");
         setActionError(null);
         try {
             const result = await ProtectionService.Stop();
@@ -70,7 +73,19 @@ export function DashboardPage() {
         } catch (err) {
             setActionError(err instanceof Error ? err.message : String(err));
         } finally {
-            setBusy(false);
+            setPending(null);
+        }
+    };
+
+    const onRefresh = async () => {
+        setPending("refresh");
+        setActionError(null);
+        try {
+            await reload();
+        } catch (err) {
+            setActionError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setPending(null);
         }
     };
 
@@ -85,17 +100,38 @@ export function DashboardPage() {
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <Button color="secondary" size="md" iconLeading={HelpCircle} href="/help">
+                    <Button color="secondary" size="md" iconLeading={HelpCircle} href="/help" isDisabled={actionsLocked}>
                         Setup guides
                     </Button>
-                    <Button color="primary" size="md" isLoading={busy} onClick={() => void onApply()}>
-                        Apply
+                    <Button
+                        color="primary"
+                        size="md"
+                        isLoading={pending === "apply"}
+                        showTextWhileLoading
+                        isDisabled={actionsLocked && pending !== "apply"}
+                        onClick={() => void onApply()}
+                    >
+                        {pending === "apply" ? "Applying…" : "Apply"}
                     </Button>
-                    <Button color="secondary" size="md" isLoading={busy} onClick={() => void onStop()}>
-                        Stop
+                    <Button
+                        color="secondary"
+                        size="md"
+                        isLoading={pending === "stop"}
+                        showTextWhileLoading
+                        isDisabled={actionsLocked && pending !== "stop"}
+                        onClick={() => void onStop()}
+                    >
+                        {pending === "stop" ? "Stopping…" : "Stop"}
                     </Button>
-                    <Button color="secondary" size="md" isLoading={loading} onClick={() => void reload()}>
-                        Refresh
+                    <Button
+                        color="secondary"
+                        size="md"
+                        isLoading={pending === "refresh"}
+                        showTextWhileLoading
+                        isDisabled={actionsLocked && pending !== "refresh"}
+                        onClick={() => void onRefresh()}
+                    >
+                        {pending === "refresh" ? "Refreshing…" : "Refresh"}
                     </Button>
                 </div>
             </div>
@@ -182,7 +218,7 @@ export function DashboardPage() {
                                                 <ProxyListIcon installedPath={icon?.installedPath} kind={icon?.kind || proxy.kind || "socks5"} />
                                                 <span className="truncate text-primary">{proxy.name || proxy.id}</span>
                                             </div>
-                                            <span className="shrink-0 text-tertiary">{proxyHealthLabel(proxy.health)}</span>
+                                            <ProxyHealthBadge health={proxy.health} />
                                         </li>
                                     );
                                 })}

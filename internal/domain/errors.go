@@ -44,3 +44,7 @@ var ErrDuplicateBundleID = errors.New("duplicate bundle id")
 
 // ErrDuplicateProfileName is returned when a profile name already exists.
 var ErrDuplicateProfileName = errors.New("duplicate profile name")
+
+// ErrConflictingMatch is returned when policies give different actions to
+// identities that share a ProxyBridge matchable name (bundle id or executable).
+var ErrConflictingMatch = errors.New("conflicting matchable names")

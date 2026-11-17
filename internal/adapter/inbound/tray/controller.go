@@ -38,6 +38,8 @@ type Controller struct {
 	Bridge     BridgeReader
 	Protection Stopper
 	Logger     *slog.Logger
+	// FocusEditor focuses an open editor dialog when set; returns true when focused.
+	FocusEditor func() bool
 
 	tray       *application.SystemTray
 	statusItem *application.MenuItem
@@ -147,9 +149,15 @@ func (c *Controller) ShouldQuit() bool {
 	return false
 }
 
-// ShowWindow shows and focuses the main window.
+// ShowWindow shows and focuses the main window, or the open editor when one exists.
 func (c *Controller) ShowWindow() {
-	if c == nil || c.Window == nil {
+	if c == nil {
+		return
+	}
+	if c.FocusEditor != nil && c.FocusEditor() {
+		return
+	}
+	if c.Window == nil {
 		return
 	}
 	c.Window.Show().Focus()

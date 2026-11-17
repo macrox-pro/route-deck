@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleIdentifier</key><string>com.openai.sky.CUAService</string>
+<key>CFBundleExecutable</key><string>SkyComputerUseService</string>
+<key>CFBundleName</key><string>Codex Computer Use</string>
+<key>CFBundleDisplayName</key><string>Codex Computer Use</string>
+</dict></plist>

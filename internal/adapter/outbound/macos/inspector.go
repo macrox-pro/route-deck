@@ -23,7 +23,7 @@ type infoPlist struct {
 	CFBundleDisplayName string `plist:"CFBundleDisplayName"`
 }
 
-// Inspect reads path as a .app (or nested helper apps under Frameworks/Helpers).
+// Inspect reads path as a .app and nested helper apps (ADR-0014).
 func (Inspector) Inspect(ctx context.Context, path string) (port.InspectedApplication, error) {
 	if err := ctx.Err(); err != nil {
 		return port.InspectedApplication{}, fmt.Errorf("macos inspect: %w", err)
@@ -61,10 +61,23 @@ func readBundle(appPath string, isHelper bool) (port.InspectedProcess, error) {
 		return port.InspectedProcess{}, fmt.Errorf("macos inspect: missing CFBundleIdentifier")
 	}
 	display := displayNameFromInfo(info)
+	bundleRoot := preferCurrentVersion(appPath)
 	execName := info.CFBundleExecutable
+	if execName == "" {
+		// Electron helpers (Cursor, VS Code, …) often omit CFBundleExecutable
+		// but still ship a binary under Contents/MacOS (ADR-0014: .app with an executable).
+		execName = discoverMacOSExecutable(bundleRoot, appPath)
+	}
+	if execName == "" && isHelper {
+		return port.InspectedProcess{}, fmt.Errorf("macos inspect: missing executable")
+	}
 	execPath := ""
 	if execName != "" {
-		execPath = filepath.Join(appPath, "Contents", "MacOS", execName)
+		execPath = filepath.Join(bundleRoot, "Contents", "MacOS", execName)
+	}
+	realPath := appPath
+	if resolved, err := filepath.EvalSymlinks(appPath); err == nil {
+		realPath = resolved
 	}
 	return port.InspectedProcess{
 		BundleID:       info.CFBundleIdentifier,
@@ -72,13 +85,80 @@ func readBundle(appPath string, isHelper bool) (port.InspectedProcess, error) {
 		Path:           execPath,
 		DisplayName:    display,
 		IsHelper:       isHelper,
+		IsUpdater:      isSparkleUpdater(info.CFBundleIdentifier),
+		RealPath:       realPath,
 	}, nil
+}
+
+// discoverMacOSExecutable finds Contents/MacOS binary when Info.plist omits CFBundleExecutable.
+func discoverMacOSExecutable(bundleRoot, appPath string) string {
+	macosDir := filepath.Join(bundleRoot, "Contents", "MacOS")
+	entries, err := os.ReadDir(macosDir)
+	if err != nil {
+		return ""
+	}
+	var names []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		// Skip AppleDouble / resource forks.
+		if strings.HasPrefix(entry.Name(), "._") {
+			continue
+		}
+		names = append(names, entry.Name())
+	}
+	if len(names) == 0 {
+		return ""
+	}
+	if len(names) == 1 {
+		return names[0]
+	}
+	base := strings.TrimSuffix(filepath.Base(appPath), filepath.Ext(appPath))
+	for _, name := range names {
+		if name == base {
+			return name
+		}
+	}
+	return names[0]
+}
+
+func isSparkleUpdater(bundleID string) bool {
+	return strings.HasPrefix(bundleID, "org.sparkle-project.")
+}
+
+// preferCurrentVersion rewrites .../Versions/<ver>/... to .../Versions/Current/... when Current exists.
+func preferCurrentVersion(appPath string) string {
+	const marker = string(filepath.Separator) + "Versions" + string(filepath.Separator)
+	idx := strings.Index(appPath, marker)
+	if idx < 0 {
+		return appPath
+	}
+	after := appPath[idx+len(marker):]
+	parts := strings.SplitN(after, string(filepath.Separator), 2)
+	if len(parts) == 0 || parts[0] == "" || parts[0] == "Current" {
+		return appPath
+	}
+	frameworkRoot := appPath[:idx]
+	currentLink := filepath.Join(frameworkRoot, "Versions", "Current")
+	if _, err := os.Lstat(currentLink); err != nil {
+		return appPath
+	}
+	rest := ""
+	if len(parts) == 2 {
+		rest = parts[1]
+	}
+	if rest == "" {
+		return currentLink
+	}
+	return filepath.Join(currentLink, rest)
 }
 
 func findHelpers(appPath string) ([]port.InspectedProcess, error) {
 	roots := []string{
 		filepath.Join(appPath, "Contents", "Frameworks"),
 		filepath.Join(appPath, "Contents", "Helpers"),
+		filepath.Join(appPath, "Contents", "Resources"),
 	}
 	var helpers []port.InspectedProcess
 	seen := make(map[string]struct{})
@@ -90,7 +170,7 @@ func findHelpers(appPath string) ([]port.InspectedProcess, error) {
 	return helpers, nil
 }
 
-// walkHelperApps collects nested .app bundles under Frameworks/Helpers (ADR-0008).
+// walkHelperApps collects nested .app bundles (ADR-0014).
 // A found .app is a leaf: we do not walk inside it for further helpers.
 func walkHelperApps(root string, helpers *[]port.InspectedProcess, seen map[string]struct{}) error {
 	entries, err := os.ReadDir(root)
@@ -104,14 +184,18 @@ func walkHelperApps(root string, helpers *[]port.InspectedProcess, seen map[stri
 		name := entry.Name()
 		path := filepath.Join(root, name)
 		if strings.HasSuffix(strings.ToLower(name), ".app") {
-			if _, ok := seen[path]; ok {
-				continue
-			}
 			proc, err := readBundle(path, true)
 			if err != nil {
 				continue
 			}
-			seen[path] = struct{}{}
+			key := proc.RealPath
+			if key == "" {
+				key = path
+			}
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
 			*helpers = append(*helpers, proc)
 			continue
 		}

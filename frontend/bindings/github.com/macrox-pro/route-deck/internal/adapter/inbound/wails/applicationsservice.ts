@@ -24,7 +24,7 @@ export function AddFromPath(path: string): $CancellablePromise<$models.AddApplic
 }
 
 /**
- * ConfirmHelpers saves selected helpers for an application.
+ * ConfirmHelpers syncs selected helpers for an application (ADR-0014).
  */
 export function ConfirmHelpers(applicationID: string, helpers: $models.HelperDTO[]): $CancellablePromise<void> {
     return $Call.ByID(180402146, applicationID, helpers);
@@ -47,8 +47,7 @@ export function Icon(path: string): $CancellablePromise<string> {
 }
 
 /**
- * InspectHelpers re-inspects the application bundle for helper candidates (ADR-0008).
- * It does not save helpers; callers must ConfirmHelpers explicitly.
+ * InspectHelpers re-inspects helpers and returns groups with pendingCount (ADR-0014).
  */
 export function InspectHelpers(applicationID: string): $CancellablePromise<$models.AddApplicationResultDTO> {
     return $Call.ByID(2205293018, applicationID).then(($result: any) => {
@@ -66,11 +65,20 @@ export function List(): $CancellablePromise<$models.ApplicationDTO[]> {
 }
 
 /**
+ * ListHelperGroups returns Go-built helper groups for an application (ADR-0014).
+ */
+export function ListHelperGroups(applicationID: string): $CancellablePromise<$models.HelperGroupDTO[]> {
+    return $Call.ByID(4198807719, applicationID).then(($result: any) => {
+        return $$createType4($result);
+    });
+}
+
+/**
  * ListInstalled returns platform-installed applications without writing the catalog.
  */
 export function ListInstalled(): $CancellablePromise<$models.InstalledApplicationDTO[]> {
     return $Call.ByID(2807228467).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType6($result);
     });
 }
 
@@ -79,7 +87,7 @@ export function ListInstalled(): $CancellablePromise<$models.InstalledApplicatio
  */
 export function ListProcessIdentities(): $CancellablePromise<$models.ProcessIdentityDTO[]> {
     return $Call.ByID(1794427834).then(($result: any) => {
-        return $$createType6($result);
+        return $$createType8($result);
     });
 }
 
@@ -96,7 +104,9 @@ export function PickAndAdd(): $CancellablePromise<$models.AddApplicationResultDT
 const $$createType0 = $models.AddApplicationResultDTO.createFrom;
 const $$createType1 = $models.ApplicationDTO.createFrom;
 const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = $models.InstalledApplicationDTO.createFrom;
+const $$createType3 = $models.HelperGroupDTO.createFrom;
 const $$createType4 = $Create.Array($$createType3);
-const $$createType5 = $models.ProcessIdentityDTO.createFrom;
+const $$createType5 = $models.InstalledApplicationDTO.createFrom;
 const $$createType6 = $Create.Array($$createType5);
+const $$createType7 = $models.ProcessIdentityDTO.createFrom;
+const $$createType8 = $Create.Array($$createType7);

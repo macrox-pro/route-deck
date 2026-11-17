@@ -22,7 +22,9 @@ ProxyBridge rules use the JSON field `processNames`. The CLI compares each patte
 
 Code signature and path stay UX warnings. They are not CLI match fields.
 
-Helper processes are not added to a rule until the user confirms them.
+Helper processes are not added to a rule until the user confirms them. Catalog stores at most one `ProcessIdentity` per bundle id per application (ADR-0014). Confirm sync removes unchecked groups; referenced helpers return `ErrReferenced`.
+
+When several stored identities share a bundle id and the same action, `BuildRulePlan` emits one rule whose `processNames` is only that bundle id. Different actions on a shared matchable name return `ErrConflictingMatch`. Neither error is rewritten to Direct.
 
 ## Invariants
 
@@ -32,8 +34,9 @@ Helper processes are not added to a rule until the user confirms them.
 - `ProtectionState.Active` requires bridge ready, profile confirmed, refs valid, and every protected app covered for required protocols.
 - Desired and applied may differ. UI shows both when they differ.
 - Passwords are not fields on the domain aggregate that get persisted. Store a Keychain reference.
-- Deleting a proxy or application that any profile references returns `ErrReferenced`.
+- Deleting a proxy, application, or helper identity that any profile references returns `ErrReferenced`.
 - Duplicate application bundle ids return `ErrDuplicateBundleID`. Duplicate profile names return `ErrDuplicateProfileName`.
+- Conflicting actions on identities that share a matchable name return `ErrConflictingMatch`.
 - Protocol outside a Proxy policy's scope compiles to `BLOCK` (covered). HTTP+UDP uses `BLOCK` or `DIRECT` per `UDPLimitation`; UDP is not covered either way (ADR-0008).
 
 ## Apply failure

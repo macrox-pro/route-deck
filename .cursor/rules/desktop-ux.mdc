@@ -1,0 +1,20 @@
+---
+description: Desktop dialog and list UX for RouteDeck
+globs: "frontend/**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Desktop UX
+
+Follow `docs/engineering/desktop-ux.md` and ADR-0014.
+
+- Editor kinds: `profile`, `proxy`, `helpers`. One window each. Native frame. No Frameless.
+- Footer button order: Windows Save then Cancel; macOS/Linux Cancel then Save.
+- Enter saves, Esc cancels, Cmd/Ctrl+W closes. Dirty close asks "Discard changes?".
+- Save disabled when name blank, form clean, or save in flight.
+- Destructive confirm defaults to Cancel.
+- Body scrolls; title and footer stay. Semantic colors; no white BackgroundColour override.
+- Helper groups come from Go. MUST NOT re-group by bundle id in TypeScript.
+- MUST NOT encode Proxy/Direct/Block rules in TypeScript.
+- MUST NOT add undo, toasts, saved layouts, or password reveal in this epic.
+- UI language is English.

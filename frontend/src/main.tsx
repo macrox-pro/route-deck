@@ -10,6 +10,9 @@ import { ActivityPage } from "@/pages/activity";
 import { ApplicationsPage } from "@/pages/applications";
 import { DashboardPage } from "@/pages/dashboard";
 import { HelpPage } from "@/pages/help";
+import { HelpersDialog } from "@/pages/dialogs/helpers-dialog";
+import { ProfileEditorDialog } from "@/pages/dialogs/profile-editor-dialog";
+import { ProxyEditorDialog } from "@/pages/dialogs/proxy-editor-dialog";
 import { ProfilesPage } from "@/pages/profiles";
 import { ProxiesPage } from "@/pages/proxies";
 import { SettingsPage } from "@/pages/settings";
@@ -20,6 +23,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <RouteProvider>
                 <ThemeProvider>
                     <Routes>
+                        <Route path="dialog/profile" element={<ProfileEditorDialog />} />
+                        <Route path="dialog/profile/:id" element={<ProfileEditorDialog />} />
+                        <Route path="dialog/proxy" element={<ProxyEditorDialog />} />
+                        <Route path="dialog/proxy/:id" element={<ProxyEditorDialog />} />
+                        <Route path="dialog/helpers/:applicationId" element={<HelpersDialog />} />
                         <Route element={<AppShell />}>
                             <Route index element={<DashboardPage />} />
                             <Route path="applications" element={<ApplicationsPage />} />

@@ -22,6 +22,8 @@ Ship a full vertical slice including UI: add a proxy and an application, edit mu
 
 The Wails open-file dialog selects a `.app`. `howett.net/plist` reads `Info.plist` behind a platform-neutral `ApplicationInspector` port; only a macOS adapter ships in this batch. Nested helper `.app` bundles (for example under `Contents/Frameworks` and `Contents/Helpers`) are listed with checkboxes. Confirmed helpers become separate `ProcessIdentity` rows under the same `Application`. Unconfirmed helpers never enter rules. A duplicate application bundle id is rejected.
 
+Helper discovery depth, one identity per bundle id, sync ConfirmHelpers, and editor dialog windows are superseded by [ADR-0014](ADR-0014-editor-dialogs-helper-groups.md).
+
 ### Health
 
 Every proxy gets a TCP connect. SOCKS5 also runs the greeting, RFC1929 auth (`AuthenticationFailed` on failure), and a UDP ASSOCIATE request (`Available` on success, `TCPAvailableUDPUnavailable` on failure). HTTP proxies in this batch used TCP connect only and were never reported `AuthenticationFailed`; that HTTP probe is superseded by [ADR-0012](ADR-0012-http-connect-health.md) (CONNECT). Triggers: startup, proxy save, before Apply, Recheck, and every 30 seconds. Wake (`SystemDidWake`) and network change (`NetworkChanged`) set `RecheckPending` until a fresh check finishes.

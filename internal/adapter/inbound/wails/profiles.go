@@ -15,6 +15,7 @@ type ProfilesService struct {
 	Catalog    *service.Catalog
 	Settings   port.SettingsStore
 	Protection *service.Protection
+	Emit       Emitter
 	Logger     *slog.Logger
 }
 
@@ -107,6 +108,7 @@ func (s *ProfilesService) Save(ctx context.Context, input ProfileSaveDTO) (Profi
 			s.Protection.MarkDesiredDiffers()
 		}
 	}
+	emit(s.Emit, EventCatalogChanged, map[string]any{"reason": "save_profile", "profileId": string(profile.ID)})
 	return mapProfile(profile), nil
 }
 
@@ -123,6 +125,7 @@ func (s *ProfilesService) Copy(ctx context.Context, sourceID, newName string) (P
 	if err != nil {
 		return ProfileDTO{}, err
 	}
+	emit(s.Emit, EventCatalogChanged, map[string]any{"reason": "copy_profile", "profileId": string(copied.ID)})
 	return mapProfile(copied), nil
 }
 
@@ -163,6 +166,7 @@ func (s *ProfilesService) Delete(ctx context.Context, id string) error {
 		s.logger().Warn("profile delete failed", "component", "wails.profiles", "err", err)
 		return err
 	}
+	emit(s.Emit, EventCatalogChanged, map[string]any{"reason": "delete_profile", "profileId": id})
 	return nil
 }
 

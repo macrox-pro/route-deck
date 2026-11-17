@@ -147,6 +147,8 @@ export class ActivityRecordDTO {
 export class AddApplicationResultDTO {
     "application": ApplicationDTO;
     "helpers": HelperDTO[];
+    "groups": HelperGroupDTO[];
+    "pendingCount": number;
 
     /** Creates a new AddApplicationResultDTO instance. */
     constructor($$source: Partial<AddApplicationResultDTO> = {}) {
@@ -155,6 +157,12 @@ export class AddApplicationResultDTO {
         }
         if (!("helpers" in $$source)) {
             this["helpers"] = [];
+        }
+        if (!("groups" in $$source)) {
+            this["groups"] = [];
+        }
+        if (!("pendingCount" in $$source)) {
+            this["pendingCount"] = 0;
         }
 
         Object.assign(this, $$source);
@@ -166,12 +174,16 @@ export class AddApplicationResultDTO {
     static createFrom($$source: any = {}): AddApplicationResultDTO {
         const $$createField0_0 = $$createType4;
         const $$createField1_0 = $$createType6;
+        const $$createField2_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("application" in $$parsedSource) {
             $$parsedSource["application"] = $$createField0_0($$parsedSource["application"]);
         }
         if ("helpers" in $$parsedSource) {
             $$parsedSource["helpers"] = $$createField1_0($$parsedSource["helpers"]);
+        }
+        if ("groups" in $$parsedSource) {
+            $$parsedSource["groups"] = $$createField2_0($$parsedSource["groups"]);
         }
         return new AddApplicationResultDTO($$parsedSource as Partial<AddApplicationResultDTO>);
     }
@@ -300,7 +312,7 @@ export class EventEnvelope {
      * Creates a new EventEnvelope instance from a string or object.
      */
     static createFrom($$source: any = {}): EventEnvelope {
-        const $$createField2_0 = $$createType7;
+        const $$createField2_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("payload" in $$parsedSource) {
             $$parsedSource["payload"] = $$createField2_0($$parsedSource["payload"]);
@@ -376,8 +388,8 @@ export class GuideDTO {
      * Creates a new GuideDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): GuideDTO {
-        const $$createField11_0 = $$createType9;
-        const $$createField12_0 = $$createType11;
+        const $$createField11_0 = $$createType11;
+        const $$createField12_0 = $$createType13;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("steps" in $$parsedSource) {
             $$parsedSource["steps"] = $$createField11_0($$parsedSource["steps"]);
@@ -465,6 +477,7 @@ export class HelperDTO {
     "executableName": string;
     "path": string;
     "displayName": string;
+    "isUpdater": boolean;
 
     /** Creates a new HelperDTO instance. */
     constructor($$source: Partial<HelperDTO> = {}) {
@@ -480,6 +493,9 @@ export class HelperDTO {
         if (!("displayName" in $$source)) {
             this["displayName"] = "";
         }
+        if (!("isUpdater" in $$source)) {
+            this["isUpdater"] = false;
+        }
 
         Object.assign(this, $$source);
     }
@@ -490,6 +506,74 @@ export class HelperDTO {
     static createFrom($$source: any = {}): HelperDTO {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new HelperDTO($$parsedSource as Partial<HelperDTO>);
+    }
+}
+
+/**
+ * HelperGroupDTO is one bundle-id group from Go (ADR-0014).
+ */
+export class HelperGroupDTO {
+    "bundleId": string;
+    "displayName": string;
+    "executableNames": string[];
+    "processIds": string[];
+    "confirmed": boolean;
+    "preselected": boolean;
+    "isUpdater": boolean;
+    "sameDeveloper": boolean;
+    "representative": HelperDTO;
+
+    /** Creates a new HelperGroupDTO instance. */
+    constructor($$source: Partial<HelperGroupDTO> = {}) {
+        if (!("bundleId" in $$source)) {
+            this["bundleId"] = "";
+        }
+        if (!("displayName" in $$source)) {
+            this["displayName"] = "";
+        }
+        if (!("executableNames" in $$source)) {
+            this["executableNames"] = [];
+        }
+        if (!("processIds" in $$source)) {
+            this["processIds"] = [];
+        }
+        if (!("confirmed" in $$source)) {
+            this["confirmed"] = false;
+        }
+        if (!("preselected" in $$source)) {
+            this["preselected"] = false;
+        }
+        if (!("isUpdater" in $$source)) {
+            this["isUpdater"] = false;
+        }
+        if (!("sameDeveloper" in $$source)) {
+            this["sameDeveloper"] = false;
+        }
+        if (!("representative" in $$source)) {
+            this["representative"] = (new HelperDTO());
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new HelperGroupDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): HelperGroupDTO {
+        const $$createField2_0 = $$createType14;
+        const $$createField3_0 = $$createType14;
+        const $$createField8_0 = $$createType5;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("executableNames" in $$parsedSource) {
+            $$parsedSource["executableNames"] = $$createField2_0($$parsedSource["executableNames"]);
+        }
+        if ("processIds" in $$parsedSource) {
+            $$parsedSource["processIds"] = $$createField3_0($$parsedSource["processIds"]);
+        }
+        if ("representative" in $$parsedSource) {
+            $$parsedSource["representative"] = $$createField8_0($$parsedSource["representative"]);
+        }
+        return new HelperGroupDTO($$parsedSource as Partial<HelperGroupDTO>);
     }
 }
 
@@ -640,7 +724,7 @@ export class ProfileDTO {
      * Creates a new ProfileDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): ProfileDTO {
-        const $$createField2_0 = $$createType13;
+        const $$createField2_0 = $$createType16;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("policies" in $$parsedSource) {
             $$parsedSource["policies"] = $$createField2_0($$parsedSource["policies"]);
@@ -676,7 +760,7 @@ export class ProfileSaveDTO {
      * Creates a new ProfileSaveDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): ProfileSaveDTO {
-        const $$createField2_0 = $$createType13;
+        const $$createField2_0 = $$createType16;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("policies" in $$parsedSource) {
             $$parsedSource["policies"] = $$createField2_0($$parsedSource["policies"]);
@@ -1005,7 +1089,7 @@ export class SnapshotDTO {
      * Creates a new SnapshotDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): SnapshotDTO {
-        const $$createField13_0 = $$createType15;
+        const $$createField13_0 = $$createType18;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("proxies" in $$parsedSource) {
             $$parsedSource["proxies"] = $$createField13_0($$parsedSource["proxies"]);
@@ -1062,12 +1146,15 @@ const $$createType3 = $Create.Array($$createType2);
 const $$createType4 = ApplicationDTO.createFrom;
 const $$createType5 = HelperDTO.createFrom;
 const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = $Create.Map($Create.Any, $Create.Any);
-const $$createType8 = GuideStepDTO.createFrom;
-const $$createType9 = $Create.Array($$createType8);
-const $$createType10 = GuideEndpointDTO.createFrom;
+const $$createType7 = HelperGroupDTO.createFrom;
+const $$createType8 = $Create.Array($$createType7);
+const $$createType9 = $Create.Map($Create.Any, $Create.Any);
+const $$createType10 = GuideStepDTO.createFrom;
 const $$createType11 = $Create.Array($$createType10);
-const $$createType12 = PolicyDTO.createFrom;
+const $$createType12 = GuideEndpointDTO.createFrom;
 const $$createType13 = $Create.Array($$createType12);
-const $$createType14 = ProxyRowDTO.createFrom;
-const $$createType15 = $Create.Array($$createType14);
+const $$createType14 = $Create.Array($Create.Any);
+const $$createType15 = PolicyDTO.createFrom;
+const $$createType16 = $Create.Array($$createType15);
+const $$createType17 = ProxyRowDTO.createFrom;
+const $$createType18 = $Create.Array($$createType17);

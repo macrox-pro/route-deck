@@ -3,6 +3,7 @@
 
 import * as ActivityService from "./activityservice.js";
 import * as ApplicationsService from "./applicationsservice.js";
+import * as EditorDialogsService from "./editordialogsservice.js";
 import * as ProfilesService from "./profilesservice.js";
 import * as ProtectionService from "./protectionservice.js";
 import * as ProxiesService from "./proxiesservice.js";
@@ -12,6 +13,7 @@ import * as SnapshotService from "./snapshotservice.js";
 export {
     ActivityService,
     ApplicationsService,
+    EditorDialogsService,
     ProfilesService,
     ProtectionService,
     ProxiesService,
@@ -33,6 +35,7 @@ export {
     GuideEndpointDTO,
     GuideStepDTO,
     HelperDTO,
+    HelperGroupDTO,
     InstalledApplicationDTO,
     PolicyDTO,
     ProcessIdentityDTO,

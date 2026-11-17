@@ -8,7 +8,9 @@ alwaysApply: false
 
 - Read `frontend/AGENTS.md` (RouteDeck preface first) before editing UI.
 - MUST NOT encode Proxy / Direct / Block rules in TypeScript.
+- Helper groups come from Go. MUST NOT re-group by bundle id in TypeScript (ADR-0014).
 - After a user action, load a snapshot. Events are not the source of truth.
+- Editor dialogs: follow `docs/engineering/desktop-ux.md` and `.cursor/rules/desktop-ux.mdc`.
 - UI language is English.
 - MUST NOT add ESLint as a required gate. Typecheck with the existing `tsc` scripts.
 - Unknown or failed protection MUST NOT look like Active.

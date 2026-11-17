@@ -112,7 +112,8 @@ func (s *ProtectionService) Stop(ctx context.Context) (ApplyResultDTO, error) {
 			"operation_id": opID,
 			"error":        err.Error(),
 		})
-		return ApplyResultDTO{}, fmt.Errorf("protection stop: %w", err)
+		// Coordinator already wraps; do not prefix again for the UI.
+		return ApplyResultDTO{}, err
 	}
 	emit(s.Emit, EventOperationProgress, map[string]any{
 		"operation_id": opID,
