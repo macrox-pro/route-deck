@@ -17,9 +17,11 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 | ID | Status | Goal |
 | --- | --- | --- |
+| [`RD-039`](tasks/RD-039.md) | REVIEW | Probe HTTP proxies with CONNECT and report AuthenticationFailed on 407. |
+| [`RD-007`](tasks/RD-007.md) | REVIEW | Add CI workflow matching local checks. Do not require ESLint. |
+| [`RD-038`](tasks/RD-038.md) | REVIEW | Show recent RouteDeck JSON log records on the Activity screen without passwords or a connection journal. |
 | [`RD-037`](tasks/RD-037.md) | REVIEW | Settings Launch at Login via Wails Autostart without auto-Apply. |
 | [`RD-033`](tasks/RD-033.md) | REVIEW | Prove on macOS with real ProxyBridge 4.1.3 that Apply reaches Active, failures stay honest, and the log file traces each scenario without secrets. |
-| [`RD-007`](tasks/RD-007.md) | TODO | Define CI commands that match local checks. Do not require ESLint. |
 
 ## Done
 

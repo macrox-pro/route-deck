@@ -34,7 +34,7 @@ export function AppShell() {
                 collapsed={collapsed}
                 onToggleCollapsed={toggle}
             />
-            <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-none p-6 md:p-8">
+            <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-none p-6 md:p-8">
                 <Outlet />
             </main>
         </div>

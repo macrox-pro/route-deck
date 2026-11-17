@@ -176,6 +176,19 @@ func run() error {
 		Settings: appSettings,
 		Logger:   logger,
 	}
+	activityPath := logPath
+	if activityPath == "" {
+		activityPath, _ = logfile.DefaultPath()
+	}
+	activityApp := &service.Activity{
+		Reader: &logfile.Reader{},
+		Path:   activityPath,
+		Logger: logger,
+	}
+	activityService := &wails.ActivityService{
+		Activity: activityApp,
+		Logger:   logger,
+	}
 
 	trayCtrl := &tray.Controller{
 		Snapshot: tray.Snapshotter{Snapshot: live.Snapshot},
@@ -204,6 +217,7 @@ func run() error {
 			application.NewService(applicationsService),
 			application.NewService(profilesService),
 			application.NewService(settingsService),
+			application.NewService(activityService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

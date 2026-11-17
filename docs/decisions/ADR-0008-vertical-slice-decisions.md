@@ -24,7 +24,7 @@ The Wails open-file dialog selects a `.app`. `howett.net/plist` reads `Info.plis
 
 ### Health
 
-Every proxy gets a TCP connect. SOCKS5 also runs the greeting, RFC1929 auth (`AuthenticationFailed` on failure), and a UDP ASSOCIATE request (`Available` on success, `TCPAvailableUDPUnavailable` on failure). HTTP proxies use TCP connect only and are never reported `AuthenticationFailed` in this batch. Triggers: startup, proxy save, before Apply, Recheck, and every 30 seconds. Wake (`SystemDidWake`) and network change (`NetworkChanged`) set `RecheckPending` until a fresh check finishes.
+Every proxy gets a TCP connect. SOCKS5 also runs the greeting, RFC1929 auth (`AuthenticationFailed` on failure), and a UDP ASSOCIATE request (`Available` on success, `TCPAvailableUDPUnavailable` on failure). HTTP proxies in this batch used TCP connect only and were never reported `AuthenticationFailed`; that HTTP probe is superseded by [ADR-0012](ADR-0012-http-connect-health.md) (CONNECT). Triggers: startup, proxy save, before Apply, Recheck, and every 30 seconds. Wake (`SystemDidWake`) and network change (`NetworkChanged`) set `RecheckPending` until a fresh check finishes.
 
 ### Rule compilation
 
@@ -59,11 +59,11 @@ Standard `log/slog` injected into services and adapters. Destinations: JSON line
 - Platform-specific work stays in adapters (`keychain`, `macos`, `proxybridge`, `proxyhealth`, `logfile`).
 - Second cgo dependency (go-keychain) alongside sqlite.
 - Unsigned rebuilds may prompt for Keychain access; recorded as a known limitation.
-- HTTP proxy auth is not verified in this batch.
+- HTTP proxy auth was not verified in this batch; see ADR-0012.
 
 ## Follow-up
 
-Tray and Launch at Login are ADR-0010 / RD-035..RD-037. Activity log viewer, HTTP auth verification, and CI (RD-007) remain later tasks.
+Tray and Launch at Login are ADR-0010 / RD-035..RD-037. Activity is ADR-0011 / RD-038. CI is RD-007. HTTP CONNECT health is ADR-0012 / RD-039.
 
 ## Open decisions (owner)
 

@@ -16,6 +16,7 @@ MUST NOT invent methods. Read the installed module or the v3 docs before adding 
 | `ApplicationsService` | `List`, `ListInstalled`, `Icon(path)`, `AddFromPath(path)`, `ListProcessIdentities`, `PickAndAdd`, `ConfirmHelpers`, `Delete` |
 | `ProfilesService` | `List`, `Save(ProfileSaveDTO)`, `Copy`, `Rename`, `Delete`, `SetDesired` |
 | `SettingsService` | `Get`, `SetProxyBridgePath`, `SetDebugLogging`, `SetLaunchAtLogin`, `OpenLogsFolder` |
+| `ActivityService` | `Recent(before)` — page of up to 100 JSON log records; empty `before` is newest; exclusive RFC3339 cursor loads older; returns `hasMore` and `attrs` for non-secret string fields (ADR-0011) |
 
 `Apply` returns an `operation_id` immediately and runs confirm asynchronously. Progress and failure use product events. The client must reload the snapshot after events; events are not proof of `Active`.
 

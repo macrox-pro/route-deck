@@ -46,4 +46,4 @@ E11 depends on the coordinator (E08), not only on the UI shell. Tray restore of 
 
 Dashboard, Applications, Proxies, Profiles, Activity, Settings, onboarding.
 
-Activity v1 shows RouteDeck events and health. It MUST NOT assume ProxyBridge prints a stable connection log.
+Activity v1 shows recent RouteDeck JSON log records (health/ops). It MUST NOT assume ProxyBridge prints a stable connection log.

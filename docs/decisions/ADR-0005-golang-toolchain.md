@@ -25,7 +25,7 @@ Wails v3.0.0 requires Go 1.26 or newer. The scaffold `go.mod` declares `go 1.26.
 ## Consequences
 
 - `golangci-lint run ./...` is part of Go DoD.
-- CI (RD-007) should call the same lint config, `go test ./...`, and `npm run build` in `frontend/`. No ESLint step.
+- CI (RD-007) is `.github/workflows/ci.yml`: same lint config, `go test ./...`, and `npm run build` in `frontend/`. No ESLint step.
 
 ## Follow-up
 

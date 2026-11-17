@@ -37,11 +37,11 @@ Phase 5 shipped Apply/Stop through the window UI. Closing the last window still 
 
 - Tray controller lives in `internal/adapter/inbound/tray` (composition root adapter, not a Wails service).
 - Settings DTO gains `launchAtLogin` from `Autostart.IsEnabled`.
-- Activity viewer and CI remain later tasks.
+- Activity viewer is ADR-0011 / RD-038. CI remains RD-007.
 
 ## Follow-up
 
-Activity (RouteDeck events viewer). RD-007 CI. Optional multi-state tray icons.
+RD-007 CI. Optional multi-state tray icons.
 
 ## Open decisions (owner)
 

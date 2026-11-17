@@ -1,15 +1,22 @@
-// Package proxyhealth probes TCP and SOCKS5 proxy health.
+// Package proxyhealth probes TCP, HTTP CONNECT, and SOCKS5 proxy health.
 package proxyhealth
 
 import (
+	"bufio"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/macrox-pro/route-deck/internal/application/port"
 	"github.com/macrox-pro/route-deck/internal/domain"
 )
+
+// httpConnectTarget is the CONNECT authority used for HTTP proxy health (ADR-0012).
+const httpConnectTarget = "example.com:443"
 
 // Checker implements port.ProxyHealthChecker.
 type Checker struct {
@@ -25,7 +32,7 @@ func (c *Checker) timeout() time.Duration {
 	return 3 * time.Second
 }
 
-// Check probes the endpoint. Password may be nil/empty for no-auth SOCKS5.
+// Check probes the endpoint. Password may be nil/empty for no-auth probes.
 func (c *Checker) Check(ctx context.Context, endpoint domain.ProxyEndpoint, password []byte) (domain.ProxyHealth, error) {
 	if err := ctx.Err(); err != nil {
 		return "", fmt.Errorf("proxy health: %w", err)
@@ -40,12 +47,68 @@ func (c *Checker) Check(ctx context.Context, endpoint domain.ProxyEndpoint, pass
 
 	switch endpoint.Kind {
 	case domain.ProxyKindHTTP:
-		return domain.ProxyHealthAvailable, nil
+		return checkHTTP(conn, endpoint.Username, password, c.timeout())
 	case domain.ProxyKindSOCKS5:
 		return checkSOCKS5(ctx, conn, endpoint.Username, password)
 	default:
 		return domain.ProxyHealthUnknown, fmt.Errorf("proxy health: unknown kind %q", endpoint.Kind)
 	}
+}
+
+func checkHTTP(conn net.Conn, username string, password []byte, timeout time.Duration) (domain.ProxyHealth, error) {
+	_ = conn.SetDeadline(time.Now().Add(timeout))
+
+	var req strings.Builder
+	req.WriteString("CONNECT ")
+	req.WriteString(httpConnectTarget)
+	req.WriteString(" HTTP/1.1\r\nHost: ")
+	req.WriteString(httpConnectTarget)
+	req.WriteString("\r\n")
+	if username != "" || len(password) > 0 {
+		cred := username + ":" + string(password)
+		req.WriteString("Proxy-Authorization: Basic ")
+		req.WriteString(base64.StdEncoding.EncodeToString([]byte(cred)))
+		req.WriteString("\r\n")
+	}
+	req.WriteString("\r\n")
+
+	if _, err := conn.Write([]byte(req.String())); err != nil {
+		return domain.ProxyHealthUnavailable, nil
+	}
+
+	reader := bufio.NewReader(conn)
+	line, err := reader.ReadString('\n')
+	if err != nil {
+		return domain.ProxyHealthUnavailable, nil
+	}
+	status, ok := parseHTTPStatusLine(line)
+	if !ok {
+		return domain.ProxyHealthUnavailable, nil
+	}
+	switch status {
+	case 200:
+		return domain.ProxyHealthAvailable, nil
+	case 407:
+		return domain.ProxyHealthAuthenticationFailed, nil
+	default:
+		return domain.ProxyHealthUnavailable, nil
+	}
+}
+
+func parseHTTPStatusLine(line string) (int, bool) {
+	line = strings.TrimSpace(line)
+	parts := strings.SplitN(line, " ", 3)
+	if len(parts) < 2 {
+		return 0, false
+	}
+	if !strings.HasPrefix(parts[0], "HTTP/") {
+		return 0, false
+	}
+	code, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, false
+	}
+	return code, true
 }
 
 func checkSOCKS5(ctx context.Context, conn net.Conn, username string, password []byte) (domain.ProxyHealth, error) {

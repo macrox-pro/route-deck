@@ -21,7 +21,7 @@ Each product event payload MUST include:
 | `operation.progress` | Long operation tick (`operation_id`) |
 | `operation.failed` | Long operation failed (`operation_id`, typed error) |
 
-`connection.observed` is not a v1 event. Activity shows RouteDeck events and health, not a parsed CLI connection stream.
+`connection.observed` is not a v1 event. Activity reads the RouteDeck JSON log (ADR-0011), not a stored copy of these Wails events and not a parsed CLI connection stream. Product events may trigger an Activity reload; they are not proof of `Active`.
 
 The scaffold event `time` was removed with RD-016. Product events are emitted from `main.go` / Protection and Proxies Wails services (RD-029+) with `EventEnvelope{schema,timestamp,payload}`.
 

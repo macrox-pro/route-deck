@@ -87,7 +87,7 @@ Go is the source of truth for user configuration. Wails events are notifications
 | Bundle ID / signature | Bundle id may be written into `processNames`. Signature and path are UX warnings only; they are not CLI match fields |
 | Passwords | macOS Keychain. SQLite stores a reference only |
 | Persistence | GORM + SQLite + `gorm.io/driver/sqlite` + `AutoMigrate` |
-| Activity v1 | RouteDeck events and health/ops, not an assumed per-connection CLI log |
+| Activity v1 | RouteDeck JSON log records (health/ops); not an assumed per-connection CLI log |
 
 ## States
 

@@ -6,6 +6,142 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
+ * ActivityAttrDTO is one non-secret string attribute.
+ */
+export class ActivityAttrDTO {
+    "key": string;
+    "value": string;
+
+    /** Creates a new ActivityAttrDTO instance. */
+    constructor($$source: Partial<ActivityAttrDTO> = {}) {
+        if (!("key" in $$source)) {
+            this["key"] = "";
+        }
+        if (!("value" in $$source)) {
+            this["value"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ActivityAttrDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ActivityAttrDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ActivityAttrDTO($$parsedSource as Partial<ActivityAttrDTO>);
+    }
+}
+
+/**
+ * ActivityRecentDTO is one page of Activity records.
+ */
+export class ActivityRecentDTO {
+    "records": ActivityRecordDTO[];
+    "hasMore": boolean;
+
+    /** Creates a new ActivityRecentDTO instance. */
+    constructor($$source: Partial<ActivityRecentDTO> = {}) {
+        if (!("records" in $$source)) {
+            this["records"] = [];
+        }
+        if (!("hasMore" in $$source)) {
+            this["hasMore"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ActivityRecentDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ActivityRecentDTO {
+        const $$createField0_0 = $$createType1;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("records" in $$parsedSource) {
+            $$parsedSource["records"] = $$createField0_0($$parsedSource["records"]);
+        }
+        return new ActivityRecentDTO($$parsedSource as Partial<ActivityRecentDTO>);
+    }
+}
+
+/**
+ * ActivityRecordDTO is one Activity row.
+ */
+export class ActivityRecordDTO {
+    "time": string;
+    "level": string;
+    "msg": string;
+    "component": string;
+    "proxyId": string;
+    "profileId": string;
+    "bridgeState": string;
+    "protectionState": string;
+    "health": string;
+    "lineClass": string;
+    "operationId": string;
+    "err": string;
+    "attrs": ActivityAttrDTO[];
+
+    /** Creates a new ActivityRecordDTO instance. */
+    constructor($$source: Partial<ActivityRecordDTO> = {}) {
+        if (!("time" in $$source)) {
+            this["time"] = "";
+        }
+        if (!("level" in $$source)) {
+            this["level"] = "";
+        }
+        if (!("msg" in $$source)) {
+            this["msg"] = "";
+        }
+        if (!("component" in $$source)) {
+            this["component"] = "";
+        }
+        if (!("proxyId" in $$source)) {
+            this["proxyId"] = "";
+        }
+        if (!("profileId" in $$source)) {
+            this["profileId"] = "";
+        }
+        if (!("bridgeState" in $$source)) {
+            this["bridgeState"] = "";
+        }
+        if (!("protectionState" in $$source)) {
+            this["protectionState"] = "";
+        }
+        if (!("health" in $$source)) {
+            this["health"] = "";
+        }
+        if (!("lineClass" in $$source)) {
+            this["lineClass"] = "";
+        }
+        if (!("operationId" in $$source)) {
+            this["operationId"] = "";
+        }
+        if (!("err" in $$source)) {
+            this["err"] = "";
+        }
+        if (!("attrs" in $$source)) {
+            this["attrs"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ActivityRecordDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ActivityRecordDTO {
+        const $$createField12_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("attrs" in $$parsedSource) {
+            $$parsedSource["attrs"] = $$createField12_0($$parsedSource["attrs"]);
+        }
+        return new ActivityRecordDTO($$parsedSource as Partial<ActivityRecordDTO>);
+    }
+}
+
+/**
  * AddApplicationResultDTO is returned after picking an app.
  */
 export class AddApplicationResultDTO {
@@ -28,8 +164,8 @@ export class AddApplicationResultDTO {
      * Creates a new AddApplicationResultDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): AddApplicationResultDTO {
-        const $$createField0_0 = $$createType0;
-        const $$createField1_0 = $$createType2;
+        const $$createField0_0 = $$createType4;
+        const $$createField1_0 = $$createType6;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("application" in $$parsedSource) {
             $$parsedSource["application"] = $$createField0_0($$parsedSource["application"]);
@@ -124,7 +260,7 @@ export class EventEnvelope {
      * Creates a new EventEnvelope instance from a string or object.
      */
     static createFrom($$source: any = {}): EventEnvelope {
-        const $$createField2_0 = $$createType3;
+        const $$createField2_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("payload" in $$parsedSource) {
             $$parsedSource["payload"] = $$createField2_0($$parsedSource["payload"]);
@@ -316,7 +452,7 @@ export class ProfileDTO {
      * Creates a new ProfileDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): ProfileDTO {
-        const $$createField2_0 = $$createType5;
+        const $$createField2_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("policies" in $$parsedSource) {
             $$parsedSource["policies"] = $$createField2_0($$parsedSource["policies"]);
@@ -352,7 +488,7 @@ export class ProfileSaveDTO {
      * Creates a new ProfileSaveDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): ProfileSaveDTO {
-        const $$createField2_0 = $$createType5;
+        const $$createField2_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("policies" in $$parsedSource) {
             $$parsedSource["policies"] = $$createField2_0($$parsedSource["policies"]);
@@ -629,7 +765,7 @@ export class SnapshotDTO {
      * Creates a new SnapshotDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): SnapshotDTO {
-        const $$createField13_0 = $$createType7;
+        const $$createField13_0 = $$createType11;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("proxies" in $$parsedSource) {
             $$parsedSource["proxies"] = $$createField13_0($$parsedSource["proxies"]);
@@ -639,11 +775,15 @@ export class SnapshotDTO {
 }
 
 // Private type creation functions
-const $$createType0 = ApplicationDTO.createFrom;
-const $$createType1 = HelperDTO.createFrom;
-const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = $Create.Map($Create.Any, $Create.Any);
-const $$createType4 = PolicyDTO.createFrom;
-const $$createType5 = $Create.Array($$createType4);
-const $$createType6 = ProxyRowDTO.createFrom;
-const $$createType7 = $Create.Array($$createType6);
+const $$createType0 = ActivityRecordDTO.createFrom;
+const $$createType1 = $Create.Array($$createType0);
+const $$createType2 = ActivityAttrDTO.createFrom;
+const $$createType3 = $Create.Array($$createType2);
+const $$createType4 = ApplicationDTO.createFrom;
+const $$createType5 = HelperDTO.createFrom;
+const $$createType6 = $Create.Array($$createType5);
+const $$createType7 = $Create.Map($Create.Any, $Create.Any);
+const $$createType8 = PolicyDTO.createFrom;
+const $$createType9 = $Create.Array($$createType8);
+const $$createType10 = ProxyRowDTO.createFrom;
+const $$createType11 = $Create.Array($$createType10);

@@ -88,4 +88,4 @@ Settings exposes:
 - Debug logging toggle
 - Open logs folder (`Env.OpenFileManager` on the log directory)
 
-An in-app log viewer is out of scope for the vertical slice (Activity phase).
+The Activity screen (ADR-0011 / RD-038) lists complete JSON records from this log file and its rotations in pages of 100 with a `before` cursor. Non-secret string attributes beyond `time`/`level`/`msg` are shown as `attrs` chips (`password`, `secret`, `token`, `profile` stay omitted). It is not a live tail and not a ProxyBridge connection journal.
