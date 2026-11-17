@@ -74,6 +74,12 @@ func (a RoutingAction) ProxyID() (ProxyID, bool) {
 	return a.proxyID, true
 }
 
+// IsSet reports whether the action is Proxy, Direct, or Block.
+// The zero value is unset and must not be treated as Direct.
+func (a RoutingAction) IsSet() bool {
+	return a.proxyID != "" || a.direct || a.block
+}
+
 // ParseProxyKind returns a ProxyKind for the exact tokens socks5 or http.
 func ParseProxyKind(s string) (ProxyKind, error) {
 	kind := ProxyKind(s)

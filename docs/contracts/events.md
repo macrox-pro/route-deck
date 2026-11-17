@@ -23,7 +23,7 @@ Each product event payload MUST include:
 
 `connection.observed` is not a v1 event. Activity shows RouteDeck events and health, not a parsed CLI connection stream.
 
-The scaffold event `time` is template-only. Remove it when the first product service task lands. Do not document it as a product event.
+The scaffold event `time` was removed with RD-016. Product events above are not emitted yet.
 
 ## Rules
 

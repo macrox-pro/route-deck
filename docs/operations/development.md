@@ -42,9 +42,14 @@ Frontend (`frontend/`):
 ```bash
 npm run dev
 npm run build
+npx untitledui@latest add <component> --yes
 ```
 
 `npm run build` runs `tsc` and Vite. That is the frontend check. There is no `npm test` script.
+
+Untitled UI (ADR-0007): add components from `frontend/` with `npx untitledui@latest add <name>`. MUST NOT run `init` (it scaffolds a new app). Agent rules: `frontend/AGENTS.md`.
+
+`--yes` implies `--overwrite` and will replace customized files such as `src/components/base/buttons/button.tsx`. Prefer a manual copy from the Untitled UI React repo, or back up customized files before `add --yes` and restore them after.
 
 ## golangci-lint
 

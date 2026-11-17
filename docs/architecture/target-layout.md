@@ -1,6 +1,6 @@
 # Target layout
 
-Do not create empty directories until a READY task needs them. Today the Wails entry is `main.go` and `greetservice.go` at the repo root.
+Do not create empty directories until a READY task needs them. Today the Wails entry is `main.go` at the repo root.
 
 ```text
 main.go                         # Wails composition root until bootstrap exists

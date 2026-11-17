@@ -2,7 +2,7 @@
 
 ## Database
 
-SQLite file lives in Application Support (path fixed when the persistence adapter is written).
+SQLite file path: `~/Library/Application Support/route-deck/route-deck.db` (`os.UserConfigDir()/route-deck/route-deck.db`).
 
 GORM `AutoMigrate` adds tables and columns. It does not drop columns and does not reliably rename them.
 

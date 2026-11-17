@@ -1,78 +1,85 @@
 # Handoff
 
-Timestamp: 2026-11-17 08:04 UTC
-Agent: agent (RD-012)
-Task ID: RD-012
+Timestamp: 2026-11-17 09:05 UTC
+Agent: agent (RD-014..RD-017)
+Task ID: RD-017
 Branch / commit: uncommitted working tree on top of `6264c28` (agent MUST NOT commit)
 
 ## Done
 
-- Promoted RD-012 to IN_PROGRESS then DONE after RD-011 lint PASS
-- Added `ProxyStore.Get` and `SecretStore.Load` in `internal/application/port`
-- Fake assignment test: known-id `Get` returns endpoint; `Load` compared without printing secret bytes
-- Verification PASS for port tests, imports, and lint
+- RD-014: SQLite catalog (`internal/adapter/outbound/persistence/sqlite`), GORM vendored, ports extended, `ErrUnsetAction` / `RoutingAction.IsSet`
+- RD-015: `internal/application/service` Catalog + Snapshotter
+- RD-016: removed Greet/time; `SnapshotService.Get`; main opens DB (fail-open to Unknown snapshot)
+- RD-017: Untitled UI HashRouter shell; Dashboard badge from Go snapshot
+- RD-006 closed by RD-014 smoke
+- ADR-0007 Untitled UI; frontend AGENTS preface; recovery path documented
 
-## Files changed
+## Files changed (high level)
 
-- `docs/project/tasks/RD-012.md`
-- `docs/project/BACKLOG.md`
-- `docs/project/STATUS.md`
-- `docs/project/HANDOFF.md`
-- `internal/application/port/store.go`
-- `internal/application/port/store_test.go`
+- `internal/domain`, `internal/application/port`, `internal/application/service`
+- `internal/adapter/outbound/persistence/sqlite`
+- `internal/adapter/inbound/wails`
+- `main.go` (greetservice.go deleted)
+- `frontend/` shell, styles move, React 19 / TS 6, bindings
+- `vendor/`, `go.mod`, `go.sum`
+- `docs/project/tasks/RD-014..017.md`, STATUS, BACKLOG, HANDOFF, ADR-0007
 
 ## Decisions
 
-1. RD-012 starts only after RD-011 lint PASS. Accepted plan.
-2. Fake errors use `fmt.Errorf` only. No missing-secret sentinel. Accepted plan.
+1. HashRouter for Wails asset 404 on deep paths.
+2. DB open failure: window still opens; snapshot Unknown + error text.
+3. ProtectionBadge uses BadgeWithDot; Unknown never success color.
+4. Go method name collisions across ports solved with thin adapters on Store.
 
 ## Verification
 
-- Command: `go test ./internal/application/port/...` — PASS — `ok github.com/macrox-pro/route-deck/internal/application/port`
-- Command: `go list -f '{{.ImportPath}}: {{join .Imports " "}}' ./internal/application/port/...` — PASS — `context` and `internal/domain` only
+- Command: `go test ./...` — PASS
 - Command: `golangci-lint run ./...` — PASS — 0 issues
-- Command: `wails3 build` — NOT RUN — `main` does not import these packages
-- macOS-only checks — NOT RUN — no OS calls
+- Command: `npm run build` (frontend/) — PASS
+- Command: `wails3 build` — PASS
+- Launch: `bin/route-deck` created `~/Library/Application Support/route-deck/route-deck.db` with tables `applications`, `process_identities`, `proxies`, `profiles`, `application_policies`
 
 ## Not done
 
-- RD-006, RD-007
-- Phase 2 exit checklist (no file exists)
+- ProxyBridge CLI adapter, Keychain adapter, health checks, forms, product events, tray
+- RD-007 CI
 - Agent did not commit
 
 ## Risks / blockers
 
-- Port surface is two methods only; adapters not started
+- Large Untitled UI tree under `frontend/src/components` increases frontend bundle size
+- Brand purple still default in theme.css
 
 ## Exact next step
 
-Owner reviews Phase 2 exit. No checklist file exists. Do not open RD-006 or RD-007.
+Owner runs `wails3 dev`, reviews Dashboard Unknown badge, then commits. Next READY task is owner-chosen (ProxyBridge or Keychain).
 
 ## Suggested commit message
 
 Owner commits. Agent did not run git commit. Exactly one lowercase sentence; no fluff.
 
 ```text
-add rd-012 proxy and secret ports so application code can load a proxy without an adapter
+add rd-014..017 sqlite catalog and untitled ui shell so routedeck launches with an honest unknown snapshot
 ```
 
 ## Context to read
 
 - `AGENTS.md`
-- `docs/project/BACKLOG.md` (index only)
+- `frontend/AGENTS.md`
 - `docs/project/STATUS.md`
-- `docs/architecture/boundaries.md`
+- `docs/decisions/ADR-0007-untitled-ui.md`
+- `docs/architecture/persistence.md`
 
-## Loop evidence (RD-012)
+## Loop evidence (RD-014..017)
 
 | Step | Evidence |
 | --- | --- |
-| Recover | STATUS + HANDOFF + RD-012 + plan |
-| Select | RD-012 DoR complete; RD-011 DONE; lint PASS |
-| Understand | Closed signatures from RD-012 Scope + boundaries |
+| Recover | STATUS + HANDOFF + plan + AGENTS.md |
+| Select | Owner accepted runnable catalog plan; task files RD-014..017 |
+| Understand | ADR-0003, persistence.md, wails-api.md, DeriveProtection Unknown without CLI |
 | Plan | Accepted plan; follow AGENTS.md; segmented todos; DoD; lint gate |
-| Implement | `store.go` + `store_test.go`; only Get and Load; no sentinel; no adapter |
-| Verify | port tests PASS; imports context+domain; lint PASS |
-| Review | Two methods; no secret in logs; no agent commit |
-| Document | STATUS, BACKLOG, HANDOFF, RD-012 share RD-012 DONE; next step Phase 2 exit |
+| Implement | sqlite + services + SnapshotService + HashRouter shell |
+| Verify | go test PASS; lint 0; npm build PASS; wails3 build PASS; DB created |
+| Review | no Direct fallback; no password column; GORM in adapter; no agent commit |
+| Document | STATUS/BACKLOG/HANDOFF share RD-017 DONE |
 | Owner commit prep | message above; `git commit` not run |

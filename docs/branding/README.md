@@ -14,6 +14,8 @@ Motif: layered glass “deck” tiles and a white Y-shaped split-route arrow on 
 
 Dark-friendly UI is acceptable. Do not recolor the master into a generic purple gradient.
 
+Untitled UI `frontend/src/styles/theme.css` may still use the CLI default purple `--color-brand-*` scale. Recoloring that scale to the RouteDeck palette is a separate branding task.
+
 ## Usage
 
 | Surface | Rule |

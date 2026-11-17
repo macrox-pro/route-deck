@@ -1,19 +1,36 @@
-import '@/styles/globals.css';
+import "@/styles/globals.css";
 
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import { RouteProvider } from '@/providers/route-provider';
-import { ThemeProvider } from '@/providers/theme-provider';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AppShell } from "@/components/application/app-shell/app-shell";
+import { RouteProvider } from "@/providers/route-provider";
+import { ThemeProvider } from "@/providers/theme-provider";
+import { ActivityPage } from "@/pages/activity";
+import { ApplicationsPage } from "@/pages/applications";
+import { DashboardPage } from "@/pages/dashboard";
+import { ProfilesPage } from "@/pages/profiles";
+import { ProxiesPage } from "@/pages/proxies";
+import { SettingsPage } from "@/pages/settings";
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
-        <BrowserRouter>
+        <HashRouter>
             <RouteProvider>
                 <ThemeProvider>
-                    <h1>Hello World</h1>                    
+                    <Routes>
+                        <Route element={<AppShell />}>
+                            <Route index element={<DashboardPage />} />
+                            <Route path="applications" element={<ApplicationsPage />} />
+                            <Route path="proxies" element={<ProxiesPage />} />
+                            <Route path="profiles" element={<ProfilesPage />} />
+                            <Route path="activity" element={<ActivityPage />} />
+                            <Route path="settings" element={<SettingsPage />} />
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </Route>
+                    </Routes>
                 </ThemeProvider>
             </RouteProvider>
-        </BrowserRouter>
-    </React.StrictMode>
+        </HashRouter>
+    </React.StrictMode>,
 );

@@ -6,8 +6,10 @@ alwaysApply: false
 
 # Frontend
 
+- Read `frontend/AGENTS.md` (RouteDeck preface first) before editing UI.
 - MUST NOT encode Proxy / Direct / Block rules in TypeScript.
 - After a user action, load a snapshot. Events are not the source of truth.
 - UI language is English.
 - MUST NOT add ESLint as a required gate. Typecheck with the existing `tsc` scripts.
 - Unknown or failed protection MUST NOT look like Active.
+- Untitled UI: `npx untitledui@latest add` from `frontend/`; never `init`. See ADR-0007.

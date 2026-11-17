@@ -24,6 +24,21 @@ func (f fakeProxyStore) Get(ctx context.Context, id domain.ProxyID) (domain.Prox
 	return domain.ProxyEndpoint{}, fmt.Errorf("proxy store get: id not in fake")
 }
 
+func (f fakeProxyStore) List(ctx context.Context) ([]domain.ProxyEndpoint, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("proxy store list: %w", err)
+	}
+	return []domain.ProxyEndpoint{f.endpoint}, nil
+}
+
+func (f fakeProxyStore) Save(ctx context.Context, endpoint domain.ProxyEndpoint) error {
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("proxy store save: %w", err)
+	}
+	_ = endpoint
+	return nil
+}
+
 type fakeSecretStore struct {
 	secret []byte
 }
@@ -63,6 +78,11 @@ func TestStores(t *testing.T) {
 	}
 	if got.ID != endpoint.ID || got.Host != endpoint.Host || got.Port != endpoint.Port || got.Kind != endpoint.Kind || !got.SendDomain {
 		t.Fatalf("Get() endpoint mismatch: got %+v", got)
+	}
+
+	listed, err := proxies.List(context.Background())
+	if err != nil || len(listed) != 1 {
+		t.Fatalf("List: %v len=%d", err, len(listed))
 	}
 
 	loaded, err := secrets.Load(context.Background(), "kc-ref")

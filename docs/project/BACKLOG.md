@@ -17,13 +17,17 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 | ID | Status | Goal |
 | --- | --- | --- |
-| [`RD-006`](tasks/RD-006.md) | TODO | When persistence work starts, verify `AutoMigrate` and `gorm.io/driver/sqlite` against ... |
 | [`RD-007`](tasks/RD-007.md) | TODO | Define CI commands that match local checks. Do not require ESLint. |
 
 ## Done
 
 | ID | Status | Goal |
 | --- | --- | --- |
+| [`RD-017`](tasks/RD-017.md) | DONE | Ship a HashRouter shell with six screens; Dashboard loads the Go snapshot and shows prot... |
+| [`RD-016`](tasks/RD-016.md) | DONE | Remove GreetService and the time event; wire sqlite and SnapshotService so the app retur... |
+| [`RD-015`](tasks/RD-015.md) | DONE | Add application services that save catalog aggregates and build an honest protection sna... |
+| [`RD-014`](tasks/RD-014.md) | DONE | Persist Application, ProcessIdentity, ProxyEndpoint (no password), and Profile in SQLite... |
+| [`RD-006`](tasks/RD-006.md) | DONE | When persistence work starts, verify `AutoMigrate` and `gorm.io/driver/sqlite` against ... |
 | [`RD-012`](tasks/RD-012.md) | DONE | Add only `ProxyStore.Get` and `SecretStore.Load` in `internal/application/port`, with n... |
 | [`RD-011`](tasks/RD-011.md) | DONE | Write the 14-step ProtectionState derivation into CONCEPTION, add two glossary sentence... |
 | [`RD-010`](tasks/RD-010.md) | DONE | Add Profile and ApplicationPolicy and reject unresolved proxy ids without rewriting act... |

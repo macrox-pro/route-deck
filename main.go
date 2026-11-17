@@ -1,44 +1,60 @@
+// Package main is the Wails composition root for MACROX RouteDeck.
 package main
 
 import (
+	"context"
 	"embed"
-
+	"fmt"
 	"log"
-	"time"
 
+	"github.com/macrox-pro/route-deck/internal/adapter/inbound/wails"
+	"github.com/macrox-pro/route-deck/internal/adapter/outbound/persistence/sqlite"
+	"github.com/macrox-pro/route-deck/internal/application/port"
+	"github.com/macrox-pro/route-deck/internal/application/service"
+	"github.com/macrox-pro/route-deck/internal/domain"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
-
-// Wails uses Go's `embed` package to embed the frontend files into the binary.
-// Any files in the frontend/dist folder will be embedded into the binary and
-// made available to the frontend.
-// See https://pkg.go.dev/embed for more information.
 
 //go:embed all:frontend/dist
 var assets embed.FS
 
-func init() {
-	// Register a custom event whose associated data type is string.
-	// This is not required, but the binding generator will pick up registered events
-	// and provide a strongly typed JS/TS API for them.
-	application.RegisterEvent[string]("time")
+func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
 }
 
-// main function serves as the application's entry point. It initializes the application, creates a window,
-// and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
-// logs any error that might occur.
-func main() {
+func run() error {
+	ctx := context.Background()
+	dbPath, err := sqlite.DefaultPath()
+	if err != nil {
+		return fmt.Errorf("route-deck: %w", err)
+	}
 
-	// Create a new Wails application by providing the necessary options.
-	// Variables 'Name' and 'Description' are for application metadata.
-	// 'Assets' configures the asset server with the 'FS' variable pointing to the frontend files.
-	// 'Bind' is a list of Go struct instances. The frontend has access to the methods of these instances.
-	// 'Mac' options tailor the application when running an macOS.
+	snapshotter := &service.Snapshotter{}
+	var db *sqlite.DB
+	opened, openErr := sqlite.Open(ctx, dbPath)
+	if openErr != nil {
+		log.Printf("route-deck: database open failed: %v", openErr)
+		snapshotter.DatabaseError = openErr.Error()
+		snapshotter.Proxies = unavailableProxyStore{}
+	} else {
+		db = opened
+		snapshotter.Proxies = db.Store()
+		defer func() {
+			if err := db.Close(); err != nil {
+				log.Printf("route-deck: database close: %v", err)
+			}
+		}()
+	}
+
+	snapshotService := &wails.SnapshotService{Reader: snapshotter}
+
 	app := application.New(application.Options{
 		Name:        "route-deck",
-		Description: "A demo of using raw HTML & CSS",
+		Description: "MACROX RouteDeck assigns each selected application one policy and applies that policy by driving the official ProxyBridge CLI.",
 		Services: []application.Service{
-			application.NewService(&GreetService{}),
+			application.NewService(snapshotService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -48,40 +64,50 @@ func main() {
 		},
 	})
 
-	// Create a new window with the necessary options.
-	// 'Title' is the title of the window.
-	// 'Mac' options tailor the window when running on macOS.
-	// 'BackgroundColour' is the background colour of the window.
-	// 'URL' is the URL that will be loaded into the webview.
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title: "Window 1",
-		// Window sized to the golden ratio (1000 / 618 ≈ 1.618).
-		Width:  1000,
-		Height: 618,
+		Title:     "MACROX RouteDeck",
+		Width:     1000,
+		Height:    618,
+		MinWidth:  800,
+		MinHeight: 500,
 		Mac: application.MacWindow{
-			InvisibleTitleBarHeight: 50,
-			Backdrop:                application.MacBackdropTranslucent,
-			TitleBar:                application.MacTitleBarHiddenInset,
+			// Default title bar: traffic lights stay in the system chrome.
+			// HiddenInset caused a white toolbar strip on fullscreen hover.
+			TitleBar: application.MacTitleBarDefault,
 		},
-		BackgroundColour: application.NewRGB(6, 7, 15),
+		BackgroundColour: application.NewRGB(255, 255, 255),
 		URL:              "/",
 	})
 
-	// Create a goroutine that emits an event containing the current time every second.
-	// The frontend can listen to this event and update the UI accordingly.
-	go func() {
-		for {
-			now := time.Now().Format(time.RFC1123)
-			app.Event.Emit("time", now)
-			time.Sleep(time.Second)
-		}
-	}()
-
-	// Run the application. This blocks until the application has been exited.
-	err := app.Run()
-
-	// If an error occurred while running the application, log it and exit.
-	if err != nil {
-		log.Fatal(err)
+	if err := app.Run(); err != nil {
+		return fmt.Errorf("route-deck: %w", err)
 	}
+	return nil
+}
+
+// unavailableProxyStore is used when SQLite did not open.
+type unavailableProxyStore struct{}
+
+var _ port.ProxyStore = unavailableProxyStore{}
+
+func (unavailableProxyStore) Get(ctx context.Context, _ domain.ProxyID) (domain.ProxyEndpoint, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.ProxyEndpoint{}, err
+	}
+	return domain.ProxyEndpoint{}, fmt.Errorf("database unavailable")
+}
+
+func (unavailableProxyStore) List(ctx context.Context) ([]domain.ProxyEndpoint, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+func (unavailableProxyStore) Save(ctx context.Context, endpoint domain.ProxyEndpoint) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	_ = endpoint
+	return fmt.Errorf("database unavailable")
 }

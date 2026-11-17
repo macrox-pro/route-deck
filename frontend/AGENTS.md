@@ -1,3 +1,20 @@
+# RouteDeck frontend overrides
+
+Read this preface before the Untitled UI embed below. When they disagree, this preface wins.
+
+- Product: MACROX RouteDeck desktop shell inside Wails v3. Not a standalone Vite marketing site.
+- Dev server: `wails3 dev` from the repo root (Vite port from `vite.config.ts`). Do not assume port 5173.
+- React version: whatever `frontend/package.json` pins (currently React 19). Do not bump casually inside unrelated tasks.
+- Providers on disk: `src/providers/theme-provider.tsx` and `src/providers/route-provider.tsx`.
+- Styles: `src/styles/globals.css` and `src/styles/theme.css`.
+- Routing: `HashRouter` because the Wails asset server returns 404 for unknown deep paths.
+- Add components with `npx untitledui@latest add <name> --yes` from `frontend/`. MUST NOT run `init`.
+- MUST NOT encode Proxy / Direct / Block rules in TypeScript. After an action, load a snapshot.
+- Unknown, Failed, and Unprotected MUST NOT look like Active.
+- ESLint is not a required gate. Frontend check is `npm run build` (tsc + Vite).
+- UI language is English. New files are kebab-case. React Aria imports use the `Aria*` prefix.
+- Prefer semantic color classes (`text-primary`, `bg-secondary`), not raw `gray-*` / `blue-*`.
+
 <!-- @embed:start file="public-components/CLAUDE.md" -->
 ## Project Overview
 

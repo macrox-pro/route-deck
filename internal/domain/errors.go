@@ -23,3 +23,6 @@ var ErrUnresolvedProxy = errors.New("unresolved proxy")
 
 // ErrEmptyName is returned when a profile name is empty.
 var ErrEmptyName = errors.New("empty name")
+
+// ErrUnsetAction is returned when a RoutingAction is the zero value.
+var ErrUnsetAction = errors.New("unset routing action")

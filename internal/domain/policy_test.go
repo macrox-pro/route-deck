@@ -70,6 +70,33 @@ func TestRoutingAction(t *testing.T) {
 		if id, ok := zero.ProxyID(); ok {
 			t.Fatalf("zero RoutingAction reported proxy id %q", id)
 		}
+		if zero.IsSet() {
+			t.Fatal("zero RoutingAction must not be set")
+		}
+	})
+
+	t.Run("is_set", func(t *testing.T) {
+		proxy, err := domain.ProxyAction("proxy-1")
+		if err != nil {
+			t.Fatalf("ProxyAction: %v", err)
+		}
+		tests := []struct {
+			name string
+			a    domain.RoutingAction
+			want bool
+		}{
+			{name: "proxy", a: proxy, want: true},
+			{name: "direct", a: domain.DirectAction(), want: true},
+			{name: "block", a: domain.BlockAction(), want: true},
+			{name: "zero", a: domain.RoutingAction{}, want: false},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				if got := tt.a.IsSet(); got != tt.want {
+					t.Fatalf("IsSet() = %v, want %v", got, tt.want)
+				}
+			})
+		}
 	})
 
 	t.Run("proxy_action_valid", func(t *testing.T) {

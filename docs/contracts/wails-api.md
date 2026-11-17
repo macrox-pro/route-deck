@@ -4,11 +4,11 @@ Library: `github.com/wailsapp/wails/v3` v3.0.0. Docs: https://v3.wails.io/
 
 MUST NOT invent methods. Read the installed module or the v3 docs before adding a binding.
 
-## Current scaffold (not product API)
+## Current product surface
 
-`main.go` registers `GreetService` with `Greet(name string) string` and emits event `time` (`string`) every second. That is template code. Product tasks replace it. Do not build features on `Greet`.
+`main.go` registers `SnapshotService` with `Get(ctx) (SnapshotDTO, error)`. The Wails greeter template and `time` event are removed (RD-016).
 
-`ApplicationShouldTerminateAfterLastWindowClosed` is `true` in the scaffold. The tray phase sets it to `false`. Do not change it until that task is READY.
+`ApplicationShouldTerminateAfterLastWindowClosed` is `true`. The tray phase sets it to `false`. Do not change it until that task is READY.
 
 ## Target shape
 
