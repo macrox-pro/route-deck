@@ -19,7 +19,16 @@
     "noUnusedLocals": true,
     "noUnusedParameters": false,
     "noImplicitAny": false,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* Paths */    
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+
+    /* Ignore Deprecations */
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src", "bindings"],
 }
