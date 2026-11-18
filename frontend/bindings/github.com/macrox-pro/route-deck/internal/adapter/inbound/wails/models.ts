@@ -971,6 +971,11 @@ export class SettingsDTO {
      * Appearance is system, light, or dark (SQLite; default system).
      */
     "appearance": string;
+
+    /**
+     * AutoApply is ADR-0015 opt-out Apply at process start (SQLite; default true).
+     */
+    "autoApply": boolean;
     "desiredId": string;
     "desiredSet": boolean;
     "bridgeState": string;
@@ -1009,6 +1014,9 @@ export class SettingsDTO {
         }
         if (!("appearance" in $$source)) {
             this["appearance"] = "";
+        }
+        if (!("autoApply" in $$source)) {
+            this["autoApply"] = false;
         }
         if (!("desiredId" in $$source)) {
             this["desiredId"] = "";

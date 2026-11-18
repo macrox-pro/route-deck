@@ -509,7 +509,7 @@ func (s *Store) GetSettings(ctx context.Context) (port.Settings, error) {
 	var row settingsModel
 	err := s.db.WithContext(ctx).Where("id = ?", 1).First(&row).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		defaults := port.Settings{Appearance: "system"}
+		defaults := port.Settings{Appearance: "system", AutoApply: true}
 		if saveErr := s.SaveSettings(ctx, defaults); saveErr != nil {
 			return defaults, nil
 		}
@@ -524,6 +524,7 @@ func (s *Store) GetSettings(ctx context.Context) (port.Settings, error) {
 		ProxyBridgePath:  row.ProxyBridgePath,
 		DebugLogging:     row.DebugLogging,
 		Appearance:       row.Appearance,
+		AutoApply:        row.AutoApply,
 	}
 	if settings.DesiredSet && settings.DesiredProfileID == "" {
 		settings.DesiredSet = false
@@ -553,6 +554,7 @@ func (s *Store) SaveSettings(ctx context.Context, settings port.Settings) error 
 		ProxyBridgePath:  settings.ProxyBridgePath,
 		DebugLogging:     settings.DebugLogging,
 		Appearance:       settings.Appearance,
+		AutoApply:        settings.AutoApply,
 	}
 	if err := s.db.WithContext(ctx).Save(&row).Error; err != nil {
 		return fmt.Errorf("settings save: %w", err)

@@ -18,6 +18,7 @@ func portSettings(debug bool, desired string, bridgePath string) port.Settings {
 		ProxyBridgePath:  bridgePath,
 		DebugLogging:     debug,
 		Appearance:       "system",
+		AutoApply:        true,
 	}
 }
 
@@ -136,6 +137,9 @@ func TestRoundTripAggregates(t *testing.T) {
 	if gotSettings.Appearance != "system" {
 		t.Fatalf("appearance = %q", gotSettings.Appearance)
 	}
+	if !gotSettings.AutoApply {
+		t.Fatal("auto_apply = false, want true")
+	}
 
 	dark := portSettings(true, "profile-1", "/usr/local/bin/proxybridge")
 	dark.Appearance = "dark"
@@ -148,6 +152,19 @@ func TestRoundTripAggregates(t *testing.T) {
 	}
 	if gotSettings.Appearance != "dark" {
 		t.Fatalf("appearance after save = %q", gotSettings.Appearance)
+	}
+
+	off := portSettings(true, "profile-1", "/usr/local/bin/proxybridge")
+	off.AutoApply = false
+	if err := settings.Save(ctx, off); err != nil {
+		t.Fatalf("SaveSettings auto_apply: %v", err)
+	}
+	gotSettings, err = settings.Get(ctx)
+	if err != nil {
+		t.Fatalf("GetSettings auto_apply: %v", err)
+	}
+	if gotSettings.AutoApply {
+		t.Fatal("auto_apply after save = true, want false")
 	}
 
 	apps, err := store.Applications().List(ctx)

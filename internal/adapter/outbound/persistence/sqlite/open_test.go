@@ -119,4 +119,55 @@ func TestAutoMigrateAddsAppearanceWithDefault(t *testing.T) {
 	if settings.Appearance != "system" {
 		t.Fatalf("appearance = %q, want system", settings.Appearance)
 	}
+	if !settings.AutoApply {
+		t.Fatal("auto_apply = false after migrate, want true")
+	}
+}
+
+func TestAutoMigrateAddsAutoApplyWithDefault(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "route-deck.db")
+	db, err := Open(context.Background(), path)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	if err := db.gormDB.Exec(`DROP TABLE settings`).Error; err != nil {
+		_ = db.Close()
+		t.Fatalf("drop settings: %v", err)
+	}
+	if err := db.gormDB.Exec(`CREATE TABLE settings (
+		id INTEGER PRIMARY KEY,
+		desired_profile_id TEXT NOT NULL,
+		desired_set INTEGER NOT NULL,
+		proxybridge_path TEXT NOT NULL,
+		debug_logging INTEGER NOT NULL,
+		appearance TEXT NOT NULL DEFAULT 'system'
+	)`).Error; err != nil {
+		_ = db.Close()
+		t.Fatalf("create pre-auto_apply schema: %v", err)
+	}
+	if err := db.gormDB.Exec(
+		`INSERT INTO settings (id, desired_profile_id, desired_set, proxybridge_path, debug_logging, appearance) VALUES (1, '', 0, '', 0, 'system')`,
+	).Error; err != nil {
+		_ = db.Close()
+		t.Fatalf("seed: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+
+	db2, err := Open(context.Background(), path)
+	if err != nil {
+		t.Fatalf("Open after pre-auto_apply schema: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = db2.Close()
+	})
+
+	settings, err := db2.Store().Settings().Get(context.Background())
+	if err != nil {
+		t.Fatalf("Get settings: %v", err)
+	}
+	if !settings.AutoApply {
+		t.Fatal("auto_apply = false after AutoMigrate, want true")
+	}
 }

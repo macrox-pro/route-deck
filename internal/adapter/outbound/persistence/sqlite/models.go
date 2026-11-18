@@ -70,6 +70,8 @@ type settingsModel struct {
 	// default:system is required so SQLite AutoMigrate can ADD COLUMN on existing DBs
 	// (NOT NULL without DEFAULT fails with "default value NULL").
 	Appearance string `gorm:"column:appearance;not null;default:system"`
+	// default:true so AutoMigrate ADD COLUMN on existing DBs succeeds (ADR-0015).
+	AutoApply bool `gorm:"column:auto_apply;not null;default:true"`
 }
 
 func (settingsModel) TableName() string { return "settings" }

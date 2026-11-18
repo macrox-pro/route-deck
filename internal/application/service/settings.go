@@ -54,12 +54,14 @@ type SettingsView struct {
 	DebugLogging              bool
 	LaunchAtLogin             bool
 	Appearance                string
-	DesiredID                 domain.ProfileID
-	DesiredSet                bool
-	BridgeState               domain.BridgeState
-	BridgeVersion             string
-	VersionKnown              bool
-	CompatibilityWarning      string
+	// AutoApply is ADR-0015 opt-out Apply at process start (default true in SQLite).
+	AutoApply            bool
+	DesiredID            domain.ProfileID
+	DesiredSet           bool
+	BridgeState          domain.BridgeState
+	BridgeVersion        string
+	VersionKnown         bool
+	CompatibilityWarning string
 }
 
 func (s *Settings) logger() *slog.Logger {
@@ -83,6 +85,7 @@ func (s *Settings) Get(ctx context.Context) (SettingsView, error) {
 		ProxyBridgePath: stored.ProxyBridgePath,
 		DebugLogging:    stored.DebugLogging,
 		Appearance:      stored.Appearance,
+		AutoApply:       stored.AutoApply,
 		DesiredSet:      stored.DesiredSet,
 		DesiredID:       stored.DesiredProfileID,
 	}
@@ -214,5 +217,22 @@ func (s *Settings) SetAppearance(ctx context.Context, appearance string) (Settin
 		return SettingsView{}, fmt.Errorf("settings appearance: %w", err)
 	}
 	s.logger().Info("appearance updated", "component", "settings", "appearance", normalized)
+	return s.Get(ctx)
+}
+
+// SetAutoApply persists ADR-0015 Auto Apply on launch. Independent of Launch at Login.
+func (s *Settings) SetAutoApply(ctx context.Context, enabled bool) (SettingsView, error) {
+	if s == nil || s.Store == nil {
+		return SettingsView{}, fmt.Errorf("settings: not configured")
+	}
+	stored, err := s.loadSanitized(ctx)
+	if err != nil {
+		return SettingsView{}, fmt.Errorf("settings auto apply: %w", err)
+	}
+	stored.AutoApply = enabled
+	if err := s.Store.Save(ctx, stored); err != nil {
+		return SettingsView{}, fmt.Errorf("settings auto apply: %w", err)
+	}
+	s.logger().Info("auto apply updated", "component", "settings", "enabled", enabled)
 	return s.Get(ctx)
 }

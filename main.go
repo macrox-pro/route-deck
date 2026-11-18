@@ -79,6 +79,7 @@ func run() error {
 	var protection *service.Protection
 	var healthMon *service.HealthMonitor
 	var settingsStore port.SettingsStore
+	var profileStore port.ProfileStore
 	recheckPending := &atomic.Bool{}
 
 	opened, openErr := sqlite.Open(ctx, dbPath)
@@ -94,6 +95,7 @@ func run() error {
 		snapshotter.Processes = store.ProcessIdentities()
 		snapshotter.Settings = store.Settings()
 		settingsStore = store.Settings()
+		profileStore = store.Profiles()
 		settings, settingsErr := settingsStore.Get(ctx)
 		if settingsErr != nil {
 			logger.Error("settings load failed", "component", "main", "err", settingsErr)
@@ -341,6 +343,9 @@ func run() error {
 	if err := trayCtrl.Attach(); err != nil {
 		return fmt.Errorf("route-deck: tray: %w", err)
 	}
+
+	// ADR-0015: one-shot Auto Apply after emit/dialog are live (same path as Dashboard Apply).
+	go wails.MaybeAutoApplyAtStartup(context.Background(), logger, settingsStore, profileStore, protectionService.Apply)
 
 	refreshTray := func() { trayCtrl.OnProtectionEvent() }
 	refreshDock := func() { dockAttacher.Refresh(context.Background()) }

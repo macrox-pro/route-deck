@@ -1,19 +1,18 @@
 # Handoff
 
-Timestamp: 2026-11-18 21:25 UTC
-Agent: agent (RD-059 Appearance + native frame sync)
-Task ID: RD-059
+Timestamp: 2026-11-18 22:10 UTC
+Agent: agent (RD-060 Auto Apply at startup)
+Task ID: RD-060
 Branch / commit: working tree (agent MUST NOT commit)
 
 ## Done
 
-- SQLite `appearance` on settings row; port + AutoMigrate + store tests
-- `service.SetAppearance` / NormalizeAppearance (system|light|dark); unit tests
-- Wails `SettingsDTO.appearance` + `SetAppearance(appearance, mainHash)`
-- `WindowChrome`: dirty Discard gate, persist-first, recreate main, rewire Parent/tray/NativeUserDialog
-- Main + editor windows: verified `Mac.Appearance` / `Windows.Theme`; no white BackgroundColour
-- Frontend Select + ThemeProvider SoT via Settings; localStorage FOUC write-through only
-- Bindings regenerated; wails-api + desktop-ux updated
+- ADR-0015 Accepted; ADR-0008 / ADR-0010 / lifecycle supersede patches
+- SQLite `auto_apply` default true + AutoMigrate tests
+- `SetAutoApply` + SettingsDTO + bindings
+- Gate helper `ShouldAutoApplyOnStartup` + `MaybeAutoApplyAtStartup` one-shot in main
+- Settings UI toggle Auto Apply on launch (independent of Launch at Login)
+- wails-api.md updated
 
 ## Verification
 
@@ -23,28 +22,28 @@ Branch / commit: working tree (agent MUST NOT commit)
 | `golangci-lint run ./...` | PASS (0 issues) |
 | `cd frontend && npm run build` | PASS |
 | `wails3 generate bindings -ts` | PASS |
-| macOS Appearance recreate smoke | NOT RUN (owner) |
+| macOS Auto Apply smoke | NOT RUN (owner) |
 
 ## Exact next step
 
-Owner: `wails3 dev` → Settings → Appearance; confirm title bar + content; with a dirty editor Cancel must abort without save.
+Owner: `wails3 dev` → Settings → Auto Apply on launch ON with desired Proxy/Block profile → quit/relaunch and confirm Apply; OFF → no Apply; Direct-only desired → quiet skip (check logs).
 
 ## Suggested commit message
 
 ```text
-persist appearance in sqlite and recreate windows for native chrome (rd-059)
+add opt-out auto apply on launch with adr-0015 gates (rd-060)
 ```
 
 ## Context to read
 
-- `docs/project/tasks/RD-059.md`
-- `internal/adapter/inbound/wails/window_chrome.go`
-- `internal/adapter/inbound/wails/settings.go`
-- `frontend/src/providers/theme-provider.tsx`
+- `docs/project/tasks/RD-060.md`
+- `docs/decisions/ADR-0015-auto-apply-startup.md`
+- `internal/application/service/auto_apply.go`
+- `internal/adapter/inbound/wails/auto_apply.go`
 - `frontend/src/pages/settings.tsx`
 
 ## Notes
 
-- Calling webview may die during recreate; DB already saved.
-- Editors are closed on successful change and not reopened.
-- Prior localStorage-only theme is not auto-imported into SQLite.
+- Launch at Login unchanged (OS Autostart only).
+- Auto Apply default ON; never silent Direct.
+- Login race: proxy not up → honest Apply failure (no retry in this task).

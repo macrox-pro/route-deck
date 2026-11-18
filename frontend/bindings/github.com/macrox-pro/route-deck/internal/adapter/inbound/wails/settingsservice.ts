@@ -42,6 +42,15 @@ export function SetAppearance(appearance: string, mainHash: string): $Cancellabl
 }
 
 /**
+ * SetAutoApply persists ADR-0015 Auto Apply on launch. Independent of Launch at Login.
+ */
+export function SetAutoApply(enabled: boolean): $CancellablePromise<$models.SettingsDTO> {
+    return $Call.ByID(450060148, enabled).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+/**
  * SetDebugLogging toggles slog LevelVar and persists the flag.
  */
 export function SetDebugLogging(enabled: boolean): $CancellablePromise<$models.SettingsDTO> {

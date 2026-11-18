@@ -1,15 +1,15 @@
 # Project Status
 
-Updated: 2026-11-18 21:25 UTC
-Updated by: agent (RD-059 Appearance + native frame sync → REVIEW)
+Updated: 2026-11-18 22:10 UTC
+Updated by: agent (RD-060 Auto Apply at startup → REVIEW)
 
 ## Current phase
 
-Appearance preference in Settings with SQLite persistence and native window chrome recreate.
+Opt-out Auto Apply on launch (ADR-0015), independent of Launch at Login.
 
 ## Current task
 
-RD-059
+RD-060
 
 ## State
 
@@ -17,7 +17,7 @@ REVIEW
 
 ## Completed
 
-- Still in Active (REVIEW, not archived): RD-007, RD-033, RD-037..RD-059
+- Still in Active (REVIEW, not archived): RD-007, RD-033, RD-037..RD-060
 - DONE archive: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-036 except REVIEW gaps)
 
 ## In progress
@@ -47,20 +47,21 @@ REVIEW
 - Local `wails3 dev` always shows version `dev` (no ldflags injection in DEV builds)
 - Appearance chrome recreate may reject the calling SetAppearance promise (persist-first; new window loads via Get)
 - No automatic migration of prior localStorage theme into SQLite
+- Auto Apply at login may fail honestly if the local proxy is not listening yet (no startup retry; ADR-0015)
 
 ## Next actions
 
-1. Owner: `wails3 dev` smoke — Settings Appearance System/Light/Dark; title bar matches; dirty editor Cancel aborts.
-2. Owner commits RD-059 (and prior REVIEW work as desired). Agent MUST NOT commit.
+1. Owner: `wails3 dev` smoke — Settings Auto Apply ON with desired Proxy/Block profile → Apply on relaunch; OFF → no Apply; Direct-only → quiet skip.
+2. Owner commits RD-060 (and prior REVIEW work as desired). Agent MUST NOT commit.
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
 | `go test ./internal/application/service/ ./internal/adapter/outbound/persistence/sqlite/ ./internal/adapter/inbound/wails/` | PASS |
-| `golangci-lint run ./...` | PASS (0 issues; cache write warnings in sandbox) |
+| `golangci-lint run ./...` | PASS (0 issues) |
 | `cd frontend && npm run build` | PASS |
 | `wails3 generate bindings -ts` | PASS |
-| macOS Appearance recreate smoke | NOT RUN (owner) |
+| macOS Auto Apply smoke | NOT RUN (owner) |
 
 Environment: macOS darwin/arm64; module `github.com/macrox-pro/route-deck`; Go `1.26.0`; Wails v3.0.0

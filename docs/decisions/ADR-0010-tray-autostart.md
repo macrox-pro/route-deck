@@ -25,7 +25,7 @@ Phase 5 shipped Apply/Stop through the window UI. Closing the last window still 
 - If the main window is hidden when Quit starts, Show it before the dialog when needed so the alert can present.
 - `OnShutdown` still stops the managed CLI as a safety net.
 - This ADR **supersedes** the ADR-0008 sentence “Quit stops the CLI gracefully on `OnShutdown` with no dialog.”
-- Launch at Login is a Settings toggle. OS registration via Wails `app.Autostart` is the source of truth (no SQLite mirror). Login does **not** auto-Apply (ADR-0008).
+- Launch at Login is a Settings toggle. OS registration via Wails `app.Autostart` is the source of truth (no SQLite mirror). Launch at Login alone does not Apply. Opt-out Auto Apply at process start is a separate SQLite setting ([ADR-0015](ADR-0015-auto-apply-startup.md); supersedes the earlier “login MUST NOT auto-Apply” ban from ADR-0008).
 
 ## Alternatives
 

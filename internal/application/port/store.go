@@ -47,6 +47,8 @@ type Settings struct {
 	DebugLogging     bool
 	// Appearance is system, light, or dark. Empty means system when read by the settings use case.
 	Appearance string
+	// AutoApply runs Protection Apply once at process start when ADR-0015 gates pass. Default true.
+	AutoApply bool
 }
 
 // SettingsStore loads and saves Settings.

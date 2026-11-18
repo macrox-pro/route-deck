@@ -41,4 +41,6 @@ Re-check proxy health and bridge state. MUST NOT keep showing `Active` across th
 
 ## Autostart
 
-Launch at Login is controlled from Settings via Wails `app.Autostart`. OS registration is the source of truth. Launching RouteDeck at login does not prove the VPN client is up and MUST NOT auto-Apply. If the proxy is down, show degradation. MUST NOT flip policies to `Direct`.
+Launch at Login is controlled from Settings via Wails `app.Autostart`. OS registration is the source of truth. Launch at Login alone does not Apply.
+
+Opt-out **Auto Apply on launch** is a separate SQLite setting (ADR-0015, default on). When enabled and the desired profile has Proxy or Block rules, startup calls the same Apply path as the Dashboard. If the proxy is down, Apply fails honestly and the UI shows Unprotected or Degraded after a successful apply with gaps. MUST NOT flip policies to `Direct`.

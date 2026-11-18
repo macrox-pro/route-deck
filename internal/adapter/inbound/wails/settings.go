@@ -29,7 +29,9 @@ type SettingsDTO struct {
 	// LaunchAtLogin reflects OS Autostart registration (ADR-0010). Not stored in SQLite.
 	LaunchAtLogin bool `json:"launchAtLogin"`
 	// Appearance is system, light, or dark (SQLite; default system).
-	Appearance    string `json:"appearance"`
+	Appearance string `json:"appearance"`
+	// AutoApply is ADR-0015 opt-out Apply at process start (SQLite; default true).
+	AutoApply     bool   `json:"autoApply"`
 	DesiredID     string `json:"desiredId"`
 	DesiredSet    bool   `json:"desiredSet"`
 	BridgeState   string `json:"bridgeState"`
@@ -58,6 +60,7 @@ func settingsDTO(view service.SettingsView) SettingsDTO {
 		DebugLogging:              view.DebugLogging,
 		LaunchAtLogin:             view.LaunchAtLogin,
 		Appearance:                view.Appearance,
+		AutoApply:                 view.AutoApply,
 		DesiredID:                 string(view.DesiredID),
 		DesiredSet:                view.DesiredSet,
 		BridgeState:               string(view.BridgeState),
@@ -142,6 +145,18 @@ func (s *SettingsService) SetAppearance(ctx context.Context, appearance, mainHas
 		}
 	}
 	return dto, nil
+}
+
+// SetAutoApply persists ADR-0015 Auto Apply on launch. Independent of Launch at Login.
+func (s *SettingsService) SetAutoApply(ctx context.Context, enabled bool) (SettingsDTO, error) {
+	if s == nil || s.Settings == nil {
+		return SettingsDTO{}, fmt.Errorf("settings service: not configured")
+	}
+	view, err := s.Settings.SetAutoApply(ctx, enabled)
+	if err != nil {
+		return SettingsDTO{}, err
+	}
+	return settingsDTO(view), nil
 }
 
 // OpenLogsFolder reveals the log directory in Finder.

@@ -142,3 +142,27 @@ func TestSettingsGetRewritesInvalidAppearance(t *testing.T) {
 		t.Fatalf("stored after heal = %q", store.settings.Appearance)
 	}
 }
+
+func TestSettingsSetAutoApply(t *testing.T) {
+	store := &settingsStoreFake{settings: port.Settings{AutoApply: true, Appearance: service.AppearanceSystem}}
+	svc := &service.Settings{Store: store}
+
+	view, err := svc.SetAutoApply(context.Background(), false)
+	if err != nil {
+		t.Fatalf("SetAutoApply false: %v", err)
+	}
+	if view.AutoApply {
+		t.Fatal("view.AutoApply = true, want false")
+	}
+	if store.settings.AutoApply {
+		t.Fatal("stored AutoApply = true, want false")
+	}
+
+	view, err = svc.SetAutoApply(context.Background(), true)
+	if err != nil {
+		t.Fatalf("SetAutoApply true: %v", err)
+	}
+	if !view.AutoApply || !store.settings.AutoApply {
+		t.Fatal("AutoApply not restored to true")
+	}
+}

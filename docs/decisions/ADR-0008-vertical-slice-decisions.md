@@ -38,7 +38,7 @@ Multiple profiles: create, copy, rename, delete, set desired. Delete is refused 
 
 ### Apply lifecycle
 
-No auto-apply at startup. Editing while running does not re-apply; the snapshot marks desired-differs-from-applied until Apply. Quit dialog and tray lifecycle are ADR-0010 (this ADR’s “Quit stops the CLI on `OnShutdown` with no dialog” is superseded). `OnShutdown` still stops the managed CLI. An unexpected CLI exit (not GUI conflict) does not auto-restart. A foreign or orphan CLI maps to `Conflict` with no signal to processes RouteDeck did not start. A rejected-rules warning, even before redirect-ready, counts as unconfirmed apply and triggers the single rollback.
+Editing while running does not re-apply; the snapshot marks desired-differs-from-applied until Apply. Opt-out Auto Apply at process start is [ADR-0015](ADR-0015-auto-apply-startup.md) (this ADR’s “No auto-apply at startup” is superseded). Quit dialog and tray lifecycle are ADR-0010 (this ADR’s “Quit stops the CLI on `OnShutdown` with no dialog” is superseded). `OnShutdown` still stops the managed CLI. An unexpected CLI exit (not GUI conflict) does not auto-restart. A foreign or orphan CLI maps to `Conflict` with no signal to processes RouteDeck did not start. A rejected-rules warning, even before redirect-ready, counts as unconfirmed apply and triggers the single rollback.
 
 ### ProxyBridge path and version
 

@@ -187,6 +187,19 @@ export function SettingsPage() {
         }
     };
 
+    const onToggleAutoApply = async (enabled: boolean) => {
+        setBusy(true);
+        setError(null);
+        try {
+            const settings = await SettingsService.SetAutoApply(enabled);
+            setData(settings);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setBusy(false);
+        }
+    };
+
     const onOpenLogs = async () => {
         setBusy(true);
         setError(null);
@@ -234,17 +247,29 @@ export function SettingsPage() {
                     <AppearanceField busy={busy} onBusy={setBusy} onError={setError} />
                 </SettingsSection>
 
-                <SettingsSection title="General" description="How RouteDeck behaves when you start the Mac.">
-                    <div className="rounded-xl bg-secondary_subtle p-4 ring-1 ring-secondary">
+                <SettingsSection title="General" description="Login registration and whether Apply runs when RouteDeck starts.">
+                    <div className="flex flex-col gap-1 rounded-xl bg-secondary_subtle p-4 ring-1 ring-secondary">
                         <SettingsRow
                             label="Launch at Login"
-                            hint="Registers with macOS login items. Does not Apply protection automatically."
+                            hint="Registers with macOS login items. Independent of Auto Apply."
                         >
                             <Toggle
                                 aria-label="Launch at Login"
                                 isSelected={!!data?.launchAtLogin}
                                 isDisabled={busy || data == null}
                                 onChange={(isSelected) => void onToggleLaunchAtLogin(isSelected)}
+                            />
+                        </SettingsRow>
+                        <div className="my-3 h-px w-full bg-border-secondary" role="separator" />
+                        <SettingsRow
+                            label="Auto Apply on launch"
+                            hint="When on, Apply runs at startup if a desired profile has Proxy or Block rules. Independent of Launch at Login."
+                        >
+                            <Toggle
+                                aria-label="Auto Apply on launch"
+                                isSelected={!!data?.autoApply}
+                                isDisabled={busy || data == null}
+                                onChange={(isSelected) => void onToggleAutoApply(isSelected)}
                             />
                         </SettingsRow>
                     </div>
