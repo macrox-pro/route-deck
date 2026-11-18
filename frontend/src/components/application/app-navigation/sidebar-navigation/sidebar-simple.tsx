@@ -9,7 +9,7 @@ import { cx } from "@/utils/cx";
 import { NavAccountCard } from "../base-components/nav-account-card";
 import type { NavItemType } from "../config";
 
-const EXPANDED_WIDTH = 280;
+const EXPANDED_WIDTH = 232;
 const COLLAPSED_WIDTH = 68;
 
 /** Shared with collapsed rail: px-4 + size-9 centers in 68px and stays put while width animates. */
@@ -58,8 +58,8 @@ function SidebarNavLink({ href, label, icon: Icon, current, collapsed }: Sidebar
             aria-current={current ? "page" : undefined}
             className={cx(
                 "group/item relative flex h-9 w-full cursor-pointer items-center rounded-md outline-focus-ring transition duration-100 ease-linear select-none",
-                "bg-primary hover:bg-primary_hover focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2",
-                current && "bg-secondary hover:bg-secondary_hover",
+                "hover:bg-primary_hover focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2",
+                current && "bg-primary hover:bg-primary_hover",
             )}
         >
             <span className="flex size-9 shrink-0 items-center justify-center">
@@ -68,7 +68,7 @@ function SidebarNavLink({ href, label, icon: Icon, current, collapsed }: Sidebar
                         aria-hidden="true"
                         className={cx(
                             "size-5 text-fg-quaternary transition-inherit-all group-hover/item:text-fg-quaternary_hover",
-                            current && "text-fg-quaternary_hover",
+                            current && "text-fg-brand-secondary group-hover/item:text-fg-brand-secondary",
                         )}
                     />
                 )}
@@ -76,7 +76,7 @@ function SidebarNavLink({ href, label, icon: Icon, current, collapsed }: Sidebar
             <span
                 className={cx(
                     "min-w-0 flex-1 truncate pr-2 text-sm font-semibold text-secondary transition duration-100 ease-linear group-hover/item:text-secondary_hover",
-                    current && "text-secondary_hover",
+                    current && "text-brand-secondary group-hover/item:text-brand-secondary",
                     collapsed && "hidden",
                 )}
             >
@@ -121,7 +121,7 @@ export const SidebarNavigationSimple = ({
                 } as CSSProperties
             }
             className={cx(
-                "flex h-full shrink-0 flex-col overflow-x-hidden overflow-y-auto overscroll-none bg-primary pt-5 transition-[width] duration-200 ease-linear",
+                "flex h-full shrink-0 flex-col overflow-x-hidden overflow-y-auto overscroll-none bg-secondary pt-5 transition-[width] duration-200 ease-linear",
                 !hideBorder && "border-r border-secondary",
                 className,
             )}
