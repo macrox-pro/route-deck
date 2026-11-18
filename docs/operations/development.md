@@ -57,10 +57,10 @@ Config: `/.golangci.yml` (`modules-download-mode: vendor`). Version pin: **v2.15
 
 `golangci-lint run ./...` also reports unformatted files (`gofmt` formatter) and enum switches that miss a constant (`exhaustive` linter). Fix formatting with `golangci-lint fmt ./...`. Lint shows one issue per line, so a formatting issue can hide behind another issue on the same line until that one is fixed.
 
-Install (official binary method):
+Install (official binary method). From this repo, override vendor mode — the CLI is not in `vendor/`:
 
 ```bash
-go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+GOFLAGS=-mod=mod go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
 ```
 
 The binary lands in `$(go env GOPATH)/bin`. Confirm:

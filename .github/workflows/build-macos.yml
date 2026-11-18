@@ -37,7 +37,9 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install Wails CLI
-        # Isolate from repo GOFLAGS; CLI is not built via this module's vendor/.
+        # vendor/ defaults to -mod=vendor; this CLI is not in vendor/.
+        env:
+          GOFLAGS: -mod=mod
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
 
       - name: Install frontend deps
