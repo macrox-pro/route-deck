@@ -37,6 +37,8 @@ go mod vendor
 gofmt -l .
 ```
 
+`main.go` embeds `frontend/dist` (gitignored). Run `cd frontend && npm run build` once before `go test ./...` or `golangci-lint run ./...` if that directory is missing. CI builds the frontend first for the same reason.
+
 Frontend (`frontend/`):
 
 ```bash
