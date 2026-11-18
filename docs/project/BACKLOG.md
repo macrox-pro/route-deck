@@ -17,6 +17,7 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 | ID | Status | Goal |
 | --- | --- | --- |
+| [`RD-059`](tasks/RD-059.md) | REVIEW | Persist Appearance in SQLite and sync native window chrome via recreate. |
 | [`RD-058`](tasks/RD-058.md) | REVIEW | Link-time app version/commit for Settings About and sidebar badge. |
 | [`RD-057`](tasks/RD-057.md) | REVIEW | CI macOS package workflow (`darwin:package` + zip artifact, no notarization). |
 | [`RD-056`](tasks/RD-056.md) | REVIEW | Dock attention badge `!` when applied protection is not Active; vendor dock service. |

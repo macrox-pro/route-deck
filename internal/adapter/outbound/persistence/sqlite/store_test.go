@@ -17,6 +17,7 @@ func portSettings(debug bool, desired string, bridgePath string) port.Settings {
 		DesiredSet:       desired != "",
 		ProxyBridgePath:  bridgePath,
 		DebugLogging:     debug,
+		Appearance:       "system",
 	}
 }
 
@@ -131,6 +132,22 @@ func TestRoundTripAggregates(t *testing.T) {
 	}
 	if !gotSettings.DebugLogging || !gotSettings.DesiredSet || gotSettings.DesiredProfileID != "profile-1" {
 		t.Fatalf("settings mismatch: %+v", gotSettings)
+	}
+	if gotSettings.Appearance != "system" {
+		t.Fatalf("appearance = %q", gotSettings.Appearance)
+	}
+
+	dark := portSettings(true, "profile-1", "/usr/local/bin/proxybridge")
+	dark.Appearance = "dark"
+	if err := settings.Save(ctx, dark); err != nil {
+		t.Fatalf("SaveSettings appearance: %v", err)
+	}
+	gotSettings, err = settings.Get(ctx)
+	if err != nil {
+		t.Fatalf("GetSettings appearance: %v", err)
+	}
+	if gotSettings.Appearance != "dark" {
+		t.Fatalf("appearance after save = %q", gotSettings.Appearance)
 	}
 
 	apps, err := store.Applications().List(ctx)

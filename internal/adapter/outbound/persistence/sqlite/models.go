@@ -67,6 +67,9 @@ type settingsModel struct {
 	DesiredSet       bool   `gorm:"column:desired_set;not null"`
 	ProxyBridgePath  string `gorm:"column:proxybridge_path;not null"`
 	DebugLogging     bool   `gorm:"column:debug_logging;not null"`
+	// default:system is required so SQLite AutoMigrate can ADD COLUMN on existing DBs
+	// (NOT NULL without DEFAULT fails with "default value NULL").
+	Appearance string `gorm:"column:appearance;not null;default:system"`
 }
 
 func (settingsModel) TableName() string { return "settings" }

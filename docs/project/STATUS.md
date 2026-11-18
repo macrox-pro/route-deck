@@ -1,15 +1,15 @@
 # Project Status
 
-Updated: 2026-11-17 20:05 UTC
-Updated by: agent (RD-058 buildmeta version/commit → REVIEW)
+Updated: 2026-11-18 21:25 UTC
+Updated by: agent (RD-059 Appearance + native frame sync → REVIEW)
 
 ## Current phase
 
-CI packages unsigned `.app` with tag/commit identity; editor-dialogs epic still awaiting owner smoke/commits.
+Appearance preference in Settings with SQLite persistence and native window chrome recreate.
 
 ## Current task
 
-RD-058
+RD-059
 
 ## State
 
@@ -17,12 +17,12 @@ REVIEW
 
 ## Completed
 
-- Still in Active (REVIEW, not archived): RD-007, RD-033, RD-037..RD-058
+- Still in Active (REVIEW, not archived): RD-007, RD-033, RD-037..RD-059
 - DONE archive: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-036 except REVIEW gaps)
 
 ## In progress
 
-- None. Waiting on owner commits and remote `build-macos` evidence.
+- None. Waiting on owner smoke/commits.
 
 ## Blockers
 
@@ -45,20 +45,22 @@ REVIEW
 - Old duplicate ProcessIdentity rows for one bundle id are collapsed at compile time, not migrated in SQLite
 - CI `build-macos` artifact is ad-hoc codesign only (Gatekeeper will warn); arm64 (`macos-14`) only
 - Local `wails3 dev` always shows version `dev` (no ldflags injection in DEV builds)
+- Appearance chrome recreate may reject the calling SetAppearance promise (persist-first; new window loads via Get)
+- No automatic migration of prior localStorage theme into SQLite
 
 ## Next actions
 
-1. Owner commits RD-057 + RD-058 (and prior REVIEW work as desired). Agent MUST NOT commit.
-2. Owner: push / tag `v*` and confirm Actions artifact + Settings About / sidebar label.
-3. Owner: `wails3 dev` smoke for RD-049..RD-056 if not done.
+1. Owner: `wails3 dev` smoke — Settings Appearance System/Light/Dark; title bar matches; dirty editor Cancel aborts.
+2. Owner commits RD-059 (and prior REVIEW work as desired). Agent MUST NOT commit.
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `go test ./internal/buildmeta/` | PASS |
+| `go test ./internal/application/service/ ./internal/adapter/outbound/persistence/sqlite/ ./internal/adapter/inbound/wails/` | PASS |
 | `golangci-lint run ./...` | PASS (0 issues; cache write warnings in sandbox) |
 | `cd frontend && npm run build` | PASS |
-| Remote `build-macos` with tag | NOT RUN (not pushed) |
+| `wails3 generate bindings -ts` | PASS |
+| macOS Appearance recreate smoke | NOT RUN (owner) |
 
 Environment: macOS darwin/arm64; module `github.com/macrox-pro/route-deck`; Go `1.26.0`; Wails v3.0.0

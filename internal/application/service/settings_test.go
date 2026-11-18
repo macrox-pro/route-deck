@@ -71,7 +71,74 @@ func TestSettingsGetDiscoveredPathFromLocator(t *testing.T) {
 	if view.BridgeVersion != "4.1.3" || !view.VersionKnown {
 		t.Fatalf("configured discovery = %+v", view)
 	}
+	if view.Appearance != service.AppearanceSystem {
+		t.Fatalf("appearance default = %q", view.Appearance)
+	}
 	if len(locator.customHits) < 2 || locator.customHits[0] != "" || locator.customHits[1] != "/custom/pb" {
 		t.Fatalf("locate calls = %#v", locator.customHits)
+	}
+}
+
+func TestNormalizeAppearance(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		in   string
+		want string
+		ok   bool
+	}{
+		{in: "", want: service.AppearanceSystem, ok: true},
+		{in: "system", want: service.AppearanceSystem, ok: true},
+		{in: "light", want: service.AppearanceLight, ok: true},
+		{in: "dark", want: service.AppearanceDark, ok: true},
+		{in: "nope", want: "", ok: false},
+	}
+	for _, tc := range cases {
+		got, ok := service.NormalizeAppearance(tc.in)
+		if got != tc.want || ok != tc.ok {
+			t.Fatalf("NormalizeAppearance(%q) = (%q, %v); want (%q, %v)", tc.in, got, ok, tc.want, tc.ok)
+		}
+	}
+}
+
+func TestSettingsSetAppearance(t *testing.T) {
+	store := &settingsStoreFake{}
+	svc := &service.Settings{Store: store}
+
+	view, err := svc.SetAppearance(context.Background(), "dark")
+	if err != nil {
+		t.Fatalf("SetAppearance: %v", err)
+	}
+	if view.Appearance != service.AppearanceDark {
+		t.Fatalf("view = %q", view.Appearance)
+	}
+	if store.settings.Appearance != service.AppearanceDark {
+		t.Fatalf("stored = %q", store.settings.Appearance)
+	}
+
+	view, err = svc.SetAppearance(context.Background(), "neon")
+	if err != nil {
+		t.Fatalf("SetAppearance coerce: %v", err)
+	}
+	if view.Appearance != service.AppearanceSystem {
+		t.Fatalf("coerced view = %q", view.Appearance)
+	}
+	if store.settings.Appearance != service.AppearanceSystem {
+		t.Fatalf("coerced stored = %q", store.settings.Appearance)
+	}
+}
+
+func TestSettingsGetRewritesInvalidAppearance(t *testing.T) {
+	store := &settingsStoreFake{settings: port.Settings{Appearance: "neon"}}
+	svc := &service.Settings{Store: store}
+
+	view, err := svc.Get(context.Background())
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if view.Appearance != service.AppearanceSystem {
+		t.Fatalf("view = %q", view.Appearance)
+	}
+	if store.settings.Appearance != service.AppearanceSystem {
+		t.Fatalf("stored after heal = %q", store.settings.Appearance)
 	}
 }

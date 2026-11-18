@@ -21,7 +21,7 @@ Titles: "New Profile", "Edit Profile — {name}", "New Proxy", "Edit Proxy — {
 - Dirty close: `Dialog.Question` "Discard changes?".
 - Destructive delete defaults to Cancel; Enter does not delete.
 - After save: dialog closes, list refetches, saved row in view, focus returns to opener.
-- Theme/dark mode via existing tokens. No white `BackgroundColour` override.
+- Theme/dark mode via existing tokens. No white `BackgroundColour` override. Appearance (`system`|`light`|`dark`) is SQLite-backed; native frame uses Wails create-time `Mac.Appearance` (recreate main on change).
 - Buttons: `sm` in lists, `md` in dialog footer.
 
 ## Profiles

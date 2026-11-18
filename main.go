@@ -171,6 +171,7 @@ func run() error {
 	}
 	editorDialogs := &wails.EditorDialogs{Logger: logger}
 	editorDialogsService := &wails.EditorDialogsService{Dialogs: editorDialogs, Logger: logger}
+	windowChrome := &wails.WindowChrome{Editors: editorDialogs}
 	dockService := dock.NewWailsService()
 	dockAttacher := &dock.Attacher{Dock: dockService, Snapshot: live, Logger: logger}
 	appSettings := &service.Settings{
@@ -181,6 +182,7 @@ func run() error {
 	}
 	settingsService := &wails.SettingsService{
 		Settings: appSettings,
+		Chrome:   windowChrome,
 		Logger:   logger,
 	}
 	activityPath := logPath
@@ -309,18 +311,17 @@ func run() error {
 		}()
 	})
 
-	mainWindow := app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:     "MACROX RouteDeck",
-		Width:     1000,
-		Height:    618,
-		MinWidth:  800,
-		MinHeight: 500,
-		Mac: application.MacWindow{
-			TitleBar: application.MacTitleBarDefault,
-		},
-		BackgroundColour: application.NewRGB(255, 255, 255),
-		URL:              "/",
-	})
+	appearance := service.AppearanceSystem
+	if settingsStore != nil {
+		if stored, err := settingsStore.Get(ctx); err == nil {
+			appearance = service.CoerceAppearance(stored.Appearance)
+		}
+	}
+
+	windowChrome.App = app
+	windowChrome.SetAppearanceMemory(appearance)
+	mainWindow := app.Window.NewWithOptions(wails.MainWindowOptions(appearance, "/"))
+	windowChrome.SetMain(mainWindow)
 
 	editorDialogs.App = app
 	editorDialogs.Parent = mainWindow
@@ -329,6 +330,8 @@ func run() error {
 	trayCtrl.Window = mainWindow
 	trayCtrl.FocusEditor = editorDialogs.FocusOpen
 	userDialog := &wails.NativeUserDialog{App: app, Window: mainWindow}
+	windowChrome.Tray = trayCtrl
+	windowChrome.Dialog = userDialog
 	protectionService.Dialog = userDialog
 	bridgeProcess.LineNotify = func(class port.BridgeLineClass) {
 		if class == port.BridgeLineExtensionApproval {

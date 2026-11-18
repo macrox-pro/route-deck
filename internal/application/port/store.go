@@ -45,6 +45,8 @@ type Settings struct {
 	DesiredSet       bool
 	ProxyBridgePath  string
 	DebugLogging     bool
+	// Appearance is system, light, or dark. Empty means system when read by the settings use case.
+	Appearance string
 }
 
 // SettingsStore loads and saves Settings.

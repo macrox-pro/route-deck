@@ -31,6 +31,17 @@ export function OpenLogsFolder(): $CancellablePromise<void> {
 }
 
 /**
+ * SetAppearance persists appearance then recreates the main window chrome.
+ * mainHash is the caller's location.hash (for example "#/settings") so the new
+ * main window can reopen on the same route. Persist runs before recreate.
+ */
+export function SetAppearance(appearance: string, mainHash: string): $CancellablePromise<$models.SettingsDTO> {
+    return $Call.ByID(2174822489, appearance, mainHash).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+/**
  * SetDebugLogging toggles slog LevelVar and persists the flag.
  */
 export function SetDebugLogging(enabled: boolean): $CancellablePromise<$models.SettingsDTO> {

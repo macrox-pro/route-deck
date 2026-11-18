@@ -23,10 +23,54 @@ type EditorDialogs struct {
 	Parent *application.WebviewWindow
 	Logger *slog.Logger
 
-	mu      sync.Mutex
-	windows map[string]*application.WebviewWindow
-	dirty   map[string]bool
-	asking  map[string]bool // discard Question already open for kind
+	mu         sync.Mutex
+	windows    map[string]*application.WebviewWindow
+	dirty      map[string]bool
+	asking     map[string]bool // discard Question already open for kind
+	appearance string          // system|light|dark for create-time chrome
+}
+
+// SetAppearance stores the preference used when creating editor windows.
+func (d *EditorDialogs) SetAppearance(appearance string) {
+	if d == nil {
+		return
+	}
+	d.mu.Lock()
+	d.appearance = appearance
+	d.mu.Unlock()
+}
+
+// HasDirty reports whether any open editor has unsaved edits.
+func (d *EditorDialogs) HasDirty() bool {
+	if d == nil {
+		return false
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.ensureMaps()
+	for _, dirty := range d.dirty {
+		if dirty {
+			return true
+		}
+	}
+	return false
+}
+
+// CloseAllForced force-closes every editor window without a discard prompt.
+func (d *EditorDialogs) CloseAllForced() {
+	if d == nil {
+		return
+	}
+	d.mu.Lock()
+	d.ensureMaps()
+	kinds := make([]string, 0, len(d.windows))
+	for kind := range d.windows {
+		kinds = append(kinds, kind)
+	}
+	d.mu.Unlock()
+	for _, kind := range kinds {
+		d.close(kind, true)
+	}
 }
 
 func (d *EditorDialogs) ensureMaps() {
@@ -75,6 +119,8 @@ func (d *EditorDialogs) open(kind, title, hashPath string, width, height int, re
 		return nil
 	}
 
+	appearance := d.appearance
+
 	opts := application.WebviewWindowOptions{
 		Name:          "dialog-" + kind,
 		Title:         title,
@@ -90,6 +136,7 @@ func (d *EditorDialogs) open(kind, title, hashPath string, width, height int, re
 		opts.MinWidth = 600
 		opts.MinHeight = 480
 	}
+	opts = DialogWindowOptions(appearance, opts)
 	win := d.App.Window.NewWithOptions(opts)
 	d.windows[kind] = win
 	d.dirty[kind] = false

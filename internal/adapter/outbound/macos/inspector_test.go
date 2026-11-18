@@ -8,11 +8,17 @@ import (
 	"testing"
 
 	"github.com/macrox-pro/route-deck/internal/adapter/outbound/macos"
+	"howett.net/plist"
 )
 
 func TestInspectDemoAppXML(t *testing.T) {
-	path := filepath.Join("testdata", "Demo.app")
-	got, err := macos.Inspector{}.Inspect(context.Background(), path)
+	dir := t.TempDir()
+	appRoot := filepath.Join(dir, "Demo.app")
+	writeMinimalApp(t, appRoot, "pro.macrox.demo", "Demo", "Demo App")
+	helper := filepath.Join(appRoot, "Contents", "Frameworks", "Helper.app")
+	writeMinimalApp(t, helper, "pro.macrox.demo.helper", "Helper", "Helper")
+
+	got, err := macos.Inspector{}.Inspect(context.Background(), appRoot)
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
@@ -59,7 +65,7 @@ func writeMinimalApp(t *testing.T, appPath, bundleID, execName, displayName stri
 	if err := os.MkdirAll(macosDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	plist := `<?xml version="1.0" encoding="UTF-8"?>
+	plistXML := `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleIdentifier</key><string>` + bundleID + `</string>
@@ -67,7 +73,7 @@ func writeMinimalApp(t *testing.T, appPath, bundleID, execName, displayName stri
 <key>CFBundleName</key><string>` + displayName + `</string>
 <key>CFBundleDisplayName</key><string>` + displayName + `</string>
 </dict></plist>`
-	if err := os.WriteFile(filepath.Join(contents, "Info.plist"), []byte(plist), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(contents, "Info.plist"), []byte(plistXML), 0o644); err != nil {
 		t.Fatalf("plist: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(macosDir, execName), []byte("#!/bin/sh\n"), 0o755); err != nil {
@@ -75,22 +81,47 @@ func writeMinimalApp(t *testing.T, appPath, bundleID, execName, displayName stri
 	}
 }
 
-func TestInspectChatGPTShapeFixture(t *testing.T) {
-	path := filepath.Join("testdata", "ChatGPTShape.app")
-	got, err := macos.Inspector{}.Inspect(context.Background(), path)
+func TestInspectNestedHelpersShape(t *testing.T) {
+	dir := t.TempDir()
+	appRoot := filepath.Join(dir, "ChatLike.app")
+	writeMinimalApp(t, appRoot, "com.example.chatlike", "ChatLike", "ChatLike")
+
+	fw := filepath.Join(appRoot, "Contents", "Frameworks", "Codex Framework.framework", "Versions")
+	ver := filepath.Join(fw, "157.0.0")
+	current := filepath.Join(fw, "Current")
+	if err := os.MkdirAll(filepath.Join(ver, "Helpers"), 0o755); err != nil {
+		t.Fatalf("mkdir helpers: %v", err)
+	}
+	if err := os.Symlink("157.0.0", current); err != nil {
+		t.Fatalf("symlink Current: %v", err)
+	}
+
+	writeMinimalApp(t, filepath.Join(ver, "Helpers", "GPU.app"), "com.example.chatlike.helper", "GPU", "GPU")
+	writeMinimalApp(t, filepath.Join(ver, "Helpers", "Service.app"), "com.example.chatlike.helper", "Service", "Service")
+	writeMinimalApp(t, filepath.Join(ver, "Helpers", "Renderer.app"), "com.example.chatlike.helper.renderer", "Renderer", "Renderer")
+	writeMinimalApp(t, filepath.Join(ver, "Helpers", "Alerts.app"), "com.example.chatlike.framework.AlertNotificationService", "Alerts", "Alerts")
+
+	resources := filepath.Join(appRoot, "Contents", "Resources")
+	writeMinimalApp(t, filepath.Join(resources, "cli", "CLI.app"), "com.example.chatlike.cli", "cli", "CLI")
+	writeMinimalApp(t, filepath.Join(resources, "cua", "CUA.app"), "com.example.sky.CUAService", "CUA", "CUA")
+
+	sparkle := filepath.Join(appRoot, "Contents", "Frameworks", "Sparkle.framework", "Versions", "B", "Updater.app")
+	writeMinimalApp(t, sparkle, "org.sparkle-project.Sparkle.Updater", "Updater", "Updater")
+
+	got, err := macos.Inspector{}.Inspect(context.Background(), appRoot)
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
-	if got.BundleID != "com.openai.codex" {
+	if got.BundleID != "com.example.chatlike" {
 		t.Fatalf("BundleID = %q", got.BundleID)
 	}
 
 	byBundle := map[string]int{}
-	var sparkle int
+	var sparkleCount int
 	for _, h := range got.Helpers {
 		byBundle[h.BundleID]++
 		if h.IsUpdater {
-			sparkle++
+			sparkleCount++
 			if !strings.HasPrefix(h.BundleID, "org.sparkle-project.") {
 				t.Fatalf("IsUpdater without sparkle id: %+v", h)
 			}
@@ -99,15 +130,15 @@ func TestInspectChatGPTShapeFixture(t *testing.T) {
 			t.Fatalf("path still versioned: %q", h.Path)
 		}
 	}
-	if sparkle != 1 {
-		t.Fatalf("sparkle updater count = %d, want 1; helpers=%d", sparkle, len(got.Helpers))
+	if sparkleCount != 1 {
+		t.Fatalf("sparkle updater count = %d, want 1; helpers=%d", sparkleCount, len(got.Helpers))
 	}
 	wantBundles := []string{
-		"com.openai.codex.helper",
-		"com.openai.codex.helper.renderer",
-		"com.openai.codex.framework.AlertNotificationService",
-		"com.openai.codex.cli",
-		"com.openai.sky.CUAService",
+		"com.example.chatlike.helper",
+		"com.example.chatlike.helper.renderer",
+		"com.example.chatlike.framework.AlertNotificationService",
+		"com.example.chatlike.cli",
+		"com.example.sky.CUAService",
 		"org.sparkle-project.Sparkle.Updater",
 	}
 	for _, id := range wantBundles {
@@ -115,9 +146,8 @@ func TestInspectChatGPTShapeFixture(t *testing.T) {
 			t.Fatalf("missing helper bundle %q in %+v", id, byBundle)
 		}
 	}
-	// Four Codex (GPU/Service) share helper id but are separate files until catalog groups them.
-	if byBundle["com.openai.codex.helper"] < 2 {
-		t.Fatalf("shared helper files = %d, want >= 2", byBundle["com.openai.codex.helper"])
+	if byBundle["com.example.chatlike.helper"] < 2 {
+		t.Fatalf("shared helper files = %d, want >= 2", byBundle["com.example.chatlike.helper"])
 	}
 }
 
@@ -133,13 +163,13 @@ func TestInspectElectronHelperWithoutCFBundleExecutable(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 	// Electron-style: bundle id present, CFBundleExecutable omitted, binary named after .app.
-	plist := `<?xml version="1.0" encoding="UTF-8"?>
+	plistXML := `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleIdentifier</key><string>com.github.Electron.helper</string>
 <key>CFBundleName</key><string>Electron Helper (GPU)</string>
 </dict></plist>`
-	if err := os.WriteFile(filepath.Join(contents, "Info.plist"), []byte(plist), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(contents, "Info.plist"), []byte(plistXML), 0o644); err != nil {
 		t.Fatalf("plist: %v", err)
 	}
 	execName := "Cursor Helper (GPU)"
@@ -167,19 +197,35 @@ func TestInspectElectronHelperWithoutCFBundleExecutable(t *testing.T) {
 }
 
 func TestInspectBinaryPlist(t *testing.T) {
-	rawPath := filepath.Join("testdata", "binary.plist")
-	// Wrap binary plist as a temporary .app structure is heavy; Unmarshal is covered via Demo.app.
-	// Ensure binary fixture exists and parses via a dedicated helper using the same Unmarshal path.
-	abs, err := filepath.Abs(rawPath)
-	if err != nil {
-		t.Fatal(err)
+	dir := t.TempDir()
+	appRoot := filepath.Join(dir, "BinaryPlist.app")
+	contents := filepath.Join(appRoot, "Contents")
+	macosDir := filepath.Join(contents, "MacOS")
+	if err := os.MkdirAll(macosDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
 	}
-	_ = abs
-	got, err := macos.Inspector{}.Inspect(context.Background(), filepath.Join("testdata", "Demo.app"))
+	info := map[string]any{
+		"CFBundleIdentifier":  "pro.macrox.binaryplist",
+		"CFBundleExecutable":  "BinaryPlist",
+		"CFBundleName":        "BinaryPlist",
+		"CFBundleDisplayName": "BinaryPlist",
+	}
+	raw, err := plist.Marshal(info, plist.BinaryFormat)
+	if err != nil {
+		t.Fatalf("marshal binary plist: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(contents, "Info.plist"), raw, 0o644); err != nil {
+		t.Fatalf("write plist: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(macosDir, "BinaryPlist"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatalf("exec: %v", err)
+	}
+
+	got, err := macos.Inspector{}.Inspect(context.Background(), appRoot)
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
-	if got.BundleID == "" {
-		t.Fatal("empty bundle id")
+	if got.BundleID != "pro.macrox.binaryplist" {
+		t.Fatalf("BundleID = %q", got.BundleID)
 	}
 }

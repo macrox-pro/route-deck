@@ -966,6 +966,11 @@ export class SettingsDTO {
      * LaunchAtLogin reflects OS Autostart registration (ADR-0010). Not stored in SQLite.
      */
     "launchAtLogin": boolean;
+
+    /**
+     * Appearance is system, light, or dark (SQLite; default system).
+     */
+    "appearance": string;
     "desiredId": string;
     "desiredSet": boolean;
     "bridgeState": string;
@@ -1001,6 +1006,9 @@ export class SettingsDTO {
         }
         if (!("launchAtLogin" in $$source)) {
             this["launchAtLogin"] = false;
+        }
+        if (!("appearance" in $$source)) {
+            this["appearance"] = "";
         }
         if (!("desiredId" in $$source)) {
             this["desiredId"] = "";

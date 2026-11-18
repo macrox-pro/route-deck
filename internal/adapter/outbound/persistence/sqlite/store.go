@@ -121,11 +121,13 @@ func (s *Store) ListApplications(ctx context.Context) ([]domain.Application, err
 func (s *Store) SaveApplication(ctx context.Context, app domain.Application) error {
 	var existing applicationModel
 	err := s.db.WithContext(ctx).Where("bundle_id = ? AND id <> ?", app.BundleID, string(app.ID)).First(&existing).Error
-	if err == nil {
-		return fmt.Errorf("application save: %w", domain.ErrDuplicateBundleID)
-	}
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	switch {
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		// No other application owns this bundle id.
+	case err != nil:
 		return fmt.Errorf("application save: %w", err)
+	default:
+		return fmt.Errorf("application save: %w", domain.ErrDuplicateBundleID)
 	}
 	row := applicationModel{
 		ID:          string(app.ID),
@@ -224,11 +226,13 @@ func (s *Store) SaveProfile(ctx context.Context, profile domain.Profile) error {
 	}
 	var existing profileModel
 	err := s.db.WithContext(ctx).Where("name = ? AND id <> ?", profile.Name, string(profile.ID)).First(&existing).Error
-	if err == nil {
-		return fmt.Errorf("profile save: %w", domain.ErrDuplicateProfileName)
-	}
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	switch {
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		// No other profile uses this name.
+	case err != nil:
 		return fmt.Errorf("profile save: %w", err)
+	default:
+		return fmt.Errorf("profile save: %w", domain.ErrDuplicateProfileName)
 	}
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		row := profileModel{ID: string(profile.ID), Name: profile.Name}
@@ -487,32 +491,68 @@ func mapUniqueError(err error, sentinel error) error {
 	return err
 }
 
+// coerceSettingsAppearance maps empty/unknown appearance to system.
+func coerceSettingsAppearance(raw string) string {
+	switch raw {
+	case "light":
+		return "light"
+	case "dark":
+		return "dark"
+	default:
+		return "system"
+	}
+}
+
 // GetSettings loads the single settings row (defaults when missing).
+// Invalid appearance is coerced to system and rewritten into SQLite.
 func (s *Store) GetSettings(ctx context.Context) (port.Settings, error) {
 	var row settingsModel
 	err := s.db.WithContext(ctx).Where("id = ?", 1).First(&row).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return port.Settings{}, nil
+		defaults := port.Settings{Appearance: "system"}
+		if saveErr := s.SaveSettings(ctx, defaults); saveErr != nil {
+			return defaults, nil
+		}
+		return defaults, nil
 	}
 	if err != nil {
 		return port.Settings{}, fmt.Errorf("settings get: %w", err)
 	}
-	return port.Settings{
+	settings := port.Settings{
 		DesiredProfileID: domain.ProfileID(row.DesiredProfileID),
 		DesiredSet:       row.DesiredSet,
 		ProxyBridgePath:  row.ProxyBridgePath,
 		DebugLogging:     row.DebugLogging,
-	}, nil
+		Appearance:       row.Appearance,
+	}
+	if settings.DesiredSet && settings.DesiredProfileID == "" {
+		settings.DesiredSet = false
+	}
+	appearance := coerceSettingsAppearance(settings.Appearance)
+	needsRewrite := settings.Appearance != appearance || (row.DesiredSet && row.DesiredProfileID == "")
+	settings.Appearance = appearance
+	if needsRewrite {
+		if saveErr := s.SaveSettings(ctx, settings); saveErr != nil {
+			// Return coerced settings even when rewrite fails.
+			return settings, nil
+		}
+	}
+	return settings, nil
 }
 
 // SaveSettings upserts the single settings row.
 func (s *Store) SaveSettings(ctx context.Context, settings port.Settings) error {
+	if settings.DesiredSet && settings.DesiredProfileID == "" {
+		settings.DesiredSet = false
+	}
+	settings.Appearance = coerceSettingsAppearance(settings.Appearance)
 	row := settingsModel{
 		ID:               1,
 		DesiredProfileID: string(settings.DesiredProfileID),
 		DesiredSet:       settings.DesiredSet,
 		ProxyBridgePath:  settings.ProxyBridgePath,
 		DebugLogging:     settings.DebugLogging,
+		Appearance:       settings.Appearance,
 	}
 	if err := s.db.WithContext(ctx).Save(&row).Error; err != nil {
 		return fmt.Errorf("settings save: %w", err)

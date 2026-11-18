@@ -15,6 +15,7 @@ import (
 // SettingsService exposes non-secret settings and log helpers.
 type SettingsService struct {
 	Settings *service.Settings
+	Chrome   *WindowChrome
 	Logger   *slog.Logger
 }
 
@@ -26,7 +27,9 @@ type SettingsDTO struct {
 	DiscoveredProxyBridgePath string `json:"discoveredProxyBridgePath"`
 	DebugLogging              bool   `json:"debugLogging"`
 	// LaunchAtLogin reflects OS Autostart registration (ADR-0010). Not stored in SQLite.
-	LaunchAtLogin bool   `json:"launchAtLogin"`
+	LaunchAtLogin bool `json:"launchAtLogin"`
+	// Appearance is system, light, or dark (SQLite; default system).
+	Appearance    string `json:"appearance"`
 	DesiredID     string `json:"desiredId"`
 	DesiredSet    bool   `json:"desiredSet"`
 	BridgeState   string `json:"bridgeState"`
@@ -54,6 +57,7 @@ func settingsDTO(view service.SettingsView) SettingsDTO {
 		DiscoveredProxyBridgePath: view.DiscoveredProxyBridgePath,
 		DebugLogging:              view.DebugLogging,
 		LaunchAtLogin:             view.LaunchAtLogin,
+		Appearance:                view.Appearance,
 		DesiredID:                 string(view.DesiredID),
 		DesiredSet:                view.DesiredSet,
 		BridgeState:               string(view.BridgeState),
@@ -112,6 +116,32 @@ func (s *SettingsService) SetLaunchAtLogin(ctx context.Context, enabled bool) (S
 		return SettingsDTO{}, err
 	}
 	return settingsDTO(view), nil
+}
+
+// SetAppearance persists appearance then recreates the main window chrome.
+// mainHash is the caller's location.hash (for example "#/settings") so the new
+// main window can reopen on the same route. Persist runs before recreate.
+func (s *SettingsService) SetAppearance(ctx context.Context, appearance, mainHash string) (SettingsDTO, error) {
+	if s == nil || s.Settings == nil {
+		return SettingsDTO{}, fmt.Errorf("settings service: not configured")
+	}
+	if s.Chrome != nil {
+		if err := s.Chrome.PrepareForAppearanceChange(); err != nil {
+			return SettingsDTO{}, err
+		}
+	}
+	view, err := s.Settings.SetAppearance(ctx, appearance)
+	if err != nil {
+		return SettingsDTO{}, err
+	}
+	dto := settingsDTO(view)
+	if s.Chrome != nil {
+		if recErr := s.Chrome.RecreateMain(view.Appearance, mainHash); recErr != nil {
+			s.logger().Warn("appearance chrome recreate failed", "component", "wails.settings", "err", recErr)
+			return dto, fmt.Errorf("settings appearance chrome: %w", recErr)
+		}
+	}
+	return dto, nil
 }
 
 // OpenLogsFolder reveals the log directory in Finder.

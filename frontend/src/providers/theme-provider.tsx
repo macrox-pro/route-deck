@@ -1,11 +1,37 @@
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { SettingsService } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 
-type Theme = "light" | "dark" | "system";
+export type Theme = "light" | "dark" | "system";
+
+const THEMES: ReadonlySet<string> = new Set(["light", "dark", "system"]);
+const STORAGE_KEY = "ui-theme";
+const DARK_MODE_CLASS = "dark-mode";
+
+function isTheme(value: string | null | undefined): value is Theme {
+    return value !== null && value !== undefined && THEMES.has(value);
+}
+
+function resolveTheme(theme: Theme): "light" | "dark" {
+    if (theme === "system") {
+        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    return theme;
+}
+
+function applyDocumentTheme(theme: Theme) {
+    const root = window.document.documentElement;
+    const resolved = resolveTheme(theme);
+    root.classList.toggle(DARK_MODE_CLASS, resolved === "dark");
+    root.style.colorScheme = resolved;
+    localStorage.setItem(STORAGE_KEY, theme);
+}
 
 interface ThemeContextType {
     theme: Theme;
     setTheme: (theme: Theme) => void;
+    /** Persist via SettingsService and recreate native chrome. */
+    setAppearance: (theme: Theme) => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -22,55 +48,54 @@ export const useTheme = (): ThemeContextType => {
 
 interface ThemeProviderProps {
     children: ReactNode;
-    /**
-     * The class to add to the root element when the theme is dark
-     * @default "dark-mode"
-     */
-    darkModeClass?: string;
-    /**
-     * The default theme to use if no theme is stored in localStorage
-     * @default "system"
-     */
-    defaultTheme?: Theme;
-    /**
-     * The key to use to store the theme in localStorage
-     * @default "ui-theme"
-     */
-    storageKey?: string;
 }
 
-export const ThemeProvider = ({ children, defaultTheme = "system", storageKey = "ui-theme", darkModeClass = "dark-mode" }: ThemeProviderProps) => {
-    const [theme, setTheme] = useState<Theme>(() => {
-        if (typeof window !== "undefined") {
-            const savedTheme = localStorage.getItem(storageKey) as Theme | null;
-            return savedTheme || defaultTheme;
+export const ThemeProvider = ({ children }: ThemeProviderProps) => {
+    const [theme, setThemeState] = useState<Theme>(() => {
+        if (typeof window === "undefined") {
+            return "system";
         }
-        return defaultTheme;
+        const cached = localStorage.getItem(STORAGE_KEY);
+        return isTheme(cached) ? cached : "system";
     });
 
+    const setTheme = useCallback((next: Theme) => {
+        setThemeState(next);
+    }, []);
+
+    const setAppearance = useCallback(async (next: Theme) => {
+        const hash = typeof window !== "undefined" ? window.location.hash : "";
+        await SettingsService.SetAppearance(next, hash);
+        setThemeState(next);
+        applyDocumentTheme(next);
+    }, []);
+
     useEffect(() => {
-        const applyTheme = () => {
-            const root = window.document.documentElement;
-
-            if (theme === "system") {
-                const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-
-                root.classList.toggle(darkModeClass, systemTheme === "dark");
-                localStorage.removeItem(storageKey);
-            } else {
-                root.classList.toggle(darkModeClass, theme === "dark");
-                localStorage.setItem(storageKey, theme);
+        let cancelled = false;
+        void (async () => {
+            try {
+                const settings = await SettingsService.Get();
+                const fromStore = settings.appearance;
+                if (!cancelled && isTheme(fromStore)) {
+                    setThemeState(fromStore);
+                    applyDocumentTheme(fromStore);
+                }
+            } catch {
+                // Keep FOUC cache / default until Settings is available.
             }
+        })();
+        return () => {
+            cancelled = true;
         };
+    }, []);
 
-        applyTheme();
+    useEffect(() => {
+        applyDocumentTheme(theme);
 
-        // Listen for system theme changes
         const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
         const handleChange = () => {
             if (theme === "system") {
-                applyTheme();
+                applyDocumentTheme(theme);
             }
         };
 
@@ -78,5 +103,7 @@ export const ThemeProvider = ({ children, defaultTheme = "system", storageKey = 
         return () => mediaQuery.removeEventListener("change", handleChange);
     }, [theme]);
 
-    return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>;
+    return (
+        <ThemeContext.Provider value={{ theme, setTheme, setAppearance }}>{children}</ThemeContext.Provider>
+    );
 };

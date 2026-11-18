@@ -440,7 +440,7 @@ export function ProfileEditorDialog() {
                 />
                 <div className="flex flex-wrap items-center gap-3">
                     <Input
-                        className="min-w-[12rem] flex-1"
+                        className="min-w-48 flex-1"
                         aria-label="Search applications"
                         placeholder="Search applications"
                         value={search}
