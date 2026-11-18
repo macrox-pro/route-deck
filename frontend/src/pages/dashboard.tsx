@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { HelpCircle } from "@untitledui/icons";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
 import { ProtectionBadge } from "@/components/application/protection-badge/protection-badge";
@@ -41,6 +41,8 @@ export function DashboardPage() {
         return map;
     }, [data?.proxies, guides]);
 
+    const bumpChecklist = useCallback(() => setChecklistKey((k) => k + 1), []);
+
     if (loading && !data) {
         return (
             <div className="flex min-h-64 items-center justify-center">
@@ -56,6 +58,7 @@ export function DashboardPage() {
             const result = await ProtectionService.Apply();
             setOperationID(result.operationId);
             await reload();
+            bumpChecklist();
         } catch (err) {
             setActionError(err instanceof Error ? err.message : String(err));
         } finally {
@@ -70,6 +73,7 @@ export function DashboardPage() {
             const result = await ProtectionService.Stop();
             setOperationID(result.operationId);
             await reload();
+            bumpChecklist();
         } catch (err) {
             setActionError(err instanceof Error ? err.message : String(err));
         } finally {
@@ -82,6 +86,7 @@ export function DashboardPage() {
         setActionError(null);
         try {
             await reload();
+            bumpChecklist();
         } catch (err) {
             setActionError(err instanceof Error ? err.message : String(err));
         } finally {
@@ -145,7 +150,7 @@ export function DashboardPage() {
             <SuggestionBanner
                 onAdded={() => {
                     void reload();
-                    setChecklistKey((k) => k + 1);
+                    bumpChecklist();
                 }}
             />
             <SetupChecklist refreshKey={checklistKey} />

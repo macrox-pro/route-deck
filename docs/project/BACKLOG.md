@@ -17,6 +17,7 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 | ID | Status | Goal |
 | --- | --- | --- |
+| [`RD-061`](tasks/RD-061.md) | REVIEW | First-run checklist: partial proxy step (UDP-limited/Checking) + session dismiss with regression. |
 | [`RD-060`](tasks/RD-060.md) | REVIEW | Opt-out Auto Apply on launch (default ON) via ADR-0015 gates + existing Apply path. |
 | [`RD-059`](tasks/RD-059.md) | REVIEW | Persist Appearance in SQLite and sync native window chrome via recreate. |
 | [`RD-058`](tasks/RD-058.md) | REVIEW | Link-time app version/commit for Settings About and sidebar badge. |

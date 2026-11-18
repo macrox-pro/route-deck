@@ -33,6 +33,13 @@ export function Checklist(): $CancellablePromise<$models.ChecklistDTO> {
 }
 
 /**
+ * DismissChecklist hides the first-run checklist until restart or step regression.
+ */
+export function DismissChecklist(): $CancellablePromise<void> {
+    return $Call.ByID(1727893650);
+}
+
+/**
  * DismissSuggestion hides a suggestion until RouteDeck restarts.
  */
 export function DismissSuggestion(guideID: string, port: number): $CancellablePromise<void> {

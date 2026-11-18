@@ -58,12 +58,16 @@ type SuggestionDTO struct {
 }
 
 // ChecklistDTO is the first-run checklist.
+// ProxyStep is a closed token (missing|available|udp_limited|checking); English UI copy maps by message ID on the frontend for future i18n.
 type ChecklistDTO struct {
-	BridgeFound      bool `json:"bridgeFound"`
-	ProxyAvailable   bool `json:"proxyAvailable"`
-	ApplicationAdded bool `json:"applicationAdded"`
-	ProfileApplied   bool `json:"profileApplied"`
-	Complete         bool `json:"complete"`
+	BridgeFound      bool   `json:"bridgeFound"`
+	ProxyAvailable   bool   `json:"proxyAvailable"`
+	ProxyPartial     bool   `json:"proxyPartial"`
+	ProxyStep        string `json:"proxyStep"`
+	ApplicationAdded bool   `json:"applicationAdded"`
+	ProfileApplied   bool   `json:"profileApplied"`
+	Complete         bool   `json:"complete"`
+	Dismissed        bool   `json:"dismissed"`
 }
 
 // ProxyDraftDTO is returned after one-click add (no secrets).
@@ -212,10 +216,21 @@ func (s *SetupGuidesService) Checklist(ctx context.Context) (ChecklistDTO, error
 	return ChecklistDTO{
 		BridgeFound:      view.BridgeFound,
 		ProxyAvailable:   view.ProxyAvailable,
+		ProxyPartial:     view.ProxyPartial,
+		ProxyStep:        string(view.ProxyStep),
 		ApplicationAdded: view.ApplicationAdded,
 		ProfileApplied:   view.ProfileApplied,
 		Complete:         view.Complete,
+		Dismissed:        view.Dismissed,
 	}, nil
+}
+
+// DismissChecklist hides the first-run checklist until restart or step regression.
+func (s *SetupGuidesService) DismissChecklist(ctx context.Context) error {
+	if s == nil || s.Guides == nil {
+		return fmt.Errorf("setup guides service: not configured")
+	}
+	return s.Guides.DismissChecklist(ctx)
 }
 
 func mapGuideErr(err error) error {

@@ -91,13 +91,35 @@ type SuggestionView struct {
 	Kind    string
 }
 
+// ChecklistProxyStep is the closed wire token for the proxy checklist row (UI copy maps by ID on the frontend).
+type ChecklistProxyStep string
+
+// ChecklistProxyStep values for ChecklistView.ProxyStep.
+const (
+	ChecklistProxyMissing    ChecklistProxyStep = "missing"
+	ChecklistProxyAvailable  ChecklistProxyStep = "available"
+	ChecklistProxyUDPLimited ChecklistProxyStep = "udp_limited"
+	ChecklistProxyChecking   ChecklistProxyStep = "checking"
+)
+
 // ChecklistView is the first-run checklist.
 type ChecklistView struct {
 	BridgeFound      bool
 	ProxyAvailable   bool
+	ProxyPartial     bool
+	ProxyStep        ChecklistProxyStep
 	ApplicationAdded bool
 	ProfileApplied   bool
 	Complete         bool
+	Dismissed        bool
+}
+
+// checklistFingerprint records step booleans at dismiss time for regression detection.
+type checklistFingerprint struct {
+	BridgeFound      bool
+	ProxyAvailable   bool
+	ApplicationAdded bool
+	ProfileApplied   bool
 }
 
 // SetupGuides lists guides, adds proxies, suggestions, and checklist (ADR-0013).
@@ -111,10 +133,12 @@ type SetupGuides struct {
 	Snapshot func(ctx context.Context) (SnapshotResult, error)
 	Logger   *slog.Logger
 
-	mu          sync.Mutex
-	installed   []port.InstalledApplication
-	installedOK bool
-	dismissed   map[string]struct{}
+	mu                   sync.Mutex
+	installed            []port.InstalledApplication
+	installedOK          bool
+	dismissed            map[string]struct{}
+	checklistDismissed   bool
+	checklistFingerprint checklistFingerprint
 }
 
 func (s *SetupGuides) logger() *slog.Logger {
@@ -583,7 +607,42 @@ func (s *SetupGuides) DismissSuggestion(guideID string, port int) error {
 
 // Checklist derives first-run steps from snapshot and catalog.
 func (s *SetupGuides) Checklist(ctx context.Context) (ChecklistView, error) {
-	view := ChecklistView{}
+	view, err := s.deriveChecklist(ctx)
+	if err != nil {
+		return ChecklistView{}, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.checklistDismissed && checklistRegressed(s.checklistFingerprint, view) {
+		s.checklistDismissed = false
+		s.checklistFingerprint = checklistFingerprint{}
+	}
+	view.Dismissed = s.checklistDismissed
+	return view, nil
+}
+
+// DismissChecklist hides the first-run checklist until process restart or step regression.
+func (s *SetupGuides) DismissChecklist(ctx context.Context) error {
+	view, err := s.deriveChecklist(ctx)
+	if err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.checklistDismissed = true
+	s.checklistFingerprint = checklistFingerprint{
+		BridgeFound:      view.BridgeFound,
+		ProxyAvailable:   view.ProxyAvailable,
+		ApplicationAdded: view.ApplicationAdded,
+		ProfileApplied:   view.ProfileApplied,
+	}
+	return nil
+}
+
+func (s *SetupGuides) deriveChecklist(ctx context.Context) (ChecklistView, error) {
+	view := ChecklistView{
+		ProxyStep: ChecklistProxyMissing,
+	}
 	if s.Snapshot == nil {
 		return view, fmt.Errorf("setup guides checklist: snapshot not configured")
 	}
@@ -592,12 +651,7 @@ func (s *SetupGuides) Checklist(ctx context.Context) (ChecklistView, error) {
 		return view, fmt.Errorf("setup guides checklist: %w", err)
 	}
 	view.BridgeFound = snap.Bridge != domain.BridgeStateNotInstalled && snap.Bridge != domain.BridgeStateUnknown
-	for _, p := range snap.Proxies {
-		if p.Health == domain.ProxyHealthAvailable {
-			view.ProxyAvailable = true
-			break
-		}
-	}
+	applyProxyChecklistStep(&view, snap.Proxies)
 	if s.Apps != nil {
 		apps, err := s.Apps.List(ctx)
 		if err != nil {
@@ -608,4 +662,57 @@ func (s *SetupGuides) Checklist(ctx context.Context) (ChecklistView, error) {
 	view.ProfileApplied = snap.AppliedConfirmed
 	view.Complete = view.BridgeFound && view.ProxyAvailable && view.ApplicationAdded && view.ProfileApplied
 	return view, nil
+}
+
+func applyProxyChecklistStep(view *ChecklistView, proxies []ProxyHealthRow) {
+	best := ChecklistProxyMissing
+	for _, p := range proxies {
+		candidate := checklistProxyStepForHealth(p.Health)
+		if checklistProxyStepRank(candidate) > checklistProxyStepRank(best) {
+			best = candidate
+		}
+		if best == ChecklistProxyAvailable {
+			break
+		}
+	}
+	view.ProxyStep = best
+	view.ProxyAvailable = best != ChecklistProxyMissing
+	view.ProxyPartial = best == ChecklistProxyUDPLimited || best == ChecklistProxyChecking
+}
+
+func checklistProxyStepForHealth(health domain.ProxyHealth) ChecklistProxyStep {
+	switch health {
+	case domain.ProxyHealthAvailable:
+		return ChecklistProxyAvailable
+	case domain.ProxyHealthTCPAvailableUDPUnavailable:
+		return ChecklistProxyUDPLimited
+	case domain.ProxyHealthChecking:
+		return ChecklistProxyChecking
+	case domain.ProxyHealthUnknown,
+		domain.ProxyHealthUnavailable,
+		domain.ProxyHealthAuthenticationFailed:
+		return ChecklistProxyMissing
+	}
+	return ChecklistProxyMissing
+}
+
+func checklistProxyStepRank(step ChecklistProxyStep) int {
+	switch step {
+	case ChecklistProxyAvailable:
+		return 3
+	case ChecklistProxyUDPLimited:
+		return 2
+	case ChecklistProxyChecking:
+		return 1
+	case ChecklistProxyMissing:
+		return 0
+	}
+	return 0
+}
+
+func checklistRegressed(fp checklistFingerprint, view ChecklistView) bool {
+	return (fp.BridgeFound && !view.BridgeFound) ||
+		(fp.ProxyAvailable && !view.ProxyAvailable) ||
+		(fp.ApplicationAdded && !view.ApplicationAdded) ||
+		(fp.ProfileApplied && !view.ProfileApplied)
 }

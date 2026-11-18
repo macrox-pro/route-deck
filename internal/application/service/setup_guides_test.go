@@ -281,6 +281,9 @@ func TestSetupGuidesChecklist(t *testing.T) {
 	if !got.Complete || !got.BridgeFound || !got.ProxyAvailable || !got.ApplicationAdded || !got.ProfileApplied {
 		t.Fatalf("checklist = %+v", got)
 	}
+	if got.ProxyPartial || got.ProxyStep != service.ChecklistProxyAvailable {
+		t.Fatalf("full available fields = %+v", got)
+	}
 
 	sg.Snapshot = func(context.Context) (service.SnapshotResult, error) {
 		return service.SnapshotResult{Bridge: domain.BridgeStateNotInstalled}, nil
@@ -291,5 +294,155 @@ func TestSetupGuidesChecklist(t *testing.T) {
 	}
 	if got.BridgeFound || got.Complete {
 		t.Fatalf("regression checklist = %+v", got)
+	}
+}
+
+func TestSetupGuidesChecklistProxyPriority(t *testing.T) {
+	tests := []struct {
+		name      string
+		proxies   []service.ProxyHealthRow
+		available bool
+		partial   bool
+		step      service.ChecklistProxyStep
+		complete  bool
+	}{
+		{
+			name: "available beats udp limited",
+			proxies: []service.ProxyHealthRow{
+				{ID: "a", Health: domain.ProxyHealthTCPAvailableUDPUnavailable},
+				{ID: "b", Health: domain.ProxyHealthAvailable},
+			},
+			available: true,
+			partial:   false,
+			step:      service.ChecklistProxyAvailable,
+			complete:  true,
+		},
+		{
+			name: "udp limited beats checking",
+			proxies: []service.ProxyHealthRow{
+				{ID: "a", Health: domain.ProxyHealthChecking},
+				{ID: "b", Health: domain.ProxyHealthTCPAvailableUDPUnavailable},
+			},
+			available: true,
+			partial:   true,
+			step:      service.ChecklistProxyUDPLimited,
+			complete:  true,
+		},
+		{
+			name: "checking only",
+			proxies: []service.ProxyHealthRow{
+				{ID: "a", Health: domain.ProxyHealthChecking},
+			},
+			available: true,
+			partial:   true,
+			step:      service.ChecklistProxyChecking,
+			complete:  true,
+		},
+		{
+			name: "unavailable does not count",
+			proxies: []service.ProxyHealthRow{
+				{ID: "a", Health: domain.ProxyHealthUnavailable},
+			},
+			available: false,
+			partial:   false,
+			step:      service.ChecklistProxyMissing,
+			complete:  false,
+		},
+		{
+			name: "unknown does not count",
+			proxies: []service.ProxyHealthRow{
+				{ID: "a", Health: domain.ProxyHealthUnknown},
+			},
+			available: false,
+			partial:   false,
+			step:      service.ChecklistProxyMissing,
+			complete:  false,
+		},
+		{
+			name: "auth failed does not count",
+			proxies: []service.ProxyHealthRow{
+				{ID: "a", Health: domain.ProxyHealthAuthenticationFailed},
+			},
+			available: false,
+			partial:   false,
+			step:      service.ChecklistProxyMissing,
+			complete:  false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sg := &service.SetupGuides{
+				Apps: &memAppsForGuides{apps: []domain.Application{{ID: "a1", DisplayName: "App"}}},
+				Snapshot: func(context.Context) (service.SnapshotResult, error) {
+					return service.SnapshotResult{
+						Bridge:           domain.BridgeStateReady,
+						AppliedConfirmed: true,
+						Proxies:          tt.proxies,
+					}, nil
+				},
+			}
+			got, err := sg.Checklist(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.ProxyAvailable != tt.available || got.ProxyPartial != tt.partial || got.ProxyStep != tt.step || got.Complete != tt.complete {
+				t.Fatalf("got available=%v partial=%v step=%q complete=%v", got.ProxyAvailable, got.ProxyPartial, got.ProxyStep, got.Complete)
+			}
+		})
+	}
+}
+
+func TestSetupGuidesChecklistDismiss(t *testing.T) {
+	bridge := domain.BridgeStateReady
+	var applied bool
+	apps := &memAppsForGuides{apps: []domain.Application{{ID: "a1", DisplayName: "App"}}}
+	sg := &service.SetupGuides{
+		Apps: apps,
+		Snapshot: func(context.Context) (service.SnapshotResult, error) {
+			return service.SnapshotResult{
+				Bridge:           bridge,
+				AppliedConfirmed: applied,
+				Proxies: []service.ProxyHealthRow{
+					{ID: "p1", Health: domain.ProxyHealthTCPAvailableUDPUnavailable},
+				},
+			}, nil
+		},
+	}
+
+	got, err := sg.Checklist(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Dismissed || !got.ProxyAvailable || !got.ProxyPartial || got.Complete {
+		t.Fatalf("before dismiss = %+v", got)
+	}
+
+	if err := sg.DismissChecklist(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	got, err = sg.Checklist(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.Dismissed {
+		t.Fatalf("after dismiss = %+v", got)
+	}
+
+	apps.apps = append(apps.apps, domain.Application{ID: "a2", DisplayName: "App2"})
+	got, err = sg.Checklist(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.Dismissed {
+		t.Fatalf("improve after dismiss cleared dismiss = %+v", got)
+	}
+
+	bridge = domain.BridgeStateNotInstalled
+	got, err = sg.Checklist(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Dismissed || got.BridgeFound {
+		t.Fatalf("after regression = %+v", got)
 	}
 }

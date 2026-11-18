@@ -247,13 +247,17 @@ export class ApplyResultDTO {
 
 /**
  * ChecklistDTO is the first-run checklist.
+ * ProxyStep is a closed token (missing|available|udp_limited|checking); English UI copy maps by message ID on the frontend for future i18n.
  */
 export class ChecklistDTO {
     "bridgeFound": boolean;
     "proxyAvailable": boolean;
+    "proxyPartial": boolean;
+    "proxyStep": string;
     "applicationAdded": boolean;
     "profileApplied": boolean;
     "complete": boolean;
+    "dismissed": boolean;
 
     /** Creates a new ChecklistDTO instance. */
     constructor($$source: Partial<ChecklistDTO> = {}) {
@@ -263,6 +267,12 @@ export class ChecklistDTO {
         if (!("proxyAvailable" in $$source)) {
             this["proxyAvailable"] = false;
         }
+        if (!("proxyPartial" in $$source)) {
+            this["proxyPartial"] = false;
+        }
+        if (!("proxyStep" in $$source)) {
+            this["proxyStep"] = "";
+        }
         if (!("applicationAdded" in $$source)) {
             this["applicationAdded"] = false;
         }
@@ -271,6 +281,9 @@ export class ChecklistDTO {
         }
         if (!("complete" in $$source)) {
             this["complete"] = false;
+        }
+        if (!("dismissed" in $$source)) {
+            this["dismissed"] = false;
         }
 
         Object.assign(this, $$source);
