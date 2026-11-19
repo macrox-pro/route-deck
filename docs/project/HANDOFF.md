@@ -1,49 +1,43 @@
 # Handoff
 
-Timestamp: 2026-11-18 22:05 UTC
-Agent: agent (RD-061 checklist partial + session dismiss)
-Task ID: RD-061
+Timestamp: 2026-11-19 16:54 UTC
+Agent: agent (archive Active REVIEW → DONE)
+Task ID: none (IDLE)
 Branch / commit: working tree (agent MUST NOT commit)
 
 ## Done
 
-- ADR-0013 patched: partial proxy step + session dismiss; Go `proxyStep` token; frontend message-ID copy for i18n
-- Checklist derives Available > UDP-limited > Checking; partial counts for Complete
-- Session `DismissChecklist` + fingerprint regression clear (separate from suggestion dismiss)
-- UI: yellow AlertTriangle + Tooltip; Dismiss; hide on complete/dismissed
-- Dashboard bumps checklistKey on Apply/Stop/Refresh
-- wails-api + bindings updated
+- Archived Active REVIEW to DONE: RD-007, RD-033, RD-037..RD-061
+- One-liners appended to `docs/project/COMPLETED.md` (now RD-000..RD-061)
+- Removed matching files under `docs/project/tasks/`
+- Cleared BACKLOG Active; STATUS = IDLE
+- Prior critical smoke: Apply→Active + Stop→Unprotected; checklist yellow/Dismiss/regression PASS
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `go test ./internal/application/service/ ./internal/adapter/inbound/wails/` | PASS |
-| `golangci-lint run ./...` | PASS (0 issues) |
-| `wails3 generate bindings -ts` | PASS |
-| `cd frontend && npm run build` | PASS |
-| macOS checklist smoke | NOT RUN (owner) |
+| COMPLETED.md contains RD-007, RD-033, RD-037..RD-061 | PASS |
+| `docs/project/tasks/` has no archived RD-*.md | PASS |
+| BACKLOG Active empty | PASS |
 
 ## Exact next step
 
-Owner: `wails3 dev` → Dashboard checklist with Shadowrocket `TCPAvailableUDPUnavailable` shows yellow warning + tooltip; Dismiss hides for session; remove bridge/proxy/app/apply step → checklist reappears.
+Owner commits; then create the next READY task file under `docs/project/tasks/` (e.g. `RD-062.md`) and point STATUS/BACKLOG/HANDOFF at it.
 
 ## Suggested commit message
 
 ```text
-treat udp-limited proxy as partial checklist step with session dismiss (rd-061)
+archive review tasks rd-007 and rd-033 through rd-061 into completed
 ```
 
 ## Context to read
 
-- `docs/project/tasks/RD-061.md`
-- `docs/decisions/ADR-0013-setup-guides.md`
-- `internal/application/service/setup_guides.go`
-- `frontend/src/components/application/setup-guide/checklist-copy.ts`
-- `frontend/src/components/application/setup-guide/setup-checklist.tsx`
+- `docs/project/STATUS.md`
+- `docs/project/BACKLOG.md`
+- `docs/project/COMPLETED.md` (only if past work needed)
 
 ## Notes
 
-- Partial health: TCPAvailableUDPUnavailable, Checking only.
-- Checklist dismiss is session-only; improve-after-dismiss stays hidden.
-- UI strings live in `checklist-copy.ts` under stable IDs for future frontend i18n.
+- Full task bodies remain in git history under former `docs/project/tasks/RD-*.md` paths.
+- Product code for these loops may still be uncommitted; archive is docs-only closure.

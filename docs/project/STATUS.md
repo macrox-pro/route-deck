@@ -1,32 +1,32 @@
 # Project Status
 
-Updated: 2026-11-18 22:05 UTC
-Updated by: agent (RD-061 checklist partial + session dismiss → REVIEW)
+Updated: 2026-11-19 16:54 UTC
+Updated by: agent (archive REVIEW RD-007, RD-033, RD-037..RD-061 → DONE)
 
 ## Current phase
 
-First-run checklist: partial proxy step + session dismiss (ADR-0013 patch).
+Idle after archive. Ready for next `RD-*` when owner opens one.
 
 ## Current task
 
-RD-061
+None
 
 ## State
 
-REVIEW
+IDLE
 
 ## Completed
 
-- Still in Active (REVIEW, not archived): RD-007, RD-033, RD-037..RD-061
-- DONE archive: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-036 except REVIEW gaps)
+- DONE archive: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-061)
+- Active backlog empty
 
 ## In progress
 
-- None. Waiting on owner smoke/commits.
+- None
 
 ## Blockers
 
-- RD-033 Apply→Active owner smoke still pending
+- None
 
 ## Known limitations
 
@@ -51,20 +51,19 @@ REVIEW
 - No automatic migration of prior localStorage theme into SQLite
 - Auto Apply at login may fail honestly if the local proxy is not listening yet (no startup retry; ADR-0015)
 - Complete with UDP-limited proxy may hide checklist while Protection stays Degraded (intentional; partial counts)
+- RD-033 edge scenarios (GUI Conflict, proxy-down, CLI kill, wake) not re-run in the 2026-11-19 critical smoke pass
 
 ## Next actions
 
-1. Owner: `wails3 dev` smoke — Shadowrocket TCP/UDP limited → yellow checklist step + tooltip; Dismiss hides; regress a step → reappear.
-2. Owner commits RD-061 (agent MUST NOT commit).
+1. Owner commits archive + any outstanding product diffs (agent MUST NOT commit).
+2. Owner: open next `docs/project/tasks/RD-062.md` (or later) when scope is ready → BACKLOG Active + STATUS.
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `go test ./internal/application/service/ ./internal/adapter/inbound/wails/` | PASS |
-| `golangci-lint run ./...` | PASS (0 issues) |
-| `wails3 generate bindings -ts` | PASS |
-| `cd frontend && npm run build` | PASS |
-| macOS checklist smoke | NOT RUN (owner) |
+| Archive RD-007, RD-033, RD-037..RD-061 into COMPLETED.md | PASS |
+| Remove matching `docs/project/tasks/RD-*.md` | PASS |
+| Critical smoke Apply→Active / checklist (prior) | PASS (owner) |
 
 Environment: macOS darwin/arm64; module `github.com/macrox-pro/route-deck`; Go `1.26.0`; Wails v3.0.0
