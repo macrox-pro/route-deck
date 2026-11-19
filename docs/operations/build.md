@@ -27,15 +27,16 @@ wails3 task darwin:package APP_VERSION=1.2.3 APP_COMMIT=$(git rev-parse --short=
 - UI sidebar / Settings label: `v1.2.3` or `dev` via `buildmeta.DisplayVersion`
 - `Info.plist` `CFBundleShortVersionString` / `CFBundleVersion`: numeric form, or `0.0.0` when `dev`
 
-## GitHub Actions (unsigned package)
+## GitHub Actions (unsigned package + tag Release)
 
 Workflow: `.github/workflows/build-macos.yml`.
 
 - Triggers: `workflow_dispatch`, push to `main`, tags `v*`
 - Runner: `macos-14` (arm64)
-- Command: `wails3 task darwin:package APP_VERSION=… APP_COMMIT=…` with `CGO_ENABLED=1` and `GOFLAGS=-mod=vendor`
+- Command: `wails3 task darwin:package:dmg APP_VERSION=… APP_COMMIT=…` with `CGO_ENABLED=1` and `GOFLAGS=-mod=vendor`
 - Tag `v*` → version without `v`; otherwise `dev`. Commit is `github.sha` short (7)
-- Artifact: `RouteDeck.app.zip` (ad-hoc codesign from the Taskfile only)
+- Artifact: `RouteDeck.dmg` (ad-hoc codesign from the Taskfile only)
+- On `v*` tags: published GitHub Release with that DMG only (no zip)
 - MUST NOT require Developer ID or notarization in this workflow
 - PR check gate stays `.github/workflows/ci.yml` (tests, lint, frontend build only)
 

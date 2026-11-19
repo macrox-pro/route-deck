@@ -1,8 +1,9 @@
 name: build-macos
 
-# Packages RouteDeck.app for smoke and internal distribution.
+# Packages RouteDeck.dmg for smoke, internal distribution, and tag Releases.
 # Ad-hoc codesign only (Taskfile). No Developer ID and no notarization.
 # Tag v1.2.3 → app version 1.2.3 (+ sidebar/Settings "v1.2.3"); otherwise "dev".
+# On v* tags: published GitHub Release with RouteDeck.dmg only (no zip).
 on:
   workflow_dispatch:
   push:
@@ -12,7 +13,7 @@ on:
       - "v*"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   package:
@@ -56,22 +57,33 @@ jobs:
           fi
           echo "commit=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
 
-      - name: Package RouteDeck.app
+      - name: Package RouteDeck.dmg
         env:
           GOFLAGS: -mod=vendor
         run: >
-          wails3 task darwin:package
+          wails3 task darwin:package:dmg
           APP_VERSION=${{ steps.meta.outputs.version }}
           APP_COMMIT=${{ steps.meta.outputs.commit }}
 
-      - name: Zip app bundle
-        run: |
-          test -d bin/RouteDeck.app
-          ditto -c -k --keepParent bin/RouteDeck.app bin/RouteDeck.app.zip
+      - name: Verify DMG
+        run: test -f bin/RouteDeck.dmg
 
-      - name: Upload RouteDeck.app.zip
+      - name: Upload RouteDeck.dmg
         uses: actions/upload-artifact@v4
         with:
           name: RouteDeck-macos-${{ steps.meta.outputs.version }}-${{ steps.meta.outputs.commit }}
-          path: bin/RouteDeck.app.zip
+          path: bin/RouteDeck.dmg
           if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bin/RouteDeck.dmg
+          draft: false
+          generate_release_notes: true
+          body: |
+            macOS DMG (ad-hoc codesign only — not notarized).
+            Gatekeeper may block first open: Right-click → Open.
+            RouteDeck does not embed ProxyBridge; install and approve the system extension separately.
+            See `docs/operations/release.md`.

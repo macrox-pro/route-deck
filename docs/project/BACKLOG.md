@@ -15,7 +15,9 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 ## Active
 
-_None. Next work needs a new `RD-*` task (TODO → READY)._
+| ID | Status | Goal |
+| --- | --- | --- |
+| [`RD-062`](tasks/RD-062.md) | REVIEW | On `v*` tags, CI builds a macOS DMG and publishes a GitHub Release with that DMG only. |
 
 ## Done
 

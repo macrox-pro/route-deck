@@ -1,28 +1,28 @@
 # Project Status
 
-Updated: 2026-11-19 16:54 UTC
-Updated by: agent (archive REVIEW RD-007, RD-033, RD-037..RD-061 → DONE)
+Updated: 2026-11-19 19:17 UTC
+Updated by: agent (RD-062 DMG + GitHub Release on v* tags → REVIEW)
 
 ## Current phase
 
-Idle after archive. Ready for next `RD-*` when owner opens one.
+CI tag releases: published GitHub Release with RouteDeck.dmg only.
 
 ## Current task
 
-None
+RD-062
 
 ## State
 
-IDLE
+REVIEW
 
 ## Completed
 
 - DONE archive: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-061)
-- Active backlog empty
+- Active: RD-062 REVIEW
 
 ## In progress
 
-- None
+- None. Waiting on owner commit + tag smoke.
 
 ## Blockers
 
@@ -45,7 +45,7 @@ IDLE
 - Proxy client icons only when host/port matches a documented Setup guide endpoint
 - Quitting with a dirty editor discards edits (ADR-0014 known limitation)
 - Old duplicate ProcessIdentity rows for one bundle id are collapsed at compile time, not migrated in SQLite
-- CI `build-macos` artifact is ad-hoc codesign only (Gatekeeper will warn); arm64 (`macos-14`) only
+- CI `build-macos` DMG is ad-hoc codesign only (Gatekeeper will warn); arm64 (`macos-14`) only; no notarization
 - Local `wails3 dev` always shows version `dev` (no ldflags injection in DEV builds)
 - Appearance chrome recreate may reject the calling SetAppearance promise (persist-first; new window loads via Get)
 - No automatic migration of prior localStorage theme into SQLite
@@ -55,15 +55,15 @@ IDLE
 
 ## Next actions
 
-1. Owner commits archive + any outstanding product diffs (agent MUST NOT commit).
-2. Owner: open next `docs/project/tasks/RD-062.md` (or later) when scope is ready → BACKLOG Active + STATUS.
+1. Owner commits RD-062 (agent MUST NOT commit).
+2. Owner: push a new `v*` tag (not reuse `v0.0.1` if already pushed without this workflow) and confirm Actions Release + DMG.
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| Archive RD-007, RD-033, RD-037..RD-061 into COMPLETED.md | PASS |
-| Remove matching `docs/project/tasks/RD-*.md` | PASS |
-| Critical smoke Apply→Active / checklist (prior) | PASS (owner) |
+| `golangci-lint run ./...` | PASS (0 issues) |
+| workflow inspect (`darwin:package:dmg` + gh-release) | PASS |
+| tag → GitHub Release smoke | NOT RUN (owner) |
 
 Environment: macOS darwin/arm64; module `github.com/macrox-pro/route-deck`; Go `1.26.0`; Wails v3.0.0

@@ -1,43 +1,42 @@
 # Handoff
 
-Timestamp: 2026-11-19 16:54 UTC
-Agent: agent (archive Active REVIEW → DONE)
-Task ID: none (IDLE)
+Timestamp: 2026-11-19 19:17 UTC
+Agent: agent (RD-062 DMG + GitHub Release)
+Task ID: RD-062
 Branch / commit: working tree (agent MUST NOT commit)
 
 ## Done
 
-- Archived Active REVIEW to DONE: RD-007, RD-033, RD-037..RD-061
-- One-liners appended to `docs/project/COMPLETED.md` (now RD-000..RD-061)
-- Removed matching files under `docs/project/tasks/`
-- Cleared BACKLOG Active; STATUS = IDLE
-- Prior critical smoke: Apply→Active + Stop→Unprotected; checklist yellow/Dismiss/regression PASS
+- `build-macos.yml`: `darwin:package:dmg` → artifact `RouteDeck.dmg`
+- On `v*` tags: published GitHub Release with DMG only (`softprops/action-gh-release@v2`)
+- `contents: write`; non-tag runs skip the Release step
+- Docs: `release.md`, `build.md`, ADR-0005 consequences
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| COMPLETED.md contains RD-007, RD-033, RD-037..RD-061 | PASS |
-| `docs/project/tasks/` has no archived RD-*.md | PASS |
-| BACKLOG Active empty | PASS |
+| `golangci-lint run ./...` | PASS (0 issues) |
+| workflow inspect | PASS |
+| tag → Release smoke | NOT RUN (owner) |
 
 ## Exact next step
 
-Owner commits; then create the next READY task file under `docs/project/tasks/` (e.g. `RD-062.md`) and point STATUS/BACKLOG/HANDOFF at it.
+Owner commits, then `git tag v0.0.2 && git push origin v0.0.2` (or next free tag) and open the GitHub Release for the DMG.
 
 ## Suggested commit message
 
 ```text
-archive review tasks rd-007 and rd-033 through rd-061 into completed
+publish github release with dmg on version tags (rd-062)
 ```
 
 ## Context to read
 
-- `docs/project/STATUS.md`
-- `docs/project/BACKLOG.md`
-- `docs/project/COMPLETED.md` (only if past work needed)
+- `docs/project/tasks/RD-062.md`
+- `.github/workflows/build-macos.yml`
+- `docs/operations/release.md`
 
 ## Notes
 
-- Full task bodies remain in git history under former `docs/project/tasks/RD-*.md` paths.
-- Product code for these loops may still be uncommitted; archive is docs-only closure.
+- Owner decisions: DMG only; published immediately; no GoReleaser.
+- Ad-hoc codesign / Gatekeeper blurb is in the Release body template.
