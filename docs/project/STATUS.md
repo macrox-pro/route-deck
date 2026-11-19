@@ -1,28 +1,28 @@
 # Project Status
 
-Updated: 2026-11-19 19:19 UTC
-Updated by: agent (RD-062 + macos-15 runner fix → REVIEW)
+Updated: 2026-11-19 20:01 UTC
+Updated by: agent (RD-062 → DONE archive)
 
 ## Current phase
 
-CI tag releases: published GitHub Release with RouteDeck.dmg only.
+Idle after RD-062. Ready for next `RD-*` when owner opens one.
 
 ## Current task
 
-RD-062
+None
 
 ## State
 
-REVIEW
+IDLE
 
 ## Completed
 
-- DONE archive: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-061)
-- Active: RD-062 REVIEW
+- DONE archive: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-062)
+- Active backlog empty
 
 ## In progress
 
-- None. Waiting on owner commit + tag smoke.
+- None
 
 ## Blockers
 
@@ -52,18 +52,21 @@ REVIEW
 - Auto Apply at login may fail honestly if the local proxy is not listening yet (no startup retry; ADR-0015)
 - Complete with UDP-limited proxy may hide checklist while Protection stays Degraded (intentional; partial counts)
 - RD-033 edge scenarios (GUI Conflict, proxy-down, CLI kill, wake) not re-run in the 2026-11-19 critical smoke pass
+- Tag → GitHub Release smoke for RD-062 left to owner (`git push origin v*`)
 
 ## Next actions
 
-1. Owner commits RD-062 (agent MUST NOT commit).
-2. Owner: push a new `v*` tag (not reuse `v0.0.1` if already pushed without this workflow) and confirm Actions Release + DMG.
+1. Owner commits this archive (agent MUST NOT commit).
+2. Owner: push a new `v*` tag and confirm Actions Release + DMG (if not already done).
+3. Owner: open next `docs/project/tasks/RD-*.md` when scope is ready → BACKLOG Active + STATUS.
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `golangci-lint run ./...` | PASS (0 issues) |
-| workflow inspect (`darwin:package:dmg` + gh-release) | PASS |
+| Archive RD-062 into COMPLETED.md | PASS |
+| Remove `docs/project/tasks/RD-062.md` | PASS |
+| `golangci-lint run ./...` (prior RD-062) | PASS (0 issues) |
 | tag → GitHub Release smoke | NOT RUN (owner) |
 
 Environment: macOS darwin/arm64; module `github.com/macrox-pro/route-deck`; Go `1.26.0`; Wails v3.0.0

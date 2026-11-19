@@ -70,3 +70,4 @@ When a task becomes DONE: append one row here, remove `docs/project/tasks/RD-XXX
 | RD-059 | Persist Appearance in SQLite and sync native window chrome via recreate. |
 | RD-060 | Opt-out Auto Apply on launch (default ON) via ADR-0015 gates + existing Apply path. |
 | RD-061 | First-run checklist: partial proxy step (UDP-limited/Checking) + session dismiss with regression. |
+| RD-062 | On `v*` tags, CI builds a macOS DMG and publishes a GitHub Release with that DMG only. |

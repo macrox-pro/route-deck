@@ -15,10 +15,8 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 ## Active
 
-| ID | Status | Goal |
-| --- | --- | --- |
-| [`RD-062`](tasks/RD-062.md) | REVIEW | On `v*` tags, CI builds a macOS DMG and publishes a GitHub Release with that DMG only. |
+_None. Next work needs a new `RD-*` task (TODO → READY)._
 
 ## Done
 
-Archived one-liners: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-061). Full task files removed from `tasks/`; recover from git if needed.
+Archived one-liners: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-062). Full task files removed from `tasks/`; recover from git if needed.
