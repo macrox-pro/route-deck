@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   package:
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       CGO_ENABLED: "1"
     steps:
@@ -76,7 +76,8 @@ jobs:
           if-no-files-found: error
 
       - name: Create GitHub Release
-        if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+        # Only tag pushes matching v* (not main, not workflow_dispatch).
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: bin/RouteDeck.dmg

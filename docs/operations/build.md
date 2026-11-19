@@ -32,7 +32,7 @@ wails3 task darwin:package APP_VERSION=1.2.3 APP_COMMIT=$(git rev-parse --short=
 Workflow: `.github/workflows/build-macos.yml`.
 
 - Triggers: `workflow_dispatch`, push to `main`, tags `v*`
-- Runner: `macos-14` (arm64)
+- Runner: `macos-15` (arm64; `macos-14` retired by GitHub 2026-11-02)
 - Command: `wails3 task darwin:package:dmg APP_VERSION=… APP_COMMIT=…` with `CGO_ENABLED=1` and `GOFLAGS=-mod=vendor`
 - Tag `v*` → version without `v`; otherwise `dev`. Commit is `github.sha` short (7)
 - Artifact: `RouteDeck.dmg` (ad-hoc codesign from the Taskfile only)

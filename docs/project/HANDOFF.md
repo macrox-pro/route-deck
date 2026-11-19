@@ -1,15 +1,16 @@
 # Handoff
 
-Timestamp: 2026-11-19 19:17 UTC
-Agent: agent (RD-062 DMG + GitHub Release)
+Timestamp: 2026-11-19 19:19 UTC
+Agent: agent (RD-062 DMG + GitHub Release; macos-15 runner)
 Task ID: RD-062
 Branch / commit: working tree (agent MUST NOT commit)
 
 ## Done
 
 - `build-macos.yml`: `darwin:package:dmg` → artifact `RouteDeck.dmg`
-- On `v*` tags: published GitHub Release with DMG only (`softprops/action-gh-release@v2`)
-- `contents: write`; non-tag runs skip the Release step
+- On `v*` tag **push** only: published GitHub Release with DMG only (`softprops/action-gh-release@v2`)
+- `contents: write`; `main` / `workflow_dispatch` skip the Release step (`if: push && refs/tags/v*`)
+- Runner `macos-14` → `macos-15` (GitHub retired macos-14; annotation macos-14-arm64-us-default)
 - Docs: `release.md`, `build.md`, ADR-0005 consequences
 
 ## Verification

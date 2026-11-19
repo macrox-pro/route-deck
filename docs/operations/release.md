@@ -16,7 +16,7 @@ v1 ships a macOS `.app` / `.dmg` built with Wails v3.0.0. No Windows or Linux pr
 
 `.github/workflows/build-macos.yml` runs `wails3 task darwin:package:dmg` with `APP_VERSION` / `APP_COMMIT` derived from the git tag (`v*` → semver without `v`, else `dev`) and short SHA, then uploads `RouteDeck.dmg` as a workflow artifact.
 
-On tag pushes matching `v*`, the same job creates a **published** GitHub Release for that tag and attaches **only** `RouteDeck.dmg` (no `.app` zip). Release notes are generated from commits plus a short ad-hoc / Gatekeeper blurb.
+On **tag pushes** matching `v*` only (not `main`, not `workflow_dispatch`), the same job creates a **published** GitHub Release for that tag and attaches **only** `RouteDeck.dmg` (no `.app` zip). Release notes are generated from commits plus a short ad-hoc / Gatekeeper blurb.
 
 That build uses Taskfile ad-hoc codesign only. It is for smoke and internal testers, not Gatekeeper-clean public distribution. Prefer release tags of the form `vMAJOR.MINOR.PATCH`.
 

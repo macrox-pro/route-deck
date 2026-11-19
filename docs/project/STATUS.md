@@ -1,7 +1,7 @@
 # Project Status
 
-Updated: 2026-11-19 19:17 UTC
-Updated by: agent (RD-062 DMG + GitHub Release on v* tags → REVIEW)
+Updated: 2026-11-19 19:19 UTC
+Updated by: agent (RD-062 + macos-15 runner fix → REVIEW)
 
 ## Current phase
 
@@ -45,7 +45,7 @@ REVIEW
 - Proxy client icons only when host/port matches a documented Setup guide endpoint
 - Quitting with a dirty editor discards edits (ADR-0014 known limitation)
 - Old duplicate ProcessIdentity rows for one bundle id are collapsed at compile time, not migrated in SQLite
-- CI `build-macos` DMG is ad-hoc codesign only (Gatekeeper will warn); arm64 (`macos-14`) only; no notarization
+- CI `build-macos` DMG is ad-hoc codesign only (Gatekeeper will warn); arm64 (`macos-15`) only; no notarization
 - Local `wails3 dev` always shows version `dev` (no ldflags injection in DEV builds)
 - Appearance chrome recreate may reject the calling SetAppearance promise (persist-first; new window loads via Get)
 - No automatic migration of prior localStorage theme into SQLite
