@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import { Events } from "@wailsio/runtime";
 import { DialogFooter } from "@/components/application/dialog-shell/dialog-footer";
 import { DialogShell } from "@/components/application/dialog-shell/dialog-shell";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
@@ -88,6 +89,75 @@ function draftsFromPolicies(policies: PolicyDTO[]): Record<string, ProcessDraft>
         drafts[policy.processId] = draftFromPolicy(policy);
     }
     return drafts;
+}
+
+type AppRowState = {
+    app: ApplicationDTO;
+    main?: ProcessIdentityDTO;
+    /** All catalog process ids for the app main bundle (for sibling clear). */
+    mainProcessIds: string[];
+    groups: HelperGroupDTO[];
+    iconPath?: string;
+};
+
+function firstConfiguredDraft(
+    drafts: Record<string, ProcessDraft>,
+    processIds: string[],
+): ProcessDraft | undefined {
+    for (const processId of processIds) {
+        const draft = drafts[processId];
+        if (draft?.action) {
+            return draft;
+        }
+    }
+    return undefined;
+}
+
+/** Remap stored policies onto UI representatives so badges and controls match (ADR-0019). */
+function normalizeDraftsToRows(
+    raw: Record<string, ProcessDraft>,
+    rows: AppRowState[],
+): Record<string, ProcessDraft> {
+    const normalized: Record<string, ProcessDraft> = {};
+
+    for (const row of rows) {
+        if (row.main) {
+            const ids = row.mainProcessIds.length > 0 ? row.mainProcessIds : [row.main.id];
+            const found = firstConfiguredDraft(raw, ids);
+            if (found) {
+                normalized[row.main.id] = { ...found };
+            }
+        }
+        for (const group of row.groups) {
+            const ids = group.processIds ?? [];
+            const representative = ids[0];
+            if (!representative) {
+                continue;
+            }
+            const found = firstConfiguredDraft(raw, ids);
+            if (found) {
+                normalized[representative] = { ...found };
+            }
+        }
+    }
+
+    return normalized;
+}
+
+function clearSiblingDrafts(
+    prev: Record<string, ProcessDraft>,
+    processIds: string[],
+    keepId: string,
+    nextDraft: ProcessDraft | null,
+): Record<string, ProcessDraft> {
+    const out: Record<string, ProcessDraft> = { ...prev };
+    for (const id of processIds) {
+        delete out[id];
+    }
+    if (nextDraft?.action) {
+        out[keepId] = nextDraft;
+    }
+    return out;
 }
 
 function actionSummary(draft: ProcessDraft, proxies: ProxyDTO[]): string {
@@ -188,13 +258,6 @@ function ProcessActionControls({
     );
 }
 
-type AppRowState = {
-    app: ApplicationDTO;
-    main?: ProcessIdentityDTO;
-    groups: HelperGroupDTO[];
-    iconPath?: string;
-};
-
 export function ProfileEditorDialog() {
     const { id = "" } = useParams();
     const [name, setName] = useState("");
@@ -253,11 +316,15 @@ export function ProfileEditorDialog() {
                 const nextRows: AppRowState[] = applicationRows.map((app, index) => {
                     const processes = processRows.filter((process) => process.applicationId === app.id);
                     const mains = processes.filter((process) => process.bundleId === app.bundleId);
-                    const main = [...mains].sort((a, b) => a.id.localeCompare(b.id))[0];
+                    const mainProcessIds = [...mains].map((p) => p.id).sort((a, b) => a.localeCompare(b));
+                    const main = mains.length
+                        ? [...mains].sort((a, b) => a.id.localeCompare(b.id))[0]
+                        : undefined;
                     const groups = (groupResults[index] ?? []).filter((group) => group.bundleId !== app.bundleId);
                     return {
                         app,
                         main,
+                        mainProcessIds,
                         groups,
                         iconPath: appBundlePath(main?.path) || appBundlePath(processes[0]?.path),
                     };
@@ -270,7 +337,8 @@ export function ProfileEditorDialog() {
                         setLoaded(true);
                         return;
                     }
-                    const nextDrafts = draftsFromPolicies(profile.policies ?? []);
+                    const rawDrafts = draftsFromPolicies(profile.policies ?? []);
+                    const nextDrafts = normalizeDraftsToRows(rawDrafts, nextRows);
                     setName(profile.name);
                     setBaselineName(profile.name);
                     setDrafts(nextDrafts);
@@ -342,15 +410,30 @@ export function ProfileEditorDialog() {
         });
     }, [configuredOnly, drafts, rows, search]);
 
+    const siblingIdsFor = (processId: string): string[] => {
+        for (const row of rows) {
+            if (row.main?.id === processId || row.mainProcessIds.includes(processId)) {
+                return row.mainProcessIds.length > 0 ? row.mainProcessIds : [processId];
+            }
+            for (const group of row.groups) {
+                const ids = group.processIds ?? [];
+                if (ids.includes(processId)) {
+                    return ids;
+                }
+            }
+        }
+        return [processId];
+    };
+
     const onDraftChange = (processId: string, patch: Partial<ProcessDraft>) => {
         setDrafts((prev) => {
             const current = prev[processId] ?? NONE_DRAFT();
             const next = { ...current, ...patch };
+            const siblings = siblingIdsFor(processId);
             if (!next.action) {
-                const { [processId]: _, ...rest } = prev;
-                return rest;
+                return clearSiblingDrafts(prev, siblings, processId, null);
             }
-            return { ...prev, [processId]: next };
+            return clearSiblingDrafts(prev, siblings, processId, next);
         });
     };
 
@@ -360,22 +443,23 @@ export function ProfileEditorDialog() {
         }
         const source = drafts[row.main.id] ?? NONE_DRAFT();
         setDrafts((prev) => {
-            const next = { ...prev };
+            let next = { ...prev };
             for (const group of row.groups) {
-                const processId = group.processIds?.[0];
+                const ids = group.processIds ?? [];
+                const processId = ids[0];
                 if (!processId) {
                     continue;
                 }
                 if (!source.action) {
-                    delete next[processId];
+                    next = clearSiblingDrafts(next, ids, processId, null);
                     continue;
                 }
-                next[processId] = {
+                next = clearSiblingDrafts(next, ids, processId, {
                     action: source.action,
                     proxyId: source.proxyId,
                     protocolScope: source.protocolScope,
                     udpLimitation: source.udpLimitation,
-                };
+                });
             }
             return next;
         });
@@ -385,9 +469,13 @@ export function ProfileEditorDialog() {
         void EditorDialogsService.RequestClose("profile");
     }, []);
 
-    const onSave = useCallback(async () => {
+    const onSave = useCallback(async (forQuit = false) => {
         if (!name.trim()) {
-            setError("Profile name is required.");
+            const msg = "Profile name is required.";
+            setError(msg);
+            if (forQuit) {
+                await EditorDialogsService.AckSaveForQuit("profile", msg);
+            }
             return;
         }
         setBusy(true);
@@ -399,13 +487,30 @@ export function ProfileEditorDialog() {
                 policies: policiesFromDrafts(drafts),
             });
             await EditorDialogsService.SetDirty("profile", false);
-            await EditorDialogsService.Close("profile");
+            if (forQuit) {
+                await EditorDialogsService.AckSaveForQuit("profile", "");
+            } else {
+                await EditorDialogsService.Close("profile");
+            }
         } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
+            const msg = err instanceof Error ? err.message : String(err);
+            setError(msg);
+            if (forQuit) {
+                await EditorDialogsService.AckSaveForQuit("profile", msg);
+            }
         } finally {
             setBusy(false);
         }
     }, [drafts, id, name]);
+
+    useEffect(() => {
+        return Events.On("editors.save_for_quit", () => {
+            if (!dirty) {
+                return;
+            }
+            void onSave(true);
+        });
+    }, [dirty, onSave]);
 
     const saveDisabled = !loaded || !name.trim() || !dirty || busy;
 

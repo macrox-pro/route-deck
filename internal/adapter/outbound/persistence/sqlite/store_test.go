@@ -171,6 +171,32 @@ func TestRoundTripAggregates(t *testing.T) {
 	if err != nil || len(apps) != 1 {
 		t.Fatalf("ListApplications: %v len=%d", err, len(apps))
 	}
+
+	dismiss := store.Dismiss()
+	if err := dismiss.SaveChecklist(ctx, port.ChecklistDismiss{
+		Dismissed:      true,
+		BridgeFound:    true,
+		ProxyAvailable: true,
+	}); err != nil {
+		t.Fatalf("SaveChecklist: %v", err)
+	}
+	if err := dismiss.AddSuggestion(ctx, "shadowrocket", 1082); err != nil {
+		t.Fatalf("AddSuggestion: %v", err)
+	}
+	gotChecklist, err := dismiss.GetChecklist(ctx)
+	if err != nil {
+		t.Fatalf("GetChecklist: %v", err)
+	}
+	if !gotChecklist.Dismissed || !gotChecklist.BridgeFound || !gotChecklist.ProxyAvailable {
+		t.Fatalf("checklist = %+v", gotChecklist)
+	}
+	gotSug, err := dismiss.ListSuggestions(ctx)
+	if err != nil {
+		t.Fatalf("ListSuggestions: %v", err)
+	}
+	if len(gotSug) != 1 || gotSug[0].GuideID != "shadowrocket" || gotSug[0].Port != 1082 {
+		t.Fatalf("suggestions = %+v", gotSug)
+	}
 }
 
 func TestUnsetActionRejected(t *testing.T) {

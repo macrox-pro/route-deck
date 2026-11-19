@@ -72,9 +72,7 @@ func (s *ProtectionService) Apply(ctx context.Context) (ApplyResultDTO, error) {
 		applyCtx := context.Background()
 		if err := s.Coordinator.Apply(applyCtx, desiredID, opID); err != nil {
 			logProtectionFailure(s.logger(), "apply failed", opID, err)
-			if strings.Contains(err.Error(), string(port.BridgeLineGUIConflict)) && s.Dialog != nil {
-				s.Dialog.Warning(UserMsgGUIConflict)
-			}
+			warnApplyFailure(s.Dialog, err)
 			emit(s.Emit, EventOperationFailed, map[string]any{
 				"operation_id": opID,
 				"error":        err.Error(),
@@ -159,4 +157,17 @@ func isOperationalProtectionErr(err error) bool {
 		return true
 	}
 	return false
+}
+
+func warnApplyFailure(dialog UserDialog, err error) {
+	if dialog == nil || err == nil {
+		return
+	}
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, string(port.BridgeLineGUIConflict)):
+		dialog.Warning(UserMsgGUIConflict)
+	case strings.Contains(msg, string(port.BridgeLineExtensionTimeout)):
+		dialog.Warning(UserMsgExtensionTimeout)
+	}
 }

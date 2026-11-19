@@ -20,6 +20,7 @@ Each product event payload MUST include:
 | `application.discovered` | Discovery found an app |
 | `operation.progress` | Long operation tick (`operation_id`) |
 | `operation.failed` | Long operation failed (`operation_id`, typed error) |
+| `editors.save_for_quit` | Quit Save and Quit asked dirty profile/proxy editors to run Save (ADR-0018; `kinds`) |
 
 `connection.observed` is not a v1 event. Activity reads the RouteDeck JSON log (ADR-0011), not a stored copy of these Wails events and not a parsed CLI connection stream. Product events may trigger an Activity reload; they are not proof of `Active`.
 

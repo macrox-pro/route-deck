@@ -24,7 +24,9 @@ export function Copy(sourceID: string, newName: string): $CancellablePromise<$mo
 }
 
 /**
- * Delete removes a profile that is not desired or applied.
+ * Delete confirms with a native Question dialog, then removes the profile.
+ * Desired is cleared in the same path. Applied profiles are Stopped first (ADR-0019 UX).
+ * Cancel returns nil without deleting. MUST NOT use window.confirm (unreliable in Wails).
  */
 export function Delete(id: string): $CancellablePromise<void> {
     return $Call.ByID(968628901, id);

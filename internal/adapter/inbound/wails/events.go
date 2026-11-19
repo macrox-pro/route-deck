@@ -12,6 +12,7 @@ const (
 	EventOperationProgress       = "operation.progress"
 	EventOperationFailed         = "operation.failed"
 	EventCatalogChanged          = "catalog.changed"
+	EventEditorsSaveForQuit      = "editors.save_for_quit"
 )
 
 // EventEnvelope is the product event shape.

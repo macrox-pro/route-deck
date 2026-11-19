@@ -72,3 +72,35 @@ func TestApplyShowsWarningOnGUIConflict(t *testing.T) {
 		t.Fatalf("warning id = %q", got.ID)
 	}
 }
+
+func TestApplyShowsWarningOnExtensionTimeout(t *testing.T) {
+	dialog := &fakeDialog{}
+	svc := &wails.ProtectionService{
+		Coordinator: &fakeCoordinator{err: errors.New("protection apply confirm: bridge process: " + string(port.BridgeLineExtensionTimeout))},
+		Settings:    fakeSettings{},
+		NewID:       func() (string, error) { return "op-2", nil },
+		Dialog:      dialog,
+	}
+	if _, err := svc.Apply(context.Background()); err != nil {
+		t.Fatalf("Apply sync: %v", err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		dialog.mu.Lock()
+		n := len(dialog.warnings)
+		dialog.mu.Unlock()
+		if n == 1 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("warnings = %d, want 1", n)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	dialog.mu.Lock()
+	got := dialog.warnings[0]
+	dialog.mu.Unlock()
+	if got.ID != "protection.extension_timeout" {
+		t.Fatalf("warning id = %q", got.ID)
+	}
+}

@@ -30,6 +30,14 @@ type Stopper interface {
 	Stop(ctx context.Context, operationID string) error
 }
 
+// DirtyEditors reports dirty editor state for Quit (ADR-0018).
+type DirtyEditors interface {
+	HasDirty() bool
+	DirtySaveableKinds() []string
+	RunSaveForQuit() error
+	CloseAllForced()
+}
+
 // Controller owns the system tray menu and shared Quit dialog (ADR-0010).
 type Controller struct {
 	App        *application.App
@@ -37,6 +45,7 @@ type Controller struct {
 	Snapshot   SnapshotSource
 	Bridge     BridgeReader
 	Protection Stopper
+	Editors    DirtyEditors
 	Logger     *slog.Logger
 	// FocusEditor focuses an open editor dialog when set; returns true when focused.
 	FocusEditor func() bool
@@ -255,10 +264,17 @@ func (c *Controller) RequestQuit() {
 		bridge = c.Bridge.BridgeState()
 	}
 	owned := CLIOwned(bridge)
+	dirty := c.Editors != nil && c.Editors.HasDirty()
+	saveable := dirty && c.Editors != nil && len(c.Editors.DirtySaveableKinds()) > 0
+
+	msg := QuitMessage(owned)
+	if dirty {
+		msg = QuitDirtyMessage(owned)
+	}
 
 	dialog := c.App.Dialog.Question().
 		SetTitle("Quit RouteDeck").
-		SetMessage(QuitMessage(owned))
+		SetMessage(msg)
 	if c.Window != nil {
 		dialog.AttachToWindow(c.Window)
 	}
@@ -266,16 +282,43 @@ func (c *Controller) RequestQuit() {
 	cancel.OnClick(func() {
 		c.quitDialoging.Store(false)
 	})
+	if saveable {
+		saveQuit := dialog.AddButton("Save and Quit")
+		saveQuit.OnClick(func() {
+			go c.finishQuitAfterSave(owned)
+		})
+	}
 	quit := dialog.AddButton("Quit").SetAsDefault()
 	quit.OnClick(func() {
-		if owned && c.Protection != nil {
-			if err := c.Protection.Stop(context.Background(), "tray-quit"); err != nil {
-				c.logger().Error("tray quit stop failed", "component", "tray", "err", err)
-			}
-		}
-		c.allowQuit.Store(true)
-		c.quitDialoging.Store(false)
-		c.App.Quit()
+		c.finishQuitDiscard(owned)
 	})
 	dialog.Show()
+}
+
+func (c *Controller) finishQuitAfterSave(owned bool) {
+	if c.Editors != nil {
+		if err := c.Editors.RunSaveForQuit(); err != nil {
+			c.logger().Warn("save and quit failed", "component", "tray", "err", err)
+			c.quitDialoging.Store(false)
+			return
+		}
+		c.Editors.CloseAllForced()
+	}
+	c.finishQuitDiscard(owned)
+}
+
+func (c *Controller) finishQuitDiscard(owned bool) {
+	if c.Editors != nil {
+		c.Editors.CloseAllForced()
+	}
+	if owned && c.Protection != nil {
+		if err := c.Protection.Stop(context.Background(), "tray-quit"); err != nil {
+			c.logger().Error("tray quit stop failed", "component", "tray", "err", err)
+		}
+	}
+	c.allowQuit.Store(true)
+	c.quitDialoging.Store(false)
+	if c.App != nil {
+		c.App.Quit()
+	}
 }

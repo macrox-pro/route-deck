@@ -57,6 +57,29 @@ type SettingsStore interface {
 	Save(ctx context.Context, settings Settings) error
 }
 
+// ChecklistDismiss is the persisted first-run checklist dismiss flag and regression fingerprint (ADR-0016).
+type ChecklistDismiss struct {
+	Dismissed        bool
+	BridgeFound      bool
+	ProxyAvailable   bool
+	ApplicationAdded bool
+	ProfileApplied   bool
+}
+
+// SuggestionDismiss is one dismissed suggestion banner key (ADR-0016).
+type SuggestionDismiss struct {
+	GuideID string
+	Port    int
+}
+
+// DismissStore loads and saves checklist and suggestion dismiss state (ADR-0016).
+type DismissStore interface {
+	GetChecklist(ctx context.Context) (ChecklistDismiss, error)
+	SaveChecklist(ctx context.Context, dismiss ChecklistDismiss) error
+	ListSuggestions(ctx context.Context) ([]SuggestionDismiss, error)
+	AddSuggestion(ctx context.Context, guideID string, port int) error
+}
+
 // SecretStore loads and stores secret bytes for a Keychain reference.
 type SecretStore interface {
 	Load(ctx context.Context, ref domain.KeychainRef) ([]byte, error)

@@ -68,6 +68,8 @@ func Open(ctx context.Context, path string) (*DB, error) {
 		&profileModel{},
 		&applicationPolicyModel{},
 		&settingsModel{},
+		&checklistDismissModel{},
+		&suggestionDismissModel{},
 	); err != nil {
 		_ = sqlDB.Close()
 		return nil, fmt.Errorf("sqlite automigrate: %w", err)

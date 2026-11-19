@@ -576,3 +576,83 @@ func (s settingsStore) Save(ctx context.Context, settings port.Settings) error {
 func (s *Store) Settings() port.SettingsStore { return settingsStore{s} }
 
 var _ port.SettingsStore = settingsStore{}
+
+// GetChecklist loads the single checklist dismiss row (defaults when missing).
+func (s *Store) GetChecklist(ctx context.Context) (port.ChecklistDismiss, error) {
+	var row checklistDismissModel
+	err := s.db.WithContext(ctx).Where("id = ?", 1).First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return port.ChecklistDismiss{}, nil
+	}
+	if err != nil {
+		return port.ChecklistDismiss{}, fmt.Errorf("checklist dismiss get: %w", err)
+	}
+	return port.ChecklistDismiss{
+		Dismissed:        row.Dismissed,
+		BridgeFound:      row.BridgeFound,
+		ProxyAvailable:   row.ProxyAvailable,
+		ApplicationAdded: row.ApplicationAdded,
+		ProfileApplied:   row.ProfileApplied,
+	}, nil
+}
+
+// SaveChecklist upserts the single checklist dismiss row.
+func (s *Store) SaveChecklist(ctx context.Context, dismiss port.ChecklistDismiss) error {
+	row := checklistDismissModel{
+		ID:               1,
+		Dismissed:        dismiss.Dismissed,
+		BridgeFound:      dismiss.BridgeFound,
+		ProxyAvailable:   dismiss.ProxyAvailable,
+		ApplicationAdded: dismiss.ApplicationAdded,
+		ProfileApplied:   dismiss.ProfileApplied,
+	}
+	if err := s.db.WithContext(ctx).Save(&row).Error; err != nil {
+		return fmt.Errorf("checklist dismiss save: %w", err)
+	}
+	return nil
+}
+
+// ListSuggestions returns all dismissed suggestion keys.
+func (s *Store) ListSuggestions(ctx context.Context) ([]port.SuggestionDismiss, error) {
+	var rows []suggestionDismissModel
+	if err := s.db.WithContext(ctx).Find(&rows).Error; err != nil {
+		return nil, fmt.Errorf("suggestion dismiss list: %w", err)
+	}
+	out := make([]port.SuggestionDismiss, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, port.SuggestionDismiss{GuideID: row.GuideID, Port: row.Port})
+	}
+	return out, nil
+}
+
+// AddSuggestion upserts one dismissed suggestion key.
+func (s *Store) AddSuggestion(ctx context.Context, guideID string, portNum int) error {
+	row := suggestionDismissModel{GuideID: guideID, Port: portNum}
+	if err := s.db.WithContext(ctx).Save(&row).Error; err != nil {
+		return fmt.Errorf("suggestion dismiss add: %w", err)
+	}
+	return nil
+}
+
+type dismissStore struct{ *Store }
+
+func (s dismissStore) GetChecklist(ctx context.Context) (port.ChecklistDismiss, error) {
+	return s.Store.GetChecklist(ctx)
+}
+
+func (s dismissStore) SaveChecklist(ctx context.Context, dismiss port.ChecklistDismiss) error {
+	return s.Store.SaveChecklist(ctx, dismiss)
+}
+
+func (s dismissStore) ListSuggestions(ctx context.Context) ([]port.SuggestionDismiss, error) {
+	return s.Store.ListSuggestions(ctx)
+}
+
+func (s dismissStore) AddSuggestion(ctx context.Context, guideID string, portNum int) error {
+	return s.Store.AddSuggestion(ctx, guideID, portNum)
+}
+
+// Dismiss returns the DismissStore view of this Store.
+func (s *Store) Dismiss() port.DismissStore { return dismissStore{s} }
+
+var _ port.DismissStore = dismissStore{}

@@ -13,6 +13,7 @@ declare module "@wailsio/runtime" {
     namespace Events {
         interface CustomEvents {
             "catalog.changed": wails$0.EventEnvelope;
+            "editors.save_for_quit": wails$0.EventEnvelope;
             "operation.failed": wails$0.EventEnvelope;
             "operation.progress": wails$0.EventEnvelope;
             "protection.state.changed": wails$0.EventEnvelope;

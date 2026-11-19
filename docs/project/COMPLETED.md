@@ -71,3 +71,9 @@ When a task becomes DONE: append one row here, remove `docs/project/tasks/RD-XXX
 | RD-060 | Opt-out Auto Apply on launch (default ON) via ADR-0015 gates + existing Apply path. |
 | RD-061 | First-run checklist: partial proxy step (UDP-limited/Checking) + session dismiss with regression. |
 | RD-062 | On `v*` tags, CI builds a macOS DMG and publishes a GitHub Release with that DMG only. |
+| RD-063 | Persist checklist and suggestion dismiss in SQLite (ADR-0016). |
+| RD-064 | One Auto Apply retry when proxy Unavailable, then Warning (ADR-0017). |
+| RD-065 | Quit warns; Save and Quit for dirty profile/proxy editors (ADR-0018). |
+| RD-066 | Native Warning for BridgeLineExtensionTimeout. |
+| RD-067 | Parallel health Recheck + emit proxy.health.changed on change. |
+| RD-068 | Profile Desired delete, editor process-id sync, last-wins match conflicts (ADR-0019). |

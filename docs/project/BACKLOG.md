@@ -19,4 +19,4 @@ _None. Next work needs a new `RD-*` task (TODO → READY)._
 
 ## Done
 
-Archived one-liners: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-062). Full task files removed from `tasks/`; recover from git if needed.
+Archived one-liners: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-067). Full task files removed from `tasks/`; recover from git if needed.

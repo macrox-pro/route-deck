@@ -24,7 +24,7 @@ Code signature and path stay UX warnings. They are not CLI match fields.
 
 Helper processes are not added to a rule until the user confirms them. Catalog stores at most one `ProcessIdentity` per bundle id per application (ADR-0014). Confirm sync removes unchecked groups; referenced helpers return `ErrReferenced`.
 
-When several stored identities share a bundle id and the same action, `BuildRulePlan` emits one rule whose `processNames` is only that bundle id. Different actions on a shared matchable name return `ErrConflictingMatch`. Neither error is rewritten to Direct.
+When several stored identities share a bundle id and the same action, `BuildRulePlan` emits one rule whose `processNames` is only that bundle id. Different actions on a shared matchable name are resolved **last-wins** (last policy in the list) before Save and Apply (ADR-0019); they are not rewritten to Direct. `ValidateMatchConflicts` remains for asserts after resolve.
 
 ## Invariants
 
@@ -36,7 +36,7 @@ When several stored identities share a bundle id and the same action, `BuildRule
 - Passwords are not fields on the domain aggregate that get persisted. Store a Keychain reference.
 - Deleting a proxy, application, or helper identity that any profile references returns `ErrReferenced`.
 - Duplicate application bundle ids return `ErrDuplicateBundleID`. Duplicate profile names return `ErrDuplicateProfileName`.
-- Conflicting actions on identities that share a matchable name return `ErrConflictingMatch`.
+- Conflicting actions on identities that share a matchable name are resolved last-wins on Save/Apply (ADR-0019); they MUST NOT be rewritten to Direct.
 - Protocol outside a Proxy policy's scope compiles to `BLOCK` (covered). HTTP+UDP uses `BLOCK` or `DIRECT` per `UDPLimitation`; UDP is not covered either way (ADR-0008).
 
 ## Apply failure

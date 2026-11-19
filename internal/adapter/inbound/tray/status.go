@@ -42,3 +42,12 @@ func QuitMessage(cliOwned bool) string {
 	}
 	return "Quit RouteDeck?"
 }
+
+// QuitDirtyMessage is the Question body when an editor has unsaved edits (ADR-0018).
+func QuitDirtyMessage(cliOwned bool) string {
+	base := "You have unsaved edits. Quitting discards them."
+	if cliOwned {
+		return base + " Protection will stop and the managed ProxyBridge process will exit."
+	}
+	return base
+}

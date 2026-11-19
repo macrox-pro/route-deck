@@ -75,3 +75,23 @@ type settingsModel struct {
 }
 
 func (settingsModel) TableName() string { return "settings" }
+
+// checklistDismissModel is a single-row checklist dismiss + fingerprint (ADR-0016).
+type checklistDismissModel struct {
+	ID               int  `gorm:"column:id;primaryKey"`
+	Dismissed        bool `gorm:"column:dismissed;not null;default:false"`
+	BridgeFound      bool `gorm:"column:bridge_found;not null;default:false"`
+	ProxyAvailable   bool `gorm:"column:proxy_available;not null;default:false"`
+	ApplicationAdded bool `gorm:"column:application_added;not null;default:false"`
+	ProfileApplied   bool `gorm:"column:profile_applied;not null;default:false"`
+}
+
+func (checklistDismissModel) TableName() string { return "checklist_dismiss" }
+
+// suggestionDismissModel is one dismissed suggestion (guideID, port) (ADR-0016).
+type suggestionDismissModel struct {
+	GuideID string `gorm:"column:guide_id;primaryKey"`
+	Port    int    `gorm:"column:port;primaryKey"`
+}
+
+func (suggestionDismissModel) TableName() string { return "suggestion_dismiss" }

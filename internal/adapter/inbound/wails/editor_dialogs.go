@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
@@ -22,12 +23,15 @@ type EditorDialogs struct {
 	App    *application.App
 	Parent *application.WebviewWindow
 	Logger *slog.Logger
+	Emit   Emitter
 
-	mu         sync.Mutex
-	windows    map[string]*application.WebviewWindow
-	dirty      map[string]bool
-	asking     map[string]bool // discard Question already open for kind
-	appearance string          // system|light|dark for create-time chrome
+	mu              sync.Mutex
+	windows         map[string]*application.WebviewWindow
+	dirty           map[string]bool
+	asking          map[string]bool // discard Question already open for kind
+	appearance      string          // system|light|dark for create-time chrome
+	saveForQuitWait map[string]struct{}
+	saveForQuitDone chan error
 }
 
 // SetAppearance stores the preference used when creating editor windows.
@@ -54,6 +58,90 @@ func (d *EditorDialogs) HasDirty() bool {
 		}
 	}
 	return false
+}
+
+// DirtySaveableKinds returns dirty profile/proxy kinds (ADR-0018 Save and Quit).
+func (d *EditorDialogs) DirtySaveableKinds() []string {
+	if d == nil {
+		return nil
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.ensureMaps()
+	out := make([]string, 0, 2)
+	for _, kind := range []string{DialogKindProfile, DialogKindProxy} {
+		if d.dirty[kind] {
+			out = append(out, kind)
+		}
+	}
+	return out
+}
+
+// RunSaveForQuit emits editors.save_for_quit and waits for AckSaveForQuit from each dirty saveable kind.
+func (d *EditorDialogs) RunSaveForQuit() error {
+	if d == nil {
+		return nil
+	}
+	kinds := d.DirtySaveableKinds()
+	if len(kinds) == 0 {
+		return nil
+	}
+	d.mu.Lock()
+	if d.saveForQuitDone != nil {
+		d.mu.Unlock()
+		return fmt.Errorf("editor dialogs: save for quit already in progress")
+	}
+	d.saveForQuitWait = make(map[string]struct{}, len(kinds))
+	for _, kind := range kinds {
+		d.saveForQuitWait[kind] = struct{}{}
+	}
+	done := make(chan error, 1)
+	d.saveForQuitDone = done
+	d.mu.Unlock()
+
+	emit(d.Emit, EventEditorsSaveForQuit, map[string]any{"kinds": kinds})
+
+	timer := time.NewTimer(2 * time.Minute)
+	defer timer.Stop()
+	select {
+	case err := <-done:
+		return err
+	case <-timer.C:
+		d.mu.Lock()
+		d.saveForQuitWait = nil
+		d.saveForQuitDone = nil
+		d.mu.Unlock()
+		return fmt.Errorf("editor dialogs: save for quit timed out")
+	}
+}
+
+// AckSaveForQuit records one kind's save result during Save and Quit (ADR-0018).
+func (d *EditorDialogs) AckSaveForQuit(kind, errMsg string) {
+	if d == nil {
+		return
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.saveForQuitDone == nil || d.saveForQuitWait == nil {
+		return
+	}
+	if _, ok := d.saveForQuitWait[kind]; !ok {
+		return
+	}
+	delete(d.saveForQuitWait, kind)
+	if errMsg != "" {
+		done := d.saveForQuitDone
+		d.saveForQuitWait = nil
+		d.saveForQuitDone = nil
+		done <- fmt.Errorf("%s", errMsg)
+		return
+	}
+	if len(d.saveForQuitWait) > 0 {
+		return
+	}
+	done := d.saveForQuitDone
+	d.saveForQuitDone = nil
+	done <- nil
 }
 
 // CloseAllForced force-closes every editor window without a discard prompt.
@@ -349,5 +437,19 @@ func (s *EditorDialogsService) RequestClose(kind string) error {
 		return fmt.Errorf("editor dialogs: unknown kind %q", kind)
 	}
 	s.Dialogs.close(kind, false)
+	return nil
+}
+
+// AckSaveForQuit acknowledges one editor's save during Quit Save and Quit (ADR-0018).
+func (s *EditorDialogsService) AckSaveForQuit(kind, errMsg string) error {
+	if s == nil || s.Dialogs == nil {
+		return fmt.Errorf("editor dialogs: not configured")
+	}
+	switch kind {
+	case DialogKindProfile, DialogKindProxy:
+	default:
+		return fmt.Errorf("editor dialogs: unknown kind %q", kind)
+	}
+	s.Dialogs.AckSaveForQuit(kind, errMsg)
 	return nil
 }

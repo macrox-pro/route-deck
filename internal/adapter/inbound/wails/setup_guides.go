@@ -196,14 +196,6 @@ func (s *SetupGuidesService) Suggestions(ctx context.Context) ([]SuggestionDTO, 
 	return out, nil
 }
 
-// DismissSuggestion hides a suggestion until RouteDeck restarts.
-func (s *SetupGuidesService) DismissSuggestion(_ context.Context, guideID string, port int) error {
-	if s == nil || s.Guides == nil {
-		return fmt.Errorf("setup guides service: not configured")
-	}
-	return mapGuideErr(s.Guides.DismissSuggestion(guideID, port))
-}
-
 // Checklist returns the first-run checklist.
 func (s *SetupGuidesService) Checklist(ctx context.Context) (ChecklistDTO, error) {
 	if s == nil || s.Guides == nil {
@@ -225,7 +217,15 @@ func (s *SetupGuidesService) Checklist(ctx context.Context) (ChecklistDTO, error
 	}, nil
 }
 
-// DismissChecklist hides the first-run checklist until restart or step regression.
+// DismissSuggestion hides a suggestion across process restart (ADR-0016).
+func (s *SetupGuidesService) DismissSuggestion(ctx context.Context, guideID string, port int) error {
+	if s == nil || s.Guides == nil {
+		return fmt.Errorf("setup guides: not configured")
+	}
+	return mapGuideErr(s.Guides.DismissSuggestion(ctx, guideID, port))
+}
+
+// DismissChecklist hides the first-run checklist until step regression (ADR-0016).
 func (s *SetupGuidesService) DismissChecklist(ctx context.Context) error {
 	if s == nil || s.Guides == nil {
 		return fmt.Errorf("setup guides service: not configured")

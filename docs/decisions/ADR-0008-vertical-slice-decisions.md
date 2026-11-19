@@ -34,7 +34,7 @@ Each Proxy policy has a protocol scope (`TCP`, `UDP`, or `BOTH`) and a Direct-UD
 
 ### Profiles and catalog
 
-Multiple profiles: create, copy, rename, delete, set desired. Delete is refused for the desired or applied profile. Profile names are unique. Deleting a proxy or application that any profile references is rejected with a typed error.
+Multiple profiles: create, copy, rename, delete, set desired. Delete is refused for the desired or applied profile. Profile names are unique. Deleting a proxy or application that any profile references is rejected with a typed error. **Desired delete superseded by [ADR-0019](ADR-0019-profile-delete-last-wins.md)** (clear Desired then delete; Applied still refused until Stop).
 
 ### Apply lifecycle
 

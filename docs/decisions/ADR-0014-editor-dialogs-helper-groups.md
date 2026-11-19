@@ -22,7 +22,7 @@ ProxyBridge matches bundle id **or** executable name; path never matches. One `P
 
 ### Compile
 
-A unique bundle id still compiles to bundle id plus that identity's executable name. When several stored identities share a bundle id and the same action, `BuildRulePlan` emits one rule whose `processNames` is only that bundle id. Different actions on a shared matchable name return `ErrConflictingMatch`. Do not migrate old duplicate rows in SQLite; collapse at compile time. Never map either error to Direct.
+A unique bundle id still compiles to bundle id plus that identity's executable name. When several stored identities share a bundle id and the same action, `BuildRulePlan` emits one rule whose `processNames` is only that bundle id. Different actions on a shared matchable name return `ErrConflictingMatch`. Do not migrate old duplicate rows in SQLite; collapse at compile time. Never map either error to Direct. **Match-conflict hard-fail on Save/Apply superseded by [ADR-0019](ADR-0019-profile-delete-last-wins.md)** (last policy in list wins; persist resolved policies; never map to Direct).
 
 ### Discovery (macOS adapter only)
 

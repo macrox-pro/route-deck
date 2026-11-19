@@ -75,6 +75,36 @@ func (m *memAppsForGuides) List(context.Context) ([]domain.Application, error) {
 func (m *memAppsForGuides) Save(context.Context, domain.Application) error     { return nil }
 func (m *memAppsForGuides) Delete(context.Context, domain.ApplicationID) error { return nil }
 
+type memDismissStore struct {
+	checklist   port.ChecklistDismiss
+	suggestions []port.SuggestionDismiss
+}
+
+func (m *memDismissStore) GetChecklist(context.Context) (port.ChecklistDismiss, error) {
+	return m.checklist, nil
+}
+
+func (m *memDismissStore) SaveChecklist(_ context.Context, dismiss port.ChecklistDismiss) error {
+	m.checklist = dismiss
+	return nil
+}
+
+func (m *memDismissStore) ListSuggestions(context.Context) ([]port.SuggestionDismiss, error) {
+	out := make([]port.SuggestionDismiss, len(m.suggestions))
+	copy(out, m.suggestions)
+	return out, nil
+}
+
+func (m *memDismissStore) AddSuggestion(_ context.Context, guideID string, portNum int) error {
+	for _, row := range m.suggestions {
+		if row.GuideID == guideID && row.Port == portNum {
+			return nil
+		}
+	}
+	m.suggestions = append(m.suggestions, port.SuggestionDismiss{GuideID: guideID, Port: portNum})
+	return nil
+}
+
 func TestDefaultGuideCatalog(t *testing.T) {
 	catalog := service.DefaultGuideCatalog()
 	if len(catalog) != 8 {
@@ -234,6 +264,7 @@ func TestSetupGuidesAddProxy(t *testing.T) {
 
 func TestSetupGuidesSuggestionsAndDismiss(t *testing.T) {
 	proxies := &memProxyForGuides{byID: map[domain.ProxyID]domain.ProxyEndpoint{}}
+	dismiss := &memDismissStore{}
 	sg := &service.SetupGuides{
 		Lister: fakeLister{apps: []port.InstalledApplication{
 			{BundleID: "com.liguangming.Shadowrocket", Path: "/Applications/Shadowrocket.app"},
@@ -241,6 +272,7 @@ func TestSetupGuidesSuggestionsAndDismiss(t *testing.T) {
 		Prober:  fakeProber{open: map[int]bool{1082: true}},
 		Proxies: proxies,
 		Catalog: &service.Catalog{Proxies: proxies},
+		Dismiss: dismiss,
 	}
 	sug, err := sg.Suggestions(context.Background())
 	if err != nil {
@@ -249,7 +281,7 @@ func TestSetupGuidesSuggestionsAndDismiss(t *testing.T) {
 	if len(sug) != 1 || sug[0].GuideID != "shadowrocket" || sug[0].Port != 1082 {
 		t.Fatalf("suggestions = %+v", sug)
 	}
-	if err := sg.DismissSuggestion("shadowrocket", 1082); err != nil {
+	if err := sg.DismissSuggestion(context.Background(), "shadowrocket", 1082); err != nil {
 		t.Fatal(err)
 	}
 	sug, err = sg.Suggestions(context.Background())
@@ -258,6 +290,29 @@ func TestSetupGuidesSuggestionsAndDismiss(t *testing.T) {
 	}
 	if len(sug) != 0 {
 		t.Fatalf("after dismiss = %+v", sug)
+	}
+	if len(dismiss.suggestions) != 1 || dismiss.suggestions[0].GuideID != "shadowrocket" {
+		t.Fatalf("persisted suggestions = %+v", dismiss.suggestions)
+	}
+
+	reloaded := &service.SetupGuides{
+		Lister: fakeLister{apps: []port.InstalledApplication{
+			{BundleID: "com.liguangming.Shadowrocket", Path: "/Applications/Shadowrocket.app"},
+		}},
+		Prober:  fakeProber{open: map[int]bool{1082: true}},
+		Proxies: proxies,
+		Catalog: &service.Catalog{Proxies: proxies},
+		Dismiss: dismiss,
+	}
+	if err := reloaded.LoadDismiss(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	sug, err = reloaded.Suggestions(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sug) != 0 {
+		t.Fatalf("after reload = %+v", sug)
 	}
 }
 
@@ -396,8 +451,10 @@ func TestSetupGuidesChecklistDismiss(t *testing.T) {
 	bridge := domain.BridgeStateReady
 	var applied bool
 	apps := &memAppsForGuides{apps: []domain.Application{{ID: "a1", DisplayName: "App"}}}
+	dismiss := &memDismissStore{}
 	sg := &service.SetupGuides{
-		Apps: apps,
+		Apps:    apps,
+		Dismiss: dismiss,
 		Snapshot: func(context.Context) (service.SnapshotResult, error) {
 			return service.SnapshotResult{
 				Bridge:           bridge,
@@ -427,6 +484,33 @@ func TestSetupGuidesChecklistDismiss(t *testing.T) {
 	if !got.Dismissed {
 		t.Fatalf("after dismiss = %+v", got)
 	}
+	if !dismiss.checklist.Dismissed || !dismiss.checklist.BridgeFound || !dismiss.checklist.ProxyAvailable {
+		t.Fatalf("persisted checklist = %+v", dismiss.checklist)
+	}
+
+	reloaded := &service.SetupGuides{
+		Apps:    apps,
+		Dismiss: dismiss,
+		Snapshot: func(context.Context) (service.SnapshotResult, error) {
+			return service.SnapshotResult{
+				Bridge:           bridge,
+				AppliedConfirmed: applied,
+				Proxies: []service.ProxyHealthRow{
+					{ID: "p1", Health: domain.ProxyHealthTCPAvailableUDPUnavailable},
+				},
+			}, nil
+		},
+	}
+	if err := reloaded.LoadDismiss(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	got, err = reloaded.Checklist(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.Dismissed {
+		t.Fatalf("after reload = %+v", got)
+	}
 
 	apps.apps = append(apps.apps, domain.Application{ID: "a2", DisplayName: "App2"})
 	got, err = sg.Checklist(context.Background())
@@ -444,5 +528,8 @@ func TestSetupGuidesChecklistDismiss(t *testing.T) {
 	}
 	if got.Dismissed || got.BridgeFound {
 		t.Fatalf("after regression = %+v", got)
+	}
+	if dismiss.checklist.Dismissed {
+		t.Fatalf("store still dismissed after regression = %+v", dismiss.checklist)
 	}
 }

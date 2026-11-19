@@ -27,9 +27,8 @@ func BuildRulePlan(profile Profile, proxies []ProxyEndpoint, identities []Proces
 	if err := ValidateProxyRefs(profile, known); err != nil {
 		return RulePlan{}, err
 	}
-	if err := ValidateMatchConflicts(profile, identities); err != nil {
-		return RulePlan{}, fmt.Errorf("build rule plan: %w", err)
-	}
+	// ADR-0019: last-wins overwrite; never surface ErrConflictingMatch to Apply.
+	profile.Policies = ResolveMatchConflictsLastWins(profile, identities)
 	identityByID := make(map[ProcessIdentityID]ProcessIdentity, len(identities))
 	for _, identity := range identities {
 		identityByID[identity.ID] = identity

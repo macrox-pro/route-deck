@@ -19,7 +19,7 @@ ADR-0008 and ADR-0010 forbade Apply at process start so login launch would not p
   3. Desired profile has at least one application policy whose action is Proxy or Block (Direct-only or empty → quiet Info skip)
   4. Then the existing Apply path
 - Skip or Apply failure leaves Unprotected / existing failure events. MUST NOT rewrite policies to Direct. MUST NOT invent a second Apply stack. MUST NOT Apply from tray.
-- No startup retry/backoff loop in this ADR. Wake and network change keep health recheck only.
+- No startup retry/backoff loop in this ADR (superseded for one Unavailable retry by ADR-0017). Wake and network change keep health recheck only.
 - This ADR **supersedes** the ADR-0008 sentence “No auto-apply at startup” and the ADR-0010 / lifecycle lines that Launch at Login MUST NOT auto-Apply. Launch at Login still does not imply Apply by itself; Auto Apply is a separate setting.
 
 ## Alternatives
@@ -37,7 +37,7 @@ ADR-0008 and ADR-0010 forbade Apply at process start so login launch would not p
 
 ## Follow-up
 
-None required for v1.
+One limited Unavailable retry at startup: ADR-0017 / RD-064.
 
 ## Open decisions (owner)
 

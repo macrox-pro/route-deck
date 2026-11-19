@@ -122,7 +122,7 @@ type checklistFingerprint struct {
 	ProfileApplied   bool
 }
 
-// SetupGuides lists guides, adds proxies, suggestions, and checklist (ADR-0013).
+// SetupGuides lists guides, adds proxies, suggestions, and checklist (ADR-0013 / ADR-0016).
 type SetupGuides struct {
 	Lister   port.InstalledApplicationLister
 	Prober   port.LocalPortProber
@@ -130,6 +130,7 @@ type SetupGuides struct {
 	Apps     port.ApplicationStore
 	Catalog  *Catalog
 	Health   *HealthMonitor
+	Dismiss  port.DismissStore
 	Snapshot func(ctx context.Context) (SnapshotResult, error)
 	Logger   *slog.Logger
 
@@ -591,10 +592,44 @@ func dismissKey(guideID string, port int) string {
 	return fmt.Sprintf("%s:%d", guideID, port)
 }
 
-// DismissSuggestion hides a suggestion until process restart.
-func (s *SetupGuides) DismissSuggestion(guideID string, port int) error {
+// LoadDismiss loads checklist and suggestion dismiss from the store into memory (ADR-0016).
+func (s *SetupGuides) LoadDismiss(ctx context.Context) error {
+	if s == nil || s.Dismiss == nil {
+		return nil
+	}
+	checklist, err := s.Dismiss.GetChecklist(ctx)
+	if err != nil {
+		return fmt.Errorf("setup guides load checklist dismiss: %w", err)
+	}
+	suggestions, err := s.Dismiss.ListSuggestions(ctx)
+	if err != nil {
+		return fmt.Errorf("setup guides load suggestion dismiss: %w", err)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.checklistDismissed = checklist.Dismissed
+	s.checklistFingerprint = checklistFingerprint{
+		BridgeFound:      checklist.BridgeFound,
+		ProxyAvailable:   checklist.ProxyAvailable,
+		ApplicationAdded: checklist.ApplicationAdded,
+		ProfileApplied:   checklist.ProfileApplied,
+	}
+	s.dismissed = map[string]struct{}{}
+	for _, row := range suggestions {
+		s.dismissed[dismissKey(row.GuideID, row.Port)] = struct{}{}
+	}
+	return nil
+}
+
+// DismissSuggestion hides a suggestion across process restart (ADR-0016).
+func (s *SetupGuides) DismissSuggestion(ctx context.Context, guideID string, port int) error {
 	if _, ok := guideByID(guideID); !ok {
 		return fmt.Errorf("%w: %s", ErrUnknownGuideID, guideID)
+	}
+	if s.Dismiss != nil {
+		if err := s.Dismiss.AddSuggestion(ctx, guideID, port); err != nil {
+			return fmt.Errorf("setup guides dismiss suggestion: %w", err)
+		}
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -612,30 +647,49 @@ func (s *SetupGuides) Checklist(ctx context.Context) (ChecklistView, error) {
 		return ChecklistView{}, err
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	cleared := false
 	if s.checklistDismissed && checklistRegressed(s.checklistFingerprint, view) {
 		s.checklistDismissed = false
 		s.checklistFingerprint = checklistFingerprint{}
+		cleared = true
 	}
 	view.Dismissed = s.checklistDismissed
+	s.mu.Unlock()
+	if cleared && s.Dismiss != nil {
+		if err := s.Dismiss.SaveChecklist(ctx, port.ChecklistDismiss{}); err != nil {
+			return view, fmt.Errorf("setup guides clear checklist dismiss: %w", err)
+		}
+	}
 	return view, nil
 }
 
-// DismissChecklist hides the first-run checklist until process restart or step regression.
+// DismissChecklist hides the first-run checklist until step regression (ADR-0016).
 func (s *SetupGuides) DismissChecklist(ctx context.Context) error {
 	view, err := s.deriveChecklist(ctx)
 	if err != nil {
 		return err
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.checklistDismissed = true
-	s.checklistFingerprint = checklistFingerprint{
+	fp := checklistFingerprint{
 		BridgeFound:      view.BridgeFound,
 		ProxyAvailable:   view.ProxyAvailable,
 		ApplicationAdded: view.ApplicationAdded,
 		ProfileApplied:   view.ProfileApplied,
 	}
+	if s.Dismiss != nil {
+		if err := s.Dismiss.SaveChecklist(ctx, port.ChecklistDismiss{
+			Dismissed:        true,
+			BridgeFound:      fp.BridgeFound,
+			ProxyAvailable:   fp.ProxyAvailable,
+			ApplicationAdded: fp.ApplicationAdded,
+			ProfileApplied:   fp.ProfileApplied,
+		}); err != nil {
+			return fmt.Errorf("setup guides dismiss checklist: %w", err)
+		}
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.checklistDismissed = true
+	s.checklistFingerprint = fp
 	return nil
 }
 

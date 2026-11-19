@@ -80,6 +80,7 @@ func run() error {
 	var healthMon *service.HealthMonitor
 	var settingsStore port.SettingsStore
 	var profileStore port.ProfileStore
+	var dismissStore port.DismissStore
 	recheckPending := &atomic.Bool{}
 
 	opened, openErr := sqlite.Open(ctx, dbPath)
@@ -96,6 +97,7 @@ func run() error {
 		snapshotter.Settings = store.Settings()
 		settingsStore = store.Settings()
 		profileStore = store.Profiles()
+		dismissStore = store.Dismiss()
 		settings, settingsErr := settingsStore.Get(ctx)
 		if settingsErr != nil {
 			logger.Error("settings load failed", "component", "main", "err", settingsErr)
@@ -118,7 +120,7 @@ func run() error {
 			Checker: healthChecker,
 			Logger:  logger,
 		}
-		healthMon.Start(ctx)
+		// OnChange set after emit exists (below). Start after that wiring.
 		protection = &service.Protection{
 			Profiles:  store.Profiles(),
 			Proxies:   store,
@@ -205,6 +207,7 @@ func run() error {
 		Prober:  &proxyhealth.LocalPortProber{},
 		Catalog: catalog,
 		Health:  healthMon,
+		Dismiss: dismissStore,
 		Logger:  logger,
 		Snapshot: func(c context.Context) (service.SnapshotResult, error) {
 			return live.Snapshot(c)
@@ -216,6 +219,9 @@ func run() error {
 		setupGuidesApp.Apps = catalog.Apps
 	}
 	_ = setupGuidesApp.RefreshInstalled(ctx)
+	if err := setupGuidesApp.LoadDismiss(ctx); err != nil {
+		logger.Warn("setup guides load dismiss failed", "component", "main", "err", err)
+	}
 	setupGuidesService := &wails.SetupGuidesService{Guides: setupGuidesApp, Logger: logger}
 
 	trayCtrl := &tray.Controller{
@@ -233,6 +239,7 @@ func run() error {
 	application.RegisterEvent[wails.EventEnvelope](wails.EventOperationProgress)
 	application.RegisterEvent[wails.EventEnvelope](wails.EventOperationFailed)
 	application.RegisterEvent[wails.EventEnvelope](wails.EventCatalogChanged)
+	application.RegisterEvent[wails.EventEnvelope](wails.EventEditorsSaveForQuit)
 
 	app := application.New(application.Options{
 		Name:        "route-deck",
@@ -276,6 +283,16 @@ func run() error {
 	proxiesService.Emit = emit
 	applicationsService.Emit = emit
 	profilesService.Emit = emit
+	editorDialogs.Emit = emit
+	if healthMon != nil {
+		healthMon.OnChange = func() {
+			emit(wails.EventProxyHealthChanged, wails.EventEnvelope{
+				Schema:  1,
+				Payload: map[string]any{"reason": "recheck"},
+			})
+		}
+		healthMon.Start(ctx)
+	}
 
 	app.Event.OnApplicationEvent(events.Common.SystemDidWake, func(_ *application.ApplicationEvent) {
 		logger.Info("system did wake", "component", "main")
@@ -331,6 +348,7 @@ func run() error {
 	trayCtrl.App = app
 	trayCtrl.Window = mainWindow
 	trayCtrl.FocusEditor = editorDialogs.FocusOpen
+	trayCtrl.Editors = editorDialogs
 	userDialog := &wails.NativeUserDialog{App: app, Window: mainWindow}
 	windowChrome.Tray = trayCtrl
 	windowChrome.Dialog = userDialog
@@ -344,8 +362,25 @@ func run() error {
 		return fmt.Errorf("route-deck: tray: %w", err)
 	}
 
-	// ADR-0015: one-shot Auto Apply after emit/dialog are live (same path as Dashboard Apply).
-	go wails.MaybeAutoApplyAtStartup(context.Background(), logger, settingsStore, profileStore, protectionService.Apply)
+	// ADR-0015 / ADR-0017: Auto Apply after emit/dialog are live (synchronous coordinator Apply).
+	go wails.MaybeAutoApplyAtStartup(context.Background(), wails.AutoApplyConfig{
+		Logger:   logger,
+		Settings: settingsStore,
+		Profiles: profileStore,
+		HealthSnapshot: func() map[domain.ProxyID]domain.ProxyHealth {
+			if healthMon == nil {
+				return nil
+			}
+			return healthMon.Snapshot()
+		},
+		Apply: func(c context.Context, id domain.ProfileID) error {
+			if protection == nil {
+				return fmt.Errorf("auto apply: protection not configured")
+			}
+			return protection.Apply(c, id, "auto-apply")
+		},
+		Dialog: userDialog,
+	})
 
 	refreshTray := func() { trayCtrl.OnProtectionEvent() }
 	refreshDock := func() { dockAttacher.Refresh(context.Background()) }

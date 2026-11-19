@@ -133,12 +133,12 @@ func TestBuildRulePlanCollapsesSharedBundleID(t *testing.T) {
 	}
 }
 
-func TestBuildRulePlanConflictingMatch(t *testing.T) {
+func TestBuildRulePlanConflictingMatchLastWins(t *testing.T) {
 	identities := []domain.ProcessIdentity{
 		{ID: "h1", ApplicationID: "app", BundleID: "com.openai.codex.helper", ExecutableName: "Codex (GPU)"},
 		{ID: "h2", ApplicationID: "app", BundleID: "com.openai.codex.helper", ExecutableName: "Codex (Service)"},
 	}
-	_, err := domain.BuildRulePlan(
+	plan, err := domain.BuildRulePlan(
 		domain.Profile{ID: "p", Name: "Work", Policies: []domain.ApplicationPolicy{
 			mustPolicy(t, "h1", domain.BlockAction(), domain.ProtocolScopeBOTH, ""),
 			mustPolicy(t, "h2", domain.DirectAction(), domain.ProtocolScopeBOTH, ""),
@@ -146,7 +146,13 @@ func TestBuildRulePlanConflictingMatch(t *testing.T) {
 		nil,
 		identities,
 	)
-	if !errors.Is(err, domain.ErrConflictingMatch) {
-		t.Fatalf("error = %v, want ErrConflictingMatch", err)
+	if err != nil {
+		t.Fatalf("BuildRulePlan: %v", err)
+	}
+	if len(plan.Rules) == 0 {
+		t.Fatal("expected rules after last-wins resolve")
+	}
+	if !plan.Rules[0].Action.IsDirect() {
+		t.Fatalf("action = %#v, want Direct (last policy wins)", plan.Rules[0].Action)
 	}
 }

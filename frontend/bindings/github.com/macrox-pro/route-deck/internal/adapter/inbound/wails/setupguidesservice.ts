@@ -33,14 +33,14 @@ export function Checklist(): $CancellablePromise<$models.ChecklistDTO> {
 }
 
 /**
- * DismissChecklist hides the first-run checklist until restart or step regression.
+ * DismissChecklist hides the first-run checklist until step regression (ADR-0016).
  */
 export function DismissChecklist(): $CancellablePromise<void> {
     return $Call.ByID(1727893650);
 }
 
 /**
- * DismissSuggestion hides a suggestion until RouteDeck restarts.
+ * DismissSuggestion hides a suggestion across process restart (ADR-0016).
  */
 export function DismissSuggestion(guideID: string, port: number): $CancellablePromise<void> {
     return $Call.ByID(133615338, guideID, port);

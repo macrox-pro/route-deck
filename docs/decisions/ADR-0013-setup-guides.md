@@ -29,18 +29,18 @@ Users need a local SOCKS5 or HTTP CONNECT endpoint from a third-party VPN client
 - Default ports: Shadowrocket `1082` mixed; v2rayN `10808` mixed; Hiddify `12334` mixed; Happ `10808` SOCKS5; Surge `6153` SOCKS5 (also note `6152` HTTP); SFM and Generic have no default port (no probe).
 - Mixed port is added as **SOCKS5**. Split-port clients use the SOCKS5 port.
 - **One-click AddProxy** for guides with a default port: save via `Catalog.SaveProxy`, then `HealthMonitor.Recheck`. Closed port still saves; UI shows real health (`Unavailable`) and a "Connect client first" hint. SFM and Generic open the Proxies form with `127.0.0.1` + SOCKS5 pre-filled.
-- **Suggestion banner** on Dashboard and Proxies when installed + port open + endpoint not in catalog. Dismiss is in-memory for the process lifetime (no SQLite).
+- **Suggestion banner** on Dashboard and Proxies when installed + port open + endpoint not in catalog. Dismiss persistence: see ADR-0016 (SQLite).
 - Every client guide includes a VPN/TUN warning and "Do not add this client itself to a RouteDeck Proxy rule" (warning only; no Go reject in this ADR).
 - Prober accepts only catalog ports and dials only `127.0.0.1`. Installed-app list is cached in the use case (refresh on start and Help Refresh).
 - First-run checklist: ProxyBridge found, proxy Available (or partial), app added, profile applied. Auto-hides when complete; reappears on regression.
 - Checklist proxy step: exact `Available` is full; `TCPAvailableUDPUnavailable` and `Checking` count as completed **partial** (yellow warning + tooltip). Other healths do not count. Partial counts toward Complete. Go sends a closed `proxyStep` token; English UI copy (and future i18n) lives on the frontend keyed by stable message IDs.
-- Checklist **Dismiss** is in-memory for the process lifetime (no SQLite), separate from suggestion dismiss. Cleared when any previously-true step regresses. Improving a step after dismiss does not clear dismiss.
+- Checklist **Dismiss** persistence and fingerprint: see ADR-0016. Cleared when any previously-true step regresses. Improving a step after dismiss does not clear dismiss. Separate from suggestion dismiss.
 - Docs links open via Wails `Browser.OpenURL` with URLs from the Go catalog by guide ID.
 
 ## Alternatives
 
 - Prefill form only (no one-click save). Rejected: owner chose one-click add.
-- Persist dismiss in SQLite (suggestion banner and checklist). Rejected: session-only dismiss.
+- Persist dismiss in SQLite (suggestion banner and checklist). Rejected in this ADR as session-only; **superseded by ADR-0016** (owner 2026-11-19).
 - Read client config files for the real port. Rejected: fragile; out of scope.
 - Change VPN client settings. Rejected: CONCEPTION non-goal.
 - Match by display name when bundle ID missing. Rejected: owner chose Detection unavailable.
@@ -54,7 +54,7 @@ Users need a local SOCKS5 or HTTP CONNECT endpoint from a third-party VPN client
 
 ## Follow-up
 
-Owner interactive RD-033 Apply→Active. Optional later ADR for rejecting VPN clients in Proxy policies.
+Optional later ADR for rejecting VPN clients in Proxy policies. Checklist/suggestion dismiss persistence: ADR-0016 / RD-063.
 
 ## Open decisions (owner)
 

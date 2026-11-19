@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft } from "@untitledui/icons";
 import { SetupGuideCard } from "@/components/application/setup-guide/setup-guide-card";
 import { Button } from "@/components/base/buttons/button";
 import { SetupGuidesService } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
@@ -30,17 +31,22 @@ export function HelpPage() {
 
     return (
         <div className="flex flex-col gap-8">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-display-xs font-semibold text-primary">Setup guides</h1>
-                    <p className="mt-1 max-w-2xl text-sm text-tertiary">
-                        RouteDeck needs two things: ProxyBridge to enforce per-app rules, and a local SOCKS5 or HTTP proxy from your VPN app.
-                        “Port open” only means something answered on 127.0.0.1 — not that the proxy is healthy or that protection is Active.
-                    </p>
-                </div>
-                <Button color="secondary" size="md" isLoading={busy} onClick={() => void reload(true)}>
-                    Refresh
+            <div className="flex flex-col gap-3">
+                <Button color="link-gray" size="md" iconLeading={ArrowLeft} href="/" className="self-start">
+                    Dashboard
                 </Button>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <h1 className="text-display-xs font-semibold text-primary">Setup guides</h1>
+                        <p className="mt-1 max-w-2xl text-sm text-tertiary">
+                            RouteDeck needs two things: ProxyBridge to enforce per-app rules, and a local SOCKS5 or HTTP proxy from your VPN app.
+                            “Port open” only means something answered on 127.0.0.1 — not that the proxy is healthy or that protection is Active.
+                        </p>
+                    </div>
+                    <Button color="secondary" size="md" isLoading={busy} onClick={() => void reload(true)}>
+                        Refresh
+                    </Button>
+                </div>
             </div>
 
             {error && (

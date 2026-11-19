@@ -14,6 +14,11 @@ import "../github.com/wailsapp/wails/v3/internal/eventcreate.js";
 export const CatalogChanged = "catalog.changed";
 
 /**
+ * Name of the custom event "editors.save_for_quit".
+ */
+export const EditorsSaveForQuit = "editors.save_for_quit";
+
+/**
  * Name of the custom event "operation.failed".
  */
 export const OperationFailed = "operation.failed";

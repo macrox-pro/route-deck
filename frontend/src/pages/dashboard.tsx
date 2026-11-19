@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { HelpCircle } from "@untitledui/icons";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { HelpCircle, RefreshCw01 } from "@untitledui/icons";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
 import { ProtectionBadge } from "@/components/application/protection-badge/protection-badge";
 import { ProxyHealthBadge } from "@/components/application/proxy-health-badge/proxy-health-badge";
@@ -42,6 +42,14 @@ export function DashboardPage() {
     }, [data?.proxies, guides]);
 
     const bumpChecklist = useCallback(() => setChecklistKey((k) => k + 1), []);
+    const noDesired = !!data && (!data.desiredSet || !data.desiredId);
+    const canStop =
+        !!data &&
+        (data.bridge === "Ready" || data.bridge === "Starting" || data.bridge === "Stopping" || data.appliedConfirmed);
+    const applyDisabled = noDesired || (actionsLocked && pending !== "apply");
+    const stopDisabled = !canStop || (actionsLocked && pending !== "stop");
+    const applyTitle = noDesired ? "Set a Desired profile on Profiles first" : undefined;
+    const stopTitle = !canStop ? "Nothing to stop — protection is not running" : undefined;
 
     if (loading && !data) {
         return (
@@ -94,56 +102,131 @@ export function DashboardPage() {
         }
     };
 
+    const warnings: ReactNode[] = [];
+    if (data?.databaseError) {
+        warnings.push(
+            <div key="db" className="rounded-lg bg-warning-primary px-4 py-3 text-sm text-warning-primary ring-1 ring-warning_subtle" role="alert">
+                Database: {data.databaseError}
+            </div>,
+        );
+    }
+    if (data?.bridge === "NotInstalled") {
+        warnings.push(
+            <div key="bridge" className="rounded-lg bg-warning-primary px-4 py-3 text-sm text-warning-primary ring-1 ring-warning_subtle" role="status">
+                ProxyBridge is not installed. Open Setup guides → ProxyBridge for install steps, or set a custom path in Settings.
+            </div>,
+        );
+    }
+    if (noDesired) {
+        warnings.push(
+            <div
+                key="desired"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-secondary px-4 py-3 text-sm text-secondary ring-1 ring-secondary"
+                role="status"
+            >
+                <span>No desired profile. Set one on Profiles to enable Apply.</span>
+                <Button color="secondary" size="sm" href="/profiles">
+                    Open Profiles
+                </Button>
+            </div>,
+        );
+    }
+    if (data?.desiredDiffersFromApplied) {
+        warnings.push(
+            <div key="differs" className="rounded-lg bg-warning-primary px-4 py-3 text-sm text-warning-primary ring-1 ring-warning_subtle" role="status">
+                Desired profile differs from the applied profile. Press Apply to put the desired profile into force.
+            </div>,
+        );
+    }
+    if (data?.compatibilityWarning) {
+        warnings.push(
+            <div key="compat" className="rounded-lg bg-warning-primary px-4 py-3 text-sm text-warning-primary ring-1 ring-warning_subtle" role="status">
+                {data.compatibilityWarning}
+            </div>,
+        );
+    }
+    if (data?.recheckPending) {
+        warnings.push(
+            <div key="recheck" className="rounded-lg bg-secondary px-4 py-3 text-sm text-secondary ring-1 ring-secondary" role="status">
+                Recheck pending after wake or network change. Protection shows Unknown until health and bridge checks finish.
+            </div>,
+        );
+    }
+
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
+            {/* Page header: title + actions aligned like Profiles / DESIGN.md */}
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                     <h1 className="text-display-xs font-semibold text-primary">Dashboard</h1>
-                    <p className="mt-1 max-w-2xl text-sm text-tertiary">
-                        Protection comes from a Go snapshot after Apply. Events only trigger a reload — they are not proof of
-                        Active. Applied means the CLI confirmed a profile; it is not the same as Active.
+                    <p className="mt-1 max-w-xl text-sm text-tertiary">
+                        Protection status and proxy health for this Mac.
                     </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-4">
                     <Button color="secondary" size="md" iconLeading={HelpCircle} href="/help" isDisabled={actionsLocked}>
                         Setup guides
                     </Button>
-                    <Button
-                        color="primary"
-                        size="md"
-                        isLoading={pending === "apply"}
-                        showTextWhileLoading
-                        isDisabled={actionsLocked && pending !== "apply"}
-                        onClick={() => void onApply()}
-                    >
-                        {pending === "apply" ? "Applying…" : "Apply"}
-                    </Button>
-                    <Button
-                        color="secondary"
-                        size="md"
-                        isLoading={pending === "stop"}
-                        showTextWhileLoading
-                        isDisabled={actionsLocked && pending !== "stop"}
-                        onClick={() => void onStop()}
-                    >
-                        {pending === "stop" ? "Stopping…" : "Stop"}
-                    </Button>
-                    <Button
-                        color="secondary"
-                        size="md"
-                        isLoading={pending === "refresh"}
-                        showTextWhileLoading
-                        isDisabled={actionsLocked && pending !== "refresh"}
-                        onClick={() => void onRefresh()}
-                    >
-                        {pending === "refresh" ? "Refreshing…" : "Refresh"}
-                    </Button>
+                    {/* Affirmative / destructive pair, separated from Setup guides (NN/g proximity). */}
+                    <div className="flex items-center gap-2">
+                        <span title={stopTitle} className="inline-flex">
+                            <Button
+                                color="secondary-destructive"
+                                size="md"
+                                isLoading={pending === "stop"}
+                                showTextWhileLoading
+                                isDisabled={stopDisabled}
+                                onClick={() => void onStop()}
+                            >
+                                Stop
+                            </Button>
+                        </span>
+                        <span title={applyTitle} className="inline-flex">
+                            <Button
+                                color="primary"
+                                size="md"
+                                isLoading={pending === "apply"}
+                                showTextWhileLoading
+                                isDisabled={applyDisabled}
+                                onClick={() => void onApply()}
+                            >
+                                Apply
+                            </Button>
+                        </span>
+                    </div>
                 </div>
             </div>
 
             {(error || actionError) && (
                 <div className="rounded-lg bg-error-primary px-4 py-3 text-sm text-error-primary ring-1 ring-error_subtle" role="alert">
                     {actionError || error}
+                </div>
+            )}
+
+            {/* DESIGN.md order: 1 status → 2 checklist → 3 warnings → 4 proxies */}
+            {data && (
+                <div className="flex flex-col gap-3 rounded-lg bg-secondary_subtle p-4 ring-1 ring-secondary">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+                            <ProtectionBadge protection={data.protection} />
+                            <span className="text-sm text-secondary">Bridge: {data.bridge || "Unknown"}</span>
+                            {data.version ? <span className="text-sm text-tertiary">CLI {data.version}</span> : null}
+                            {data.desiredSet ? <span className="text-sm text-tertiary">Desired: {data.desiredId || "—"}</span> : null}
+                            {data.appliedConfirmed ? (
+                                <span className="text-sm text-tertiary">Applied: {data.appliedId || "—"}</span>
+                            ) : null}
+                        </div>
+                        <Button
+                            color="tertiary"
+                            size="sm"
+                            iconLeading={RefreshCw01}
+                            aria-label="Refresh status"
+                            isLoading={pending === "refresh"}
+                            isDisabled={actionsLocked && pending !== "refresh"}
+                            onClick={() => void onRefresh()}
+                        />
+                    </div>
+                    {operationID ? <p className="text-xs text-tertiary">Last operation: {operationID}</p> : null}
                 </div>
             )}
 
@@ -155,82 +238,35 @@ export function DashboardPage() {
             />
             <SetupChecklist refreshKey={checklistKey} />
 
-            {data?.databaseError && (
-                <div className="rounded-lg bg-warning-primary px-4 py-3 text-sm text-warning-primary ring-1 ring-warning_subtle" role="alert">
-                    Database: {data.databaseError}
-                </div>
-            )}
-
-            {data?.bridge === "NotInstalled" && (
-                <div className="rounded-lg bg-warning-primary px-4 py-3 text-sm text-warning-primary ring-1 ring-warning_subtle" role="status">
-                    ProxyBridge is not installed. Open Setup guides → ProxyBridge for install steps, or set a custom path in Settings.
-                </div>
-            )}
-
-            {data?.desiredDiffersFromApplied && (
-                <div className="rounded-lg bg-warning-primary px-4 py-3 text-sm text-warning-primary ring-1 ring-warning_subtle" role="status">
-                    Desired profile differs from the applied profile. Press Apply to put the desired profile into force.
-                </div>
-            )}
-
-            {data?.compatibilityWarning && (
-                <div className="rounded-lg bg-warning-primary px-4 py-3 text-sm text-warning-primary ring-1 ring-warning_subtle" role="status">
-                    {data.compatibilityWarning}
-                </div>
-            )}
-
-            {data?.recheckPending && (
-                <div className="rounded-lg bg-secondary px-4 py-3 text-sm text-secondary ring-1 ring-secondary" role="status">
-                    Recheck pending after wake or network change. Protection shows Unknown until health and bridge checks finish.
-                </div>
-            )}
-
-            <p className="text-sm text-tertiary">
-                Helper processes that are not confirmed are not in rules — their traffic can bypass Proxy or Block. Review
-                helpers on the Applications page.
-            </p>
-
-            {operationID && <p className="text-xs text-tertiary">Last operation: {operationID}</p>}
+            {warnings.length > 0 ? <div className="flex flex-col gap-3">{warnings}</div> : null}
 
             {data && (
-                <>
-                    <div className="flex flex-col gap-2">
-                        <div className="flex flex-wrap items-center gap-3">
-                            <ProtectionBadge protection={data.protection} />
-                            <span className="text-sm text-secondary">Bridge: {data.bridge || "Unknown"}</span>
-                            {data.version && <span className="text-sm text-tertiary">CLI {data.version}</span>}
-                            {data.desiredSet && <span className="text-sm text-tertiary">Desired: {data.desiredId || "—"}</span>}
-                            {data.appliedConfirmed && <span className="text-sm text-tertiary">Applied: {data.appliedId || "—"}</span>}
-                        </div>
-                        <p className="max-w-2xl text-xs text-tertiary">
-                            Active: routing confirmed and every protected app fully covered. Degraded: rules in effect with a
-                            gap (for example TCP OK, UDP unavailable). Inactive: nothing to protect, or Direct-only policies.
-                            Unprotected: rules are not in effect. Applied ≠ Active.
+                <section className="flex flex-col gap-3">
+                    <div className="flex flex-wrap items-end justify-between gap-2">
+                        <h2 className="text-sm font-semibold text-secondary">Proxies</h2>
+                        <p className="text-xs text-tertiary">
+                            Unconfirmed helpers can bypass rules — review on Applications.
                         </p>
                     </div>
-
-                    <section>
-                        <h2 className="mb-2 text-sm font-semibold text-secondary">Proxies</h2>
-                        {data.proxies.length === 0 ? (
-                            <p className="text-sm text-tertiary">No proxies in the catalog.</p>
-                        ) : (
-                            <ul className="divide-y divide-secondary rounded-lg ring-1 ring-secondary">
-                                {data.proxies.map((proxy) => {
-                                    const icon = proxyIconByID.get(proxy.id);
-                                    return (
-                                        <li key={proxy.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                                            <div className="flex min-w-0 items-center gap-3">
-                                                <ProxyListIcon installedPath={icon?.installedPath} kind={icon?.kind || proxy.kind || "socks5"} />
-                                                <span className="truncate text-primary">{proxy.name || proxy.id}</span>
-                                            </div>
-                                            <ProxyHealthBadge health={proxy.health} />
-                                        </li>
-                                    );
-                                })}
-                            </ul>
-                        )}
-                    </section>
-                </>
+                    {data.proxies.length === 0 ? (
+                        <p className="rounded-lg px-4 py-6 text-sm text-tertiary ring-1 ring-secondary">No proxies in the catalog.</p>
+                    ) : (
+                        <ul className="divide-y divide-secondary overflow-hidden rounded-lg ring-1 ring-secondary">
+                            {data.proxies.map((proxy) => {
+                                const icon = proxyIconByID.get(proxy.id);
+                                return (
+                                    <li key={proxy.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <ProxyListIcon installedPath={icon?.installedPath} kind={icon?.kind || proxy.kind || "socks5"} />
+                                            <span className="truncate text-primary">{proxy.name || proxy.id}</span>
+                                        </div>
+                                        <ProxyHealthBadge health={proxy.health} />
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                </section>
             )}
         </div>
     );

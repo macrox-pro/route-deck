@@ -2,12 +2,14 @@ package wails
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/macrox-pro/route-deck/internal/application/port"
 	"github.com/macrox-pro/route-deck/internal/application/service"
 	"github.com/macrox-pro/route-deck/internal/domain"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 // ProfilesService exposes profile CRUD and desired selection.
@@ -141,7 +143,9 @@ func (s *ProfilesService) Rename(ctx context.Context, id, newName string) error 
 	return s.Catalog.RenameProfile(ctx, profileID, newName)
 }
 
-// Delete removes a profile that is not desired or applied.
+// Delete confirms with a native Question dialog, then removes the profile.
+// Desired is cleared in the same path. Applied profiles are Stopped first (ADR-0019 UX).
+// Cancel returns nil without deleting. MUST NOT use window.confirm (unreliable in Wails).
 func (s *ProfilesService) Delete(ctx context.Context, id string) error {
 	if s == nil || s.Catalog == nil || s.Settings == nil {
 		return fmt.Errorf("profiles service: not configured")
@@ -150,24 +154,102 @@ func (s *ProfilesService) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return fmt.Errorf("profiles delete: %w", err)
 	}
+	name := id
+	profiles, listErr := s.Catalog.ListProfiles(ctx)
+	if listErr != nil {
+		return fmt.Errorf("profiles delete: %w", listErr)
+	}
+	found := false
+	for _, profile := range profiles {
+		if profile.ID == profileID {
+			found = true
+			if profile.Name != "" {
+				name = profile.Name
+			}
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("profiles delete: profile not found")
+	}
+
 	settings, err := s.Settings.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("profiles delete: %w", err)
 	}
+	isDesired := settings.DesiredSet && settings.DesiredProfileID == profileID
 	var appliedID domain.ProfileID
+	var isApplied bool
 	if s.Protection != nil {
-		appliedID, _ = s.Protection.Applied()
+		appliedID, isApplied = s.Protection.Applied()
+		isApplied = isApplied && appliedID == profileID
 	}
-	desiredID := domain.ProfileID("")
-	if settings.DesiredSet {
-		desiredID = settings.DesiredProfileID
+
+	if !confirmProfileDelete(name, isDesired, isApplied) {
+		s.logger().Info("profile delete cancelled", "component", "wails.profiles", "profileId", id)
+		return nil
 	}
-	if err := s.Catalog.DeleteProfile(ctx, profileID, desiredID, appliedID); err != nil {
+
+	if isApplied {
+		if s.Protection == nil {
+			return fmt.Errorf("stop protection before deleting the applied profile")
+		}
+		if stopErr := s.Protection.Stop(ctx, "delete-profile"); stopErr != nil {
+			s.logger().Warn("profile delete stop failed", "component", "wails.profiles", "err", stopErr)
+			return fmt.Errorf("stop protection before deleting the applied profile: %w", stopErr)
+		}
+		emit(s.Emit, EventProtectionStateChanged, map[string]any{"reason": "delete_profile_stop", "profileId": id})
+		emit(s.Emit, EventProxyBridgeStateChanged, map[string]any{"reason": "delete_profile_stop", "profileId": id})
+	}
+
+	if isDesired {
+		settings.DesiredProfileID = ""
+		settings.DesiredSet = false
+		if err := s.Settings.Save(ctx, settings); err != nil {
+			return fmt.Errorf("profiles delete clear desired: %w", err)
+		}
+	}
+
+	if err := s.Catalog.DeleteProfile(ctx, profileID, ""); err != nil {
 		s.logger().Warn("profile delete failed", "component", "wails.profiles", "err", err)
+		if errors.Is(err, service.ErrProfileApplied) {
+			return fmt.Errorf("stop protection before deleting the applied profile")
+		}
 		return err
 	}
+	s.logger().Info("profile deleted", "component", "wails.profiles", "profileId", id)
 	emit(s.Emit, EventCatalogChanged, map[string]any{"reason": "delete_profile", "profileId": id})
 	return nil
+}
+
+// confirmProfileDelete shows a native Question. Cancel is the default (desktop-ux).
+func confirmProfileDelete(name string, desired, applied bool) bool {
+	app := application.Get()
+	if app == nil {
+		return false
+	}
+	title := "Delete profile?"
+	message := fmt.Sprintf("Delete this profile?\n\n%s", name)
+	deleteLabel := "Delete"
+	switch {
+	case applied && desired:
+		message = fmt.Sprintf("This profile is Desired and Applied. Stop protection, clear Desired, and delete?\n\n%s", name)
+		deleteLabel = "Stop and Delete"
+	case applied:
+		message = fmt.Sprintf("This profile is Applied. Stop protection and delete?\n\n%s", name)
+		deleteLabel = "Stop and Delete"
+	case desired:
+		message = fmt.Sprintf("This is your Desired profile. Clear Desired and delete?\n\n%s", name)
+	}
+
+	result := make(chan bool, 1)
+	dialog := app.Dialog.Question().SetTitle(title).SetMessage(message)
+	cancel := dialog.AddButton("Cancel").SetAsCancel().SetAsDefault()
+	cancel.OnClick(func() { result <- false })
+	del := dialog.AddButton(deleteLabel)
+	del.OnClick(func() { result <- true })
+	dialog.Show()
+	return <-result
 }
 
 // SetDesired marks a profile as desired.

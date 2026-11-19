@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
+import { Events } from "@wailsio/runtime";
 import { DialogFooter } from "@/components/application/dialog-shell/dialog-footer";
 import { DialogShell } from "@/components/application/dialog-shell/dialog-shell";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
@@ -123,7 +124,7 @@ export function ProxyEditorDialog() {
         void EditorDialogsService.RequestClose("proxy");
     }, []);
 
-    const onSave = useCallback(async () => {
+    const onSave = useCallback(async (forQuit = false) => {
         const nextErrors: Record<string, string> = {};
         if (!form.name.trim()) {
             nextErrors.name = "Name is required.";
@@ -136,6 +137,9 @@ export function ProxyEditorDialog() {
         }
         setFieldErrors(nextErrors);
         if (Object.keys(nextErrors).length > 0) {
+            if (forQuit) {
+                await EditorDialogsService.AckSaveForQuit("proxy", "Proxy form is incomplete.");
+            }
             return;
         }
         setBusy(true);
@@ -151,13 +155,30 @@ export function ProxyEditorDialog() {
                 password: form.password,
             });
             await EditorDialogsService.SetDirty("proxy", false);
-            await EditorDialogsService.Close("proxy");
+            if (forQuit) {
+                await EditorDialogsService.AckSaveForQuit("proxy", "");
+            } else {
+                await EditorDialogsService.Close("proxy");
+            }
         } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
+            const msg = err instanceof Error ? err.message : String(err);
+            setError(msg);
+            if (forQuit) {
+                await EditorDialogsService.AckSaveForQuit("proxy", msg);
+            }
         } finally {
             setBusy(false);
         }
     }, [form, id]);
+
+    useEffect(() => {
+        return Events.On("editors.save_for_quit", () => {
+            if (!dirty) {
+                return;
+            }
+            void onSave(true);
+        });
+    }, [dirty, onSave]);
 
     const saveDisabled = !loaded || !form.name.trim() || (!dirty && !!id) || busy;
 

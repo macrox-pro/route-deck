@@ -10,7 +10,7 @@ Editor dialog windows (`profile`, `proxy`, `helpers`) are separate Wails windows
 
 Dock badge `!` appears when a profile is applied and ProtectionState is not Active (ADR-0014). Unsupported platforms log once at Debug.
 
-Quit is a separate action (tray Quit, Cmd+Q, Dock Quit). Every Quit path shows a native Question dialog before exit is accepted. Cancel keeps the process resident. Confirm with a managed CLI stops that CLI gracefully, then quits. `OnShutdown` still stops the managed CLI as a safety net. Quitting with a dirty editor discards edits (known limitation).
+Quit is a separate action (tray Quit, Cmd+Q, Dock Quit). Every Quit path shows a native Question dialog before exit is accepted. Cancel keeps the process resident. Confirm with a managed CLI stops that CLI gracefully, then quits. `OnShutdown` still stops the managed CLI as a safety net. When a profile or proxy editor is dirty, Quit offers Save and Quit (ADR-0018); helpers stay Cancel/Quit only.
 
 ## ProxyBridge CLI
 

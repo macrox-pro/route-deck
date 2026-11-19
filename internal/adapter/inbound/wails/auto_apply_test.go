@@ -5,7 +5,9 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/macrox-pro/route-deck/internal/adapter/inbound/wails"
 	"github.com/macrox-pro/route-deck/internal/application/port"
@@ -47,6 +49,15 @@ func (s autoApplyProfileStore) List(context.Context) ([]domain.Profile, error) {
 func (s autoApplyProfileStore) Save(context.Context, domain.Profile) error     { return nil }
 func (s autoApplyProfileStore) Delete(context.Context, domain.ProfileID) error {
 	return nil
+}
+
+type recordingDialog struct {
+	warnings []wails.UserMsg
+}
+
+func (d *recordingDialog) Info(wails.UserMsg) {}
+func (d *recordingDialog) Warning(msg wails.UserMsg) {
+	d.warnings = append(d.warnings, msg)
 }
 
 func TestMaybeAutoApplyAtStartup(t *testing.T) {
@@ -113,20 +124,148 @@ func TestMaybeAutoApplyAtStartup(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			called := false
-			wails.MaybeAutoApplyAtStartup(
-				context.Background(),
-				logger,
-				autoApplySettingsStore{settings: tc.settings},
-				autoApplyProfileStore{profile: tc.profile},
-				func(context.Context) (wails.ApplyResultDTO, error) {
-					called = true
-					return wails.ApplyResultDTO{OperationID: "op"}, nil
+			var calls atomic.Int32
+			wails.MaybeAutoApplyAtStartup(context.Background(), wails.AutoApplyConfig{
+				Logger:   logger,
+				Settings: autoApplySettingsStore{settings: tc.settings},
+				Profiles: autoApplyProfileStore{profile: tc.profile},
+				Apply: func(context.Context, domain.ProfileID) error {
+					calls.Add(1)
+					return nil
 				},
-			)
-			if called != tc.wantCall {
-				t.Fatalf("apply called = %v, want %v", called, tc.wantCall)
+			})
+			got := calls.Load() > 0
+			if got != tc.wantCall {
+				t.Fatalf("apply called = %v, want %v", got, tc.wantCall)
 			}
 		})
+	}
+}
+
+func TestShouldRetryAutoApply(t *testing.T) {
+	t.Parallel()
+	proxy, err := domain.ProxyAction("p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy, err := domain.NewApplicationPolicy("proc", proxy, domain.ProtocolScopeBOTH, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	profile, err := domain.NewProfile("prof-1", "Work", []domain.ApplicationPolicy{policy})
+	if err != nil {
+		t.Fatal(err)
+	}
+	healthUnavailable := map[domain.ProxyID]domain.ProxyHealth{
+		"p1": domain.ProxyHealthUnavailable,
+	}
+	healthAuth := map[domain.ProxyID]domain.ProxyHealth{
+		"p1": domain.ProxyHealthAuthenticationFailed,
+	}
+
+	cases := []struct {
+		name   string
+		err    error
+		health map[domain.ProxyID]domain.ProxyHealth
+		want   bool
+	}{
+		{name: "nil_error", err: nil, health: healthUnavailable, want: false},
+		{name: "unavailable", err: errors.New("dial refused"), health: healthUnavailable, want: true},
+		{name: "auth_health", err: errors.New("dial refused"), health: healthAuth, want: false},
+		{name: "conflict", err: errors.New(string(port.BridgeLineGUIConflict)), health: healthUnavailable, want: false},
+		{name: "another_cli", err: errors.New(string(port.BridgeLineAnotherCLI)), health: healthUnavailable, want: false},
+		{name: "extension_timeout", err: errors.New(string(port.BridgeLineExtensionTimeout)), health: healthUnavailable, want: false},
+		{name: "not_installed", err: errors.New("protection apply: proxybridge not installed"), health: healthUnavailable, want: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := wails.ShouldRetryAutoApply(tc.err, profile, tc.health)
+			if got != tc.want {
+				t.Fatalf("got %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestMaybeAutoApplyRetriesOnceThenWarns(t *testing.T) {
+	t.Parallel()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	proxy, err := domain.ProxyAction("p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy, err := domain.NewApplicationPolicy("proc", proxy, domain.ProtocolScopeBOTH, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	profile, err := domain.NewProfile("prof-1", "Work", []domain.ApplicationPolicy{policy})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dialog := &recordingDialog{}
+	var calls atomic.Int32
+	wails.MaybeAutoApplyAtStartup(context.Background(), wails.AutoApplyConfig{
+		Logger: logger,
+		Settings: autoApplySettingsStore{settings: port.Settings{
+			AutoApply: true, DesiredSet: true, DesiredProfileID: "prof-1",
+		}},
+		Profiles: autoApplyProfileStore{profile: profile},
+		HealthSnapshot: func() map[domain.ProxyID]domain.ProxyHealth {
+			return map[domain.ProxyID]domain.ProxyHealth{"p1": domain.ProxyHealthUnavailable}
+		},
+		Apply: func(context.Context, domain.ProfileID) error {
+			calls.Add(1)
+			return errors.New("start failed")
+		},
+		Dialog:     dialog,
+		RetryDelay: time.Millisecond,
+	})
+	if calls.Load() != 2 {
+		t.Fatalf("calls = %d, want 2", calls.Load())
+	}
+	if len(dialog.warnings) != 1 || dialog.warnings[0].ID != "protection.auto_apply_failed" {
+		t.Fatalf("warnings = %+v", dialog.warnings)
+	}
+}
+
+func TestMaybeAutoApplyNoRetryOnConflict(t *testing.T) {
+	t.Parallel()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	proxy, err := domain.ProxyAction("p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy, err := domain.NewApplicationPolicy("proc", proxy, domain.ProtocolScopeBOTH, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	profile, err := domain.NewProfile("prof-1", "Work", []domain.ApplicationPolicy{policy})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dialog := &recordingDialog{}
+	var calls atomic.Int32
+	wails.MaybeAutoApplyAtStartup(context.Background(), wails.AutoApplyConfig{
+		Logger: logger,
+		Settings: autoApplySettingsStore{settings: port.Settings{
+			AutoApply: true, DesiredSet: true, DesiredProfileID: "prof-1",
+		}},
+		Profiles: autoApplyProfileStore{profile: profile},
+		HealthSnapshot: func() map[domain.ProxyID]domain.ProxyHealth {
+			return map[domain.ProxyID]domain.ProxyHealth{"p1": domain.ProxyHealthUnavailable}
+		},
+		Apply: func(context.Context, domain.ProfileID) error {
+			calls.Add(1)
+			return errors.New(string(port.BridgeLineGUIConflict))
+		},
+		Dialog:     dialog,
+		RetryDelay: time.Millisecond,
+	})
+	if calls.Load() != 1 {
+		t.Fatalf("calls = %d, want 1", calls.Load())
+	}
+	if len(dialog.warnings) != 1 || dialog.warnings[0].ID != "protection.auto_apply_failed" {
+		t.Fatalf("warnings = %+v", dialog.warnings)
 	}
 }

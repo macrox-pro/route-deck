@@ -425,7 +425,8 @@ func (c *Catalog) ListProxies(ctx context.Context) ([]domain.ProxyEndpoint, erro
 	return proxies, nil
 }
 
-// SaveProfile rejects unset actions, unresolved proxy refs, and match conflicts before any write.
+// SaveProfile rejects unset actions and unresolved proxy refs. Match conflicts are
+// resolved last-wins and persisted (ADR-0019); MUST NOT fail Save for ErrConflictingMatch.
 func (c *Catalog) SaveProfile(ctx context.Context, profile domain.Profile) error {
 	for _, policy := range profile.Policies {
 		if !policy.Action.IsSet() {
@@ -447,9 +448,7 @@ func (c *Catalog) SaveProfile(ctx context.Context, profile domain.Profile) error
 	if err != nil {
 		return fmt.Errorf("catalog save profile: %w", err)
 	}
-	if err := domain.ValidateMatchConflicts(profile, identities); err != nil {
-		return fmt.Errorf("catalog save profile: %w", err)
-	}
+	profile.Policies = domain.ResolveMatchConflictsLastWins(profile, identities)
 	if err := c.Profiles.Save(ctx, profile); err != nil {
 		return fmt.Errorf("catalog save profile: %w", err)
 	}
@@ -481,10 +480,14 @@ func (c *Catalog) DeleteApplication(ctx context.Context, id domain.ApplicationID
 	return nil
 }
 
-// DeleteProfile removes a profile unless it is desired or applied.
-func (c *Catalog) DeleteProfile(ctx context.Context, id domain.ProfileID, desiredID, appliedID domain.ProfileID) error {
-	if id == desiredID || id == appliedID {
-		return fmt.Errorf("catalog delete profile: %w", domain.ErrReferenced)
+// ErrProfileApplied is returned when deleting the currently applied profile.
+var ErrProfileApplied = fmt.Errorf("catalog delete profile: stop protection before deleting the applied profile")
+
+// DeleteProfile removes a profile. Applied profiles are blocked (ADR-0019).
+// Desired must already be cleared by the caller when deleting the desired profile.
+func (c *Catalog) DeleteProfile(ctx context.Context, id domain.ProfileID, appliedID domain.ProfileID) error {
+	if appliedID != "" && id == appliedID {
+		return ErrProfileApplied
 	}
 	if err := c.Profiles.Delete(ctx, id); err != nil {
 		return fmt.Errorf("catalog delete profile: %w", err)

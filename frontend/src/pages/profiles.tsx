@@ -64,13 +64,11 @@ export function ProfilesPage() {
         }
     };
 
-    const onDelete = async (id: string, name: string) => {
-        if (!window.confirm(`Delete this profile?\n\n${name}`)) {
-            return;
-        }
+    const onDelete = async (id: string) => {
         setBusy(true);
         setError(null);
         try {
+            // Native Dialog.Question lives in Go — window.confirm is unreliable in Wails.
             await ProfilesService.Delete(id);
             await reload();
         } catch (err) {
@@ -156,7 +154,7 @@ export function ProfilesPage() {
                                         color="secondary-destructive"
                                         size="sm"
                                         isLoading={busy}
-                                        onClick={() => void onDelete(profile.id, profile.name)}
+                                        onClick={() => void onDelete(profile.id)}
                                     >
                                         Delete
                                     </Button>

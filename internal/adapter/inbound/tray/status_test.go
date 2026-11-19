@@ -77,6 +77,17 @@ func TestStatusLabel(t *testing.T) {
 	}
 }
 
+func TestQuitDirtyMessage(t *testing.T) {
+	got := tray.QuitDirtyMessage(false)
+	if !strings.Contains(got, "unsaved edits") {
+		t.Fatalf("got %q", got)
+	}
+	owned := tray.QuitDirtyMessage(true)
+	if !strings.Contains(owned, "Protection will stop") {
+		t.Fatalf("owned = %q", owned)
+	}
+}
+
 func TestQuitMessage(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

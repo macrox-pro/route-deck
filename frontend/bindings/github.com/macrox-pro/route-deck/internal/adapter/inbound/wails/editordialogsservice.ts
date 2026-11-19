@@ -11,6 +11,13 @@
 import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
 
 /**
+ * AckSaveForQuit acknowledges one editor's save during Quit Save and Quit (ADR-0018).
+ */
+export function AckSaveForQuit(kind: string, errMsg: string): $CancellablePromise<void> {
+    return $Call.ByID(1518248228, kind, errMsg);
+}
+
+/**
  * Close force-closes a dialog kind without a discard prompt (after save).
  */
 export function Close(kind: string): $CancellablePromise<void> {
