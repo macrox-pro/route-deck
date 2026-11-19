@@ -16,6 +16,7 @@ Read this preface before the Untitled UI embed below. When they disagree, this p
 - ESLint is not a required gate. Frontend check is `npm run build` (tsc + Vite).
 - UI language is English. New files are kebab-case. React Aria imports use the `Aria*` prefix.
 - Prefer semantic color classes (`text-primary`, `bg-secondary`), not raw `gray-*` / `blue-*`.
+- Visual target system: repo-root `DESIGN.md` (below decided docs in precedence: Accepted ADRs and `docs/engineering/desktop-ux.md` win on conflict).
 - `System.IsWindows` is only for dialog footer button order.
 
 <!-- @embed:start file="public-components/CLAUDE.md" -->

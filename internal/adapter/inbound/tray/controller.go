@@ -38,7 +38,12 @@ type DirtyEditors interface {
 	CloseAllForced()
 }
 
-// Controller owns the system tray menu and shared Quit dialog (ADR-0010).
+// UtilityWindowsCloser force-closes non-modal utility windows on Quit (ADR-0020).
+type UtilityWindowsCloser interface {
+	CloseAllForced()
+}
+
+// Controller owns the system tray menu and shared Quit dialog (ADR-0010 / ADR-0020).
 type Controller struct {
 	App        *application.App
 	Window     *application.WebviewWindow
@@ -46,9 +51,14 @@ type Controller struct {
 	Bridge     BridgeReader
 	Protection Stopper
 	Editors    DirtyEditors
+	Utilities  UtilityWindowsCloser
 	Logger     *slog.Logger
 	// FocusEditor focuses an open editor dialog when set; returns true when focused.
 	FocusEditor func() bool
+	// OpenGuides opens the Setup Guides utility window.
+	OpenGuides func()
+	// OpenAbout opens the About RouteDeck utility window.
+	OpenAbout func()
 
 	tray       *application.SystemTray
 	statusItem *application.MenuItem
@@ -103,10 +113,21 @@ func (c *Controller) Attach() error {
 	c.openItem = menu.Add("Open RouteDeck").OnClick(func(_ *application.Context) {
 		c.ShowWindow()
 	})
-	c.stopItem = menu.Add("Stop protection").OnClick(func(_ *application.Context) {
+	c.stopItem = menu.Add("Stop Protection").OnClick(func(_ *application.Context) {
 		c.onStop()
 	})
 	c.stopItem.SetEnabled(CLIOwned(c.bridge))
+	menu.AddSeparator()
+	menu.Add("Setup Guides…").OnClick(func(_ *application.Context) {
+		if c.OpenGuides != nil {
+			c.OpenGuides()
+		}
+	})
+	menu.Add("About RouteDeck").OnClick(func(_ *application.Context) {
+		if c.OpenAbout != nil {
+			c.OpenAbout()
+		}
+	})
 	menu.AddSeparator()
 	menu.Add("Quit RouteDeck").OnClick(func(_ *application.Context) {
 		c.RequestQuit()
@@ -304,12 +325,18 @@ func (c *Controller) finishQuitAfterSave(owned bool) {
 		}
 		c.Editors.CloseAllForced()
 	}
+	if c.Utilities != nil {
+		c.Utilities.CloseAllForced()
+	}
 	c.finishQuitDiscard(owned)
 }
 
 func (c *Controller) finishQuitDiscard(owned bool) {
 	if c.Editors != nil {
 		c.Editors.CloseAllForced()
+	}
+	if c.Utilities != nil {
+		c.Utilities.CloseAllForced()
 	}
 	if owned && c.Protection != nil {
 		if err := c.Protection.Stop(context.Background(), "tray-quit"); err != nil {

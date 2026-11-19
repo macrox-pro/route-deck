@@ -3,9 +3,10 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { Events } from "@wailsio/runtime";
 import { DialogFooter } from "@/components/application/dialog-shell/dialog-footer";
 import { DialogShell } from "@/components/application/dialog-shell/dialog-shell";
+import { InlineAlert } from "@/components/application/page-layout/inline-alert";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
 import { Input } from "@/components/base/input/input";
-import { NativeSelect } from "@/components/base/select/select-native";
 import {
     EditorDialogsService,
     ProxiesService,
@@ -198,17 +199,9 @@ export function ProxyEditorDialog() {
                     <LoadingIndicator label="Loading proxy…" />
                 </div>
             ) : (
-                <div className="flex flex-col gap-4">
-                    {error && (
-                        <div className="rounded-lg bg-error-primary px-4 py-3 text-sm text-error-primary ring-1 ring-error_subtle" role="alert">
-                            {error}
-                        </div>
-                    )}
-                    {guideHint && (
-                        <div className="rounded-lg bg-secondary px-4 py-3 text-sm text-secondary ring-1 ring-secondary" role="status">
-                            {guideHint}
-                        </div>
-                    )}
+                <div className="flex flex-col gap-5">
+                    {error ? <InlineAlert tone="error">{error}</InlineAlert> : null}
+                    {guideHint ? <InlineAlert tone="info">{guideHint}</InlineAlert> : null}
                     <Input
                         ref={nameRef}
                         label="Name"
@@ -218,44 +211,72 @@ export function ProxyEditorDialog() {
                         placeholder="Shadowrocket"
                         onChange={(value) => setForm((f) => ({ ...f, name: value }))}
                     />
-                    <NativeSelect
-                        label="Kind"
-                        value={form.kind}
-                        onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value }))}
-                        options={[
-                            { label: "SOCKS5", value: "socks5" },
-                            { label: "HTTP", value: "http" },
-                        ]}
-                    />
-                    <Input
-                        label="Host"
-                        value={form.host}
-                        hint={fieldErrors.host}
-                        isInvalid={!!fieldErrors.host}
-                        placeholder="127.0.0.1"
-                        onChange={(value) => setForm((f) => ({ ...f, host: value }))}
-                    />
-                    <Input
-                        label="Port"
-                        value={form.port}
-                        hint={fieldErrors.port}
-                        isInvalid={!!fieldErrors.port}
-                        placeholder="1082"
-                        onChange={(value) => setForm((f) => ({ ...f, port: value }))}
-                    />
-                    <Input
-                        label="Username"
-                        value={form.username}
-                        placeholder="Optional"
-                        onChange={(value) => setForm((f) => ({ ...f, username: value }))}
-                    />
-                    <Input
-                        label="Password"
-                        type="password"
-                        value={form.password}
-                        placeholder={id ? "Leave empty to keep" : "Optional"}
-                        onChange={(value) => setForm((f) => ({ ...f, password: value }))}
-                    />
+                    <section className="flex flex-col gap-3">
+                        <h2 className="text-sm font-semibold text-secondary">Connection</h2>
+                        <div className="flex flex-col gap-2">
+                            <p className="text-sm font-medium text-secondary">Kind</p>
+                            <ButtonGroup
+                                size="sm"
+                                selectedKeys={new Set([form.kind])}
+                                onSelectionChange={(keys) => {
+                                    const selected = keys as Set<string> | "all";
+                                    if (selected === "all") {
+                                        return;
+                                    }
+                                    const kind = [...selected][0];
+                                    if (kind === "socks5" || kind === "http") {
+                                        setForm((f) => ({ ...f, kind }));
+                                    }
+                                }}
+                                aria-label="Kind"
+                            >
+                                <ButtonGroupItem id="socks5">SOCKS5</ButtonGroupItem>
+                                <ButtonGroupItem id="http">HTTP</ButtonGroupItem>
+                            </ButtonGroup>
+                        </div>
+                        <div className="flex flex-wrap items-start gap-3">
+                            <div className="min-w-0 flex-1">
+                                <Input
+                                    label="Host"
+                                    value={form.host}
+                                    hint={fieldErrors.host}
+                                    isInvalid={!!fieldErrors.host}
+                                    placeholder="127.0.0.1"
+                                    className="font-mono"
+                                    onChange={(value) => setForm((f) => ({ ...f, host: value }))}
+                                />
+                            </div>
+                            <div className="w-[120px] shrink-0">
+                                <Input
+                                    label="Port"
+                                    value={form.port}
+                                    hint={fieldErrors.port}
+                                    isInvalid={!!fieldErrors.port}
+                                    placeholder="1082"
+                                    inputMode="numeric"
+                                    className="font-mono"
+                                    onChange={(value) => setForm((f) => ({ ...f, port: value }))}
+                                />
+                            </div>
+                        </div>
+                    </section>
+                    <section className="flex flex-col gap-3">
+                        <h2 className="text-sm font-semibold text-secondary">Authentication</h2>
+                        <Input
+                            label="Username"
+                            value={form.username}
+                            placeholder="Optional"
+                            onChange={(value) => setForm((f) => ({ ...f, username: value }))}
+                        />
+                        <Input
+                            label="Password"
+                            type="password"
+                            value={form.password}
+                            hint="Saved in Keychain. Leave empty to keep."
+                            placeholder={id ? "Leave empty to keep" : "Optional"}
+                            onChange={(value) => setForm((f) => ({ ...f, password: value }))}
+                        />
+                    </section>
                 </div>
             )}
         </DialogShell>

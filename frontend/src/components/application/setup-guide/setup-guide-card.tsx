@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
-import { ApplicationsService, SetupGuidesService } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
+import {
+    ApplicationsService,
+    EditorDialogsService,
+    SetupGuidesService,
+} from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 import type { GuideDTO } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 
 async function loadIcon(path: string): Promise<string | null> {
@@ -51,7 +54,6 @@ export function SetupGuideCard({
     busy: boolean;
     onChanged: () => void;
 }) {
-    const navigate = useNavigate();
     const [icon, setIcon] = useState<string | null>(null);
     const [localBusy, setLocalBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -75,7 +77,12 @@ export function SetupGuideCard({
     const onAdd = async () => {
         setError(null);
         if (guide.addMode === "form_fallback") {
-            navigate(`/proxies?guide=${encodeURIComponent(guide.id)}`);
+            setLocalBusy(true);
+            void EditorDialogsService.OpenProxy("", guide.id)
+                .catch((err) => {
+                    setError(err instanceof Error ? err.message : String(err));
+                })
+                .finally(() => setLocalBusy(false));
             return;
         }
         if (guide.addMode !== "one_click") {
@@ -102,7 +109,7 @@ export function SetupGuideCard({
     };
 
     return (
-        <article className="flex flex-col gap-4 rounded-xl bg-primary p-5 ring-1 ring-secondary">
+        <article className="flex flex-col gap-4 rounded-xl bg-primary p-4 ring-1 ring-secondary">
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                     <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary ring-1 ring-secondary">

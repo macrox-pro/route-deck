@@ -22,7 +22,7 @@ export function ClearPassword(id: string): $CancellablePromise<void> {
 }
 
 /**
- * Delete removes a proxy when unreferenced.
+ * Delete removes a proxy when unreferenced after a native confirm (Cancel default).
  */
 export function Delete(id: string): $CancellablePromise<void> {
     return $Call.ByID(548565329, id);

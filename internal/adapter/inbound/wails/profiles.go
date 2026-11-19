@@ -9,7 +9,6 @@ import (
 	"github.com/macrox-pro/route-deck/internal/application/port"
 	"github.com/macrox-pro/route-deck/internal/application/service"
 	"github.com/macrox-pro/route-deck/internal/domain"
-	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 // ProfilesService exposes profile CRUD and desired selection.
@@ -224,10 +223,6 @@ func (s *ProfilesService) Delete(ctx context.Context, id string) error {
 
 // confirmProfileDelete shows a native Question. Cancel is the default (desktop-ux).
 func confirmProfileDelete(name string, desired, applied bool) bool {
-	app := application.Get()
-	if app == nil {
-		return false
-	}
 	title := "Delete profile?"
 	message := fmt.Sprintf("Delete this profile?\n\n%s", name)
 	deleteLabel := "Delete"
@@ -241,15 +236,7 @@ func confirmProfileDelete(name string, desired, applied bool) bool {
 	case desired:
 		message = fmt.Sprintf("This is your Desired profile. Clear Desired and delete?\n\n%s", name)
 	}
-
-	result := make(chan bool, 1)
-	dialog := app.Dialog.Question().SetTitle(title).SetMessage(message)
-	cancel := dialog.AddButton("Cancel").SetAsCancel().SetAsDefault()
-	cancel.OnClick(func() { result <- false })
-	del := dialog.AddButton(deleteLabel)
-	del.OnClick(func() { result <- true })
-	dialog.Show()
-	return <-result
+	return confirmDelete(title, message, deleteLabel)
 }
 
 // SetDesired marks a profile as desired.

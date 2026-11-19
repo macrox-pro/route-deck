@@ -17,10 +17,11 @@ var ErrAppearanceCancelled = errors.New("appearance change cancelled")
 // WindowChrome recreates the main window so native frame options can change.
 // Wails v3.0.0 exposes Mac.Appearance / Windows.Theme only at create time.
 type WindowChrome struct {
-	App     *application.App
-	Editors *EditorDialogs
-	Tray    *tray.Controller
-	Dialog  *NativeUserDialog
+	App       *application.App
+	Editors   *EditorDialogs
+	Utilities *UtilityWindows
+	Tray      *tray.Controller
+	Dialog    *NativeUserDialog
 
 	mu         sync.Mutex
 	main       *application.WebviewWindow
@@ -61,6 +62,9 @@ func (c *WindowChrome) SetAppearanceMemory(appearance string) {
 	c.mu.Unlock()
 	if c.Editors != nil {
 		c.Editors.SetAppearance(normalized)
+	}
+	if c.Utilities != nil {
+		c.Utilities.SetAppearance(normalized)
 	}
 }
 
@@ -134,6 +138,9 @@ func (c *WindowChrome) PrepareForAppearanceChange() error {
 		}
 	}
 	c.Editors.CloseAllForced()
+	if c.Utilities != nil {
+		c.Utilities.CloseAllForced()
+	}
 	return nil
 }
 
@@ -177,6 +184,9 @@ func (c *WindowChrome) rewire(win *application.WebviewWindow) {
 	c.SetMain(win)
 	if c.Editors != nil {
 		c.Editors.Parent = win
+	}
+	if c.Utilities != nil {
+		c.Utilities.Parent = win
 	}
 	if c.Tray != nil {
 		c.Tray.Window = win

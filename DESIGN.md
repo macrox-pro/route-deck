@@ -1,12 +1,12 @@
 ---
 version: alpha
 name: RouteDeck Desktop
-description: macOS desktop shell for MACROX RouteDeck. Frosted materials, one burgundy action color, Untitled UI components. Target system; theme.css still ships the Untitled purple brand scale until a branding task applies these tokens.
+description: macOS desktop shell for MACROX RouteDeck. Frosted materials, one burgundy action color, Untitled UI components. Target system aligned with ADR-0020; RD-070 applies the burgundy `--color-brand-*` scale in theme.css.
 ---
 
 # RouteDeck Desktop
 
-Target visual system for the Wails shell. Read this file before generating UI. Behavior that is already decided lives in `docs/engineering/desktop-ux.md`, ADR-0007, and `docs/branding/README.md`. This file does not override those. It does not recolor `frontend/src/styles/theme.css` by itself.
+Target visual system for the Wails shell. Read this file before generating UI. Behavior that is already decided lives in Accepted ADRs (including ADR-0020), `docs/engineering/desktop-ux.md`, ADR-0007, and `docs/branding/README.md`. This file does not override those.
 
 Sources blended here:
 
@@ -20,19 +20,18 @@ RouteDeck is a macOS instrument for per-app proxy rules. The window should feel 
 
 Personality: precise, calm, dense enough for a catalog, never a marketing page.
 
-### What the shell is today
+### What the shell is today (pre RD-070..RD-076)
 
-The kit is in place and several screens already follow it. Settings is the reference page: a short header, a two-column section grid, grouped rows on `bg-secondary_subtle` with a hairline ring. Activity uses `EmptyState`. Protection and proxy health already map closed states onto success, warning, error, and gray badges.
+The kit is in place and Settings is the reference page. Activity uses `EmptyState`. Protection and proxy health already map closed states onto success, warning, error, and gray badges. RD-070..RD-076 apply this design system: burgundy brand scale, shared page layout, Setup Guides and About utility windows, progress steps, list/Dropdown row actions, native delete confirms, editor form grouping, and the RouteDeck menu bar (ADR-0020).
 
-The rest of the shell still reads as an unstyled catalog:
-
-- Dashboard, Applications, and Help open with implementation notes (Applied versus Active, helper bypass). That copy belongs in Help, not in the page header.
-- Profiles, Proxies, Applications, and the Dashboard proxy list are the same full-width divided ring. Empty rows are a single sentence. Only Activity uses the empty-state component.
-- Profiles and Proxies confirm delete with `window.confirm`. Editor dialogs already use the native question dialog.
-- Setup guides exist at `/help` and are absent from the sidebar.
-- Active navigation and primary buttons use the Untitled purple `--color-brand-*` scale (`#7F56D9` family). The mark, sampled from `docs/branding/route-deck-icon.png`, is deep blue (`#031489`), cyan (`#05e9fe`), and magenta (`#982ef7`) on a white arrow (`#f2f5fd`).
-- The sidebar is a flat `bg-secondary` panel. There is no material separation between chrome and content.
+- Applied-versus-Active and helper-bypass copy move to Setup Guides and badge Tooltips (not page headers).
+- Lists use `PageHeader` / `ListPanel` / `ListRow` / `ScreenState` with approved empty-state copy.
+- Deletes for profiles, proxies, and applications use native `Dialog.Question` (Cancel default). MUST NOT use `window.confirm`.
+- Setup Guides is a closable utility window; `/help` is removed. Sidebar has a Setup Guides action item.
+- Active navigation and primary buttons use burgundy `--color-brand-*` (`#6E2432` / dark solid `#8A3A48`). The mark stays deep blue (`#031489`), cyan (`#05e9fe`), and magenta (`#982ef7`) on a white arrow (`#f2f5fd`).
+- Sidebar uses solid `bg-sidebar` fallbacks until a later translucent-backdrop task.
 - Payment icons, the Untitled logo, and `mobile-header.tsx` are kit leftovers. The product shell does not use them.
+- Applied badge is gray `modern`. Green is reserved for Active.
 
 ### Material, and what is not material yet
 
@@ -87,7 +86,7 @@ colors:
     text-muted: "#C4B4B8"
     hairline: "#FFFFFF1A"
     scrim: "#161214CC"
-    primary: "#9A4452"
+    primary: "#8A3A48"
     on-primary: "#FFFFFF"
 ```
 
@@ -99,9 +98,10 @@ Map these onto Untitled semantic classes. Do not add raw `purple-*`, `blue-*`, o
 
 | Token | Untitled role |
 | --- | --- |
-| `colors.primary` | `--color-brand-600` and solid brand buttons, after the branding task |
+| `colors.primary` | `--color-brand-600` and solid brand buttons |
+| `colors.dark.primary` | `--color-bg-brand-solid` in dark (`brand-500` `#8A3A48`) |
 | `colors.light.canvas` | `bg-primary` page canvas in light mode |
-| `colors.light.sidebar` | Sidebar background |
+| `colors.light.sidebar` | `bg-sidebar` |
 | `colors.light.surface-strong` | List and settings cards |
 | `colors.error` / `warning` / `success` | Existing `text-error-primary`, `text-warning-primary`, `text-success-primary` |
 
@@ -146,7 +146,7 @@ typography:
 
 ## Layout
 
-Desktop only. The shell is a fixed sidebar plus a scrolling main column. Widths already in `sidebar-simple.tsx`: expanded 232px, collapsed 68px. Main padding is 24px, 32px from the `md` breakpoint. Settings stays `max-w-3xl` and centered. Lists use the full main width.
+Desktop only. The shell is a fixed sidebar plus a scrolling main column. Widths already in `sidebar-simple.tsx`: expanded 232px, collapsed 68px. Main padding is 24px, 32px from the `md` breakpoint. Settings stays `max-w-3xl` and centered. Lists use `max-w-5xl`.
 
 ```yaml
 spacing:
@@ -172,7 +172,7 @@ Dashboard content order:
 
 Do not stack a glossary under the title.
 
-Lists are rows: leading icon (32px), name, one muted meta line, trailing status, then row actions. Destructive actions sit last. More than three row actions collapse behind a menu when that component is already in the kit; do not invent a new menu.
+Lists are rows: leading icon (32px), name, one muted meta line, trailing status, then one or two visible `sm` actions, then `Dropdown.DotsButton` for secondary and destructive actions. Destructive items come last after a separator. `ButtonGroup` is only for mutually exclusive choices, not for packing unrelated buttons.
 
 Dialogs keep the sizes and footer rules in `docs/engineering/desktop-ux.md`. Body scrolls. Title and footer stay. macOS footer order is Cancel then Save.
 

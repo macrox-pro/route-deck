@@ -19,6 +19,11 @@ export const CatalogChanged = "catalog.changed";
 export const EditorsSaveForQuit = "editors.save_for_quit";
 
 /**
+ * Name of the custom event "main.command".
+ */
+export const MainCommand = "main.command";
+
+/**
  * Name of the custom event "operation.failed".
  */
 export const OperationFailed = "operation.failed";

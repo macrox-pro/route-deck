@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Events } from "@wailsio/runtime";
-import { SearchLg } from "@untitledui/icons";
+import { Grid01, SearchLg } from "@untitledui/icons";
+import { InlineAlert } from "@/components/application/page-layout/inline-alert";
+import { PageHeader } from "@/components/application/page-layout/page-header";
+import { PageSection } from "@/components/application/page-layout/page-section";
+import { PageShell } from "@/components/application/page-layout/page-shell";
+import { ScreenState } from "@/components/application/page-layout/screen-state";
 import { Button } from "@/components/base/buttons/button";
 import { Checkbox } from "@/components/base/checkbox/checkbox";
+import { Dropdown } from "@/components/base/dropdown/dropdown";
 import { Input } from "@/components/base/input/input";
 import { useSnapshot } from "@/hooks/use-snapshot";
 import { appBundlePath } from "@/utils/app-bundle-path";
@@ -171,13 +178,24 @@ function CatalogRow({
                         <p className="truncate text-xs text-tertiary">{identityLabel}</p>
                     </div>
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <Button color="secondary" size="sm" isLoading={busy} onClick={() => onReviewHelpers(app.id)}>
-                        Review helpers…
+                        Review helpers
                     </Button>
-                    <Button color="secondary-destructive" size="sm" isLoading={busy} onClick={() => onDelete(app.id)}>
-                        Delete
-                    </Button>
+                    <Dropdown.Root>
+                        <Dropdown.DotsButton />
+                        <Dropdown.Popover>
+                            <Dropdown.Menu
+                                onAction={(key) => {
+                                    if (String(key) === "delete") {
+                                        onDelete(app.id);
+                                    }
+                                }}
+                            >
+                                <Dropdown.Item id="delete" label="Delete" textValue="Delete" isDisabled={busy} />
+                            </Dropdown.Menu>
+                        </Dropdown.Popover>
+                    </Dropdown.Root>
                 </div>
             </div>
             {pendingCount > 0 ? (
@@ -256,6 +274,8 @@ function InstalledRow({
 
 export function ApplicationsPage() {
     const { data: snapshot } = useSnapshot();
+    const location = useLocation();
+    const navigate = useNavigate();
     const [apps, setApps] = useState<ApplicationDTO[]>([]);
     const [installed, setInstalled] = useState<InstalledApplicationDTO[]>([]);
     const [profiles, setProfiles] = useState<ProfileDTO[]>([]);
@@ -267,6 +287,7 @@ export function ApplicationsPage() {
     const [groupsByApp, setGroupsByApp] = useState<Record<string, HelperGroupDTO[]>>({});
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     const reload = useCallback(async () => {
         setError(null);
@@ -302,6 +323,8 @@ export function ApplicationsPage() {
             setGroupsByApp(groups);
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setLoading(false);
         }
     }, []);
 
@@ -458,35 +481,49 @@ export function ApplicationsPage() {
         }
     };
 
+    useEffect(() => {
+        const command = (location.state as { command?: string } | null)?.command;
+        if (command !== "add-application") {
+            return;
+        }
+        navigate(location.pathname, { replace: true, state: null });
+        void onPick();
+    }, [location.pathname, location.state, navigate]); // onPick intentionally omitted
+
     return (
-        <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-display-xs font-semibold text-primary">Applications</h1>
-                    <p className="mt-1 max-w-2xl text-sm text-tertiary">
-                        Applied means this profile is confirmed on the CLI. It is not the same as Protection Active. Helper
-                        processes that are not confirmed are never written into rules, so their traffic can bypass Proxy or
-                        Block.
-                    </p>
-                </div>
-                <Button color="primary" size="md" isLoading={busy} onClick={() => void onPick()}>
-                    Add from disk…
-                </Button>
-            </div>
+        <PageShell>
+            <PageHeader
+                title="Applications"
+                description="Add the apps you want to route. Helpers are detected automatically."
+                actions={
+                    !loading && apps.length > 0 ? (
+                        <Button color="primary" size="md" isLoading={busy} onClick={() => void onPick()}>
+                            Add from disk…
+                        </Button>
+                    ) : undefined
+                }
+            />
 
-            {error && (
-                <div className="rounded-lg bg-error-primary px-4 py-3 text-sm text-error-primary ring-1 ring-error_subtle" role="alert">
-                    {error}
-                </div>
-            )}
+            {error ? <InlineAlert tone="error">{error}</InlineAlert> : null}
 
-            <section className="flex flex-col gap-3">
-                <h2 className="text-sm font-semibold text-secondary">Catalog</h2>
-                <ul className="divide-y divide-secondary rounded-lg ring-1 ring-secondary">
-                    {apps.length === 0 ? (
-                        <li className="px-4 py-6 text-sm text-tertiary">No applications in the catalog yet.</li>
-                    ) : (
-                        apps.map((app) => (
+            <PageSection title="Catalog" count={loading ? undefined : apps.length}>
+                {loading && apps.length === 0 ? (
+                    <ScreenState state="loading" title="Loading applications…" />
+                ) : apps.length === 0 ? (
+                    <ScreenState
+                        state="empty"
+                        icon={Grid01}
+                        title="No applications yet"
+                        description="Add from disk, or pick one from the installed list below."
+                        actions={
+                            <Button color="primary" size="md" isLoading={busy} onClick={() => void onPick()}>
+                                Add from disk…
+                            </Button>
+                        }
+                    />
+                ) : (
+                    <ul className="divide-y divide-secondary overflow-hidden rounded-xl bg-primary ring-1 ring-secondary">
+                        {apps.map((app) => (
                             <CatalogRow
                                 key={app.id}
                                 app={app}
@@ -499,14 +536,13 @@ export function ApplicationsPage() {
                                 onDelete={(appID) => void onDelete(appID)}
                                 onReviewHelpers={(appID) => void onReviewHelpers(appID)}
                             />
-                        ))
-                    )}
-                </ul>
-            </section>
+                        ))}
+                    </ul>
+                )}
+            </PageSection>
 
-            <section className="flex flex-col gap-3">
-                <h2 className="text-sm font-semibold text-secondary">Installed on this Mac</h2>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <PageSection title="Installed on this Mac">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                     <Input
                         aria-label="Filter installed applications"
                         icon={SearchLg}
@@ -518,16 +554,25 @@ export function ApplicationsPage() {
                     />
                     <Checkbox label="Show system applications" isSelected={showSystem} onChange={setShowSystem} />
                 </div>
-                <ul className="max-h-96 divide-y divide-secondary overflow-y-auto rounded-lg ring-1 ring-secondary">
-                    {filteredInstalled.length === 0 ? (
-                        <li className="px-4 py-6 text-sm text-tertiary">No installed applications match.</li>
+                <ul className="max-h-96 divide-y divide-secondary overflow-y-auto rounded-xl bg-primary ring-1 ring-secondary">
+                    {loading && installed.length === 0 ? (
+                        <li className="flex min-h-14 items-center px-4 py-3">
+                            <ScreenState state="loading" title="Loading installed applications…" />
+                        </li>
+                    ) : filteredInstalled.length === 0 ? (
+                        <li className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-sm text-tertiary">
+                            <span>No installed apps match &apos;{filter}&apos;</span>
+                            <Button color="secondary" size="sm" onClick={() => setFilter("")}>
+                                Clear filter
+                            </Button>
+                        </li>
                     ) : (
                         filteredInstalled.map((row) => (
                             <InstalledRow key={row.path} row={row} busy={busy} onAdd={(path) => void onAddFromPath(path)} />
                         ))
                     )}
                 </ul>
-            </section>
-        </div>
+            </PageSection>
+        </PageShell>
     );
 }

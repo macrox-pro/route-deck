@@ -24,6 +24,8 @@ type EditorDialogs struct {
 	Parent *application.WebviewWindow
 	Logger *slog.Logger
 	Emit   Emitter
+	// OnOpenChange is called whenever the set of open editors changes (ADR-0020 menu enable).
+	OnOpenChange func(anyOpen bool)
 
 	mu              sync.Mutex
 	windows         map[string]*application.WebviewWindow
@@ -173,6 +175,37 @@ func (d *EditorDialogs) ensureMaps() {
 	}
 }
 
+// AnyOpen reports whether any editor window is currently open.
+func (d *EditorDialogs) AnyOpen() bool {
+	if d == nil {
+		return false
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.ensureMaps()
+	for _, w := range d.windows {
+		if w != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *EditorDialogs) notifyOpenChangeLocked() {
+	if d.OnOpenChange == nil {
+		return
+	}
+	anyOpen := false
+	for _, w := range d.windows {
+		if w != nil {
+			anyOpen = true
+			break
+		}
+	}
+	cb := d.OnOpenChange
+	go cb(anyOpen)
+}
+
 // FocusOpen focuses any open editor window. Returns true when one was focused.
 func (d *EditorDialogs) FocusOpen() bool {
 	if d == nil {
@@ -228,6 +261,7 @@ func (d *EditorDialogs) open(kind, title, hashPath string, width, height int, re
 	win := d.App.Window.NewWithOptions(opts)
 	d.windows[kind] = win
 	d.dirty[kind] = false
+	d.notifyOpenChangeLocked()
 
 	win.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
 		d.mu.Lock()
@@ -278,6 +312,7 @@ func (d *EditorDialogs) open(kind, title, hashPath string, width, height int, re
 		delete(d.dirty, kind)
 		delete(d.asking, kind)
 		d.enableParentLocked()
+		d.notifyOpenChangeLocked()
 		d.mu.Unlock()
 	})
 

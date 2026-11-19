@@ -1,6 +1,7 @@
 import type { CSSProperties, FC, HTMLAttributes, ReactNode } from "react";
 import { ChevronLeftDouble, ChevronRightDouble } from "@untitledui/icons";
-import { Button as AriaButton, Link as AriaLink } from "react-aria-components";
+import { Button as AriaButton } from "react-aria-components";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/base/badges/badges";
 import { Tooltip } from "@/components/base/tooltip/tooltip";
 import { RouteDeckMark } from "@/components/foundations/logo/route-deck-mark";
@@ -15,8 +16,11 @@ const COLLAPSED_WIDTH = 68;
 /** Shared with collapsed rail: px-4 + size-9 centers in 68px and stays put while width animates. */
 const RAIL_PAD = "px-4";
 
-const toggleButtonClassName =
-    "relative z-10 flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-fg-quaternary outline-focus-ring hover:bg-primary_hover hover:text-fg-quaternary_hover focus-visible:outline-2 focus-visible:outline-offset-2";
+/** Shared hit target for every sidebar control (nav, footer action, collapse). */
+const SIDEBAR_CONTROL =
+    "relative flex h-9 cursor-pointer items-center rounded-md border-0 bg-transparent p-0 text-left font-inherit text-fg-quaternary outline-focus-ring transition duration-100 ease-linear select-none hover:bg-primary_hover hover:text-fg-quaternary_hover focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2";
+
+const toggleButtonClassName = cx(SIDEBAR_CONTROL, "z-10 size-9 shrink-0 justify-center");
 
 interface SidebarNavigationProps {
     /** URL of the currently active item. */
@@ -41,31 +45,33 @@ interface SidebarNavigationProps {
     className?: string;
 }
 
-interface SidebarNavLinkProps {
+interface SidebarNavButtonProps {
     href?: string;
+    onPress?: () => void;
     label: string;
     icon?: FC<HTMLAttributes<HTMLOrSVGElement>>;
     current?: boolean;
     collapsed: boolean;
 }
 
+const navItemClassName = (current: boolean | undefined) =>
+    cx(
+        SIDEBAR_CONTROL,
+        "group/item w-full",
+        current && "bg-primary text-fg-brand-secondary hover:bg-primary_hover hover:text-fg-brand-secondary",
+    );
+
 /** Icon sits in a fixed size-9 column so expand/collapse does not shift it horizontally. */
-function SidebarNavLink({ href, label, icon: Icon, current, collapsed }: SidebarNavLinkProps) {
-    const link = (
-        <AriaLink
-            href={href}
-            aria-label={label}
-            aria-current={current ? "page" : undefined}
-            className={cx(
-                "group/item relative flex h-9 w-full cursor-pointer items-center rounded-md outline-focus-ring transition duration-100 ease-linear select-none",
-                "hover:bg-primary_hover focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2",
-                current && "bg-primary hover:bg-primary_hover",
-            )}
-        >
+function SidebarNavButton({ href, onPress, label, icon: Icon, current, collapsed }: SidebarNavButtonProps) {
+    const navigate = useNavigate();
+
+    const body = (
+        <>
             <span className="flex size-9 shrink-0 items-center justify-center">
                 {Icon && (
                     <Icon
                         aria-hidden="true"
+                        data-icon
                         className={cx(
                             "size-5 text-fg-quaternary transition-inherit-all group-hover/item:text-fg-quaternary_hover",
                             current && "text-fg-brand-secondary group-hover/item:text-fg-brand-secondary",
@@ -82,18 +88,37 @@ function SidebarNavLink({ href, label, icon: Icon, current, collapsed }: Sidebar
             >
                 {label}
             </span>
-        </AriaLink>
+        </>
+    );
+
+    const item = (
+        <AriaButton
+            aria-label={label}
+            aria-current={current ? "page" : undefined}
+            onPress={() => {
+                if (onPress) {
+                    onPress();
+                    return;
+                }
+                if (href) {
+                    navigate(href);
+                }
+            }}
+            className={navItemClassName(current)}
+        >
+            {body}
+        </AriaButton>
     );
 
     if (collapsed) {
         return (
             <Tooltip title={label} placement="right">
-                {link}
+                {item}
             </Tooltip>
         );
     }
 
-    return link;
+    return item;
 }
 
 /** Desktop-first Untitled UI simple sidebar with icon-rail collapse for the Wails shell. */
@@ -121,7 +146,7 @@ export const SidebarNavigationSimple = ({
                 } as CSSProperties
             }
             className={cx(
-                "flex h-full shrink-0 flex-col overflow-x-hidden overflow-y-auto overscroll-none bg-secondary pt-5 transition-[width] duration-200 ease-linear",
+                "flex h-full shrink-0 flex-col overflow-x-hidden overflow-y-auto overscroll-none bg-sidebar pt-5 transition-[width] duration-200 ease-linear",
                 !hideBorder && "border-r border-secondary",
                 className,
             )}
@@ -140,28 +165,35 @@ export const SidebarNavigationSimple = ({
             <ul className={cx("mt-5 flex flex-col gap-0.5", RAIL_PAD)}>
                 {items.map((item) => (
                     <li key={item.label}>
-                        <SidebarNavLink
+                        <SidebarNavButton
                             href={item.href}
+                            onPress={item.onPress}
                             label={item.label}
                             icon={item.icon}
-                            current={activeUrl === item.href}
+                            current={Boolean(item.href) && activeUrl === item.href}
                             collapsed={collapsed}
                         />
                     </li>
                 ))}
             </ul>
 
-            <div className="mt-auto flex flex-col">
-                <div className={cx("flex flex-col gap-3 pt-5", RAIL_PAD)}>
+            <div
+                className={cx(
+                    "mt-auto flex flex-col",
+                    footerItems.length > 0 && "border-t border-secondary",
+                )}
+            >
+                <div className={cx("flex flex-col gap-3", footerItems.length > 0 ? "pt-3" : "pt-5", RAIL_PAD)}>
                     {footerItems.length > 0 && (
                         <ul className="flex flex-col gap-0.5">
                             {footerItems.map((item) => (
                                 <li key={item.label}>
-                                    <SidebarNavLink
+                                    <SidebarNavButton
                                         href={item.href}
+                                        onPress={item.onPress}
                                         label={item.label}
                                         icon={item.icon}
-                                        current={activeUrl === item.href}
+                                        current={Boolean(item.href) && activeUrl === item.href}
                                         collapsed={collapsed}
                                     />
                                 </li>

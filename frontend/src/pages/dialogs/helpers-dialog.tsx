@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import { DialogFooter } from "@/components/application/dialog-shell/dialog-footer";
 import { DialogShell } from "@/components/application/dialog-shell/dialog-shell";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
-import { Button } from "@/components/base/buttons/button";
 import { Checkbox } from "@/components/base/checkbox/checkbox";
 import {
     ApplicationsService,
@@ -93,25 +92,18 @@ export function HelpersDialog() {
         void EditorDialogsService.RequestClose("helpers");
     }, []);
 
-    const onSelectAll = useCallback(() => {
-        setChecked((prev) => {
-            const next = { ...prev };
-            for (const group of groups) {
-                next[group.bundleId] = true;
-            }
-            return next;
-        });
-    }, [groups]);
-
-    const onDeselectAll = useCallback(() => {
-        setChecked((prev) => {
-            const next = { ...prev };
-            for (const group of groups) {
-                next[group.bundleId] = false;
-            }
-            return next;
-        });
-    }, [groups]);
+    const onToggleSelectAll = useCallback(
+        (selected: boolean) => {
+            setChecked(() => {
+                const next: Record<string, boolean> = {};
+                for (const group of groups) {
+                    next[group.bundleId] = selected;
+                }
+                return next;
+            });
+        },
+        [groups],
+    );
 
     const onSave = useCallback(async () => {
         setBusy(true);
@@ -139,19 +131,19 @@ export function HelpersDialog() {
     return (
         <DialogShell
             footer={
-                <div className="flex flex-col gap-2 border-t border-secondary">
-                    <p className="px-4 pt-3 text-sm text-tertiary">
-                        Adds {preview.adds} · Removes {preview.removes}
-                        {appName ? ` · ${appName}` : ""}
-                    </p>
-                    <DialogFooter
-                        saveLabel="Confirm"
-                        onCancel={onCancel}
-                        onSave={() => void onSave()}
-                        saveDisabled={!loaded || !dirty || busy}
-                        saveLoading={busy}
-                    />
-                </div>
+                <DialogFooter
+                    leading={
+                        <>
+                            Adds {preview.adds} · Removes {preview.removes}
+                            {appName ? ` · ${appName}` : ""}
+                        </>
+                    }
+                    saveLabel="Confirm"
+                    onCancel={onCancel}
+                    onSave={() => void onSave()}
+                    saveDisabled={!loaded || !dirty || busy}
+                    saveLoading={busy}
+                />
             }
         >
             {!loaded ? (
@@ -159,38 +151,27 @@ export function HelpersDialog() {
                     <LoadingIndicator label="Loading helpers…" />
                 </div>
             ) : (
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-5">
                     {error && (
                         <div className="rounded-lg bg-error-primary px-4 py-3 text-sm text-error-primary ring-1 ring-error_subtle" role="alert">
                             {error}
                         </div>
                     )}
                     {groups.length === 0 ? (
-                        <p className="text-sm text-tertiary">No helper groups found for this application.</p>
+                        <p className="text-sm text-tertiary">No helper processes found. RouteDeck found no helper processes for this app.</p>
                     ) : (
                         <>
-                            <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <Checkbox
+                                    label="Select all"
+                                    isSelected={allSelected}
+                                    isIndeterminate={!allSelected && !noneSelected}
+                                    isDisabled={busy}
+                                    onChange={onToggleSelectAll}
+                                />
                                 <p className="text-sm text-tertiary">
                                     {selectedCount} of {groups.length} selected
                                 </p>
-                                <div className="flex flex-wrap gap-2">
-                                    <Button
-                                        color="secondary"
-                                        size="sm"
-                                        isDisabled={allSelected || busy}
-                                        onClick={onSelectAll}
-                                    >
-                                        Select all
-                                    </Button>
-                                    <Button
-                                        color="secondary"
-                                        size="sm"
-                                        isDisabled={noneSelected || busy}
-                                        onClick={onDeselectAll}
-                                    >
-                                        Deselect all
-                                    </Button>
-                                </div>
                             </div>
                             <ul className="flex flex-col gap-3">
                                 {groups.map((group) => {

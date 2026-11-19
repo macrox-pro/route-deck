@@ -14,6 +14,7 @@ function configure() {
     Object.freeze(Object.assign($Create.Events, {
         "catalog.changed": $$createType0,
         "editors.save_for_quit": $$createType0,
+        "main.command": $$createType0,
         "operation.failed": $$createType0,
         "operation.progress": $$createType0,
         "protection.state.changed": $$createType0,

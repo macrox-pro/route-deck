@@ -5,6 +5,8 @@ export type NavItemType = {
     label: string;
     /** URL to navigate to when the nav item is clicked. */
     href?: string;
+    /** Action instead of navigation (utility windows). Never current. */
+    onPress?: () => void;
     /** Icon component to display. */
     icon?: FC<{ className?: string }>;
     /** Badge to display. */

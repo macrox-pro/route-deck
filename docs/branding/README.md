@@ -16,7 +16,7 @@ Motif: layered glass “deck” tiles and a white Y-shaped split-route arrow on 
 
 Dark-friendly UI is acceptable. Do not recolor the master into a generic purple gradient.
 
-Untitled UI `frontend/src/styles/theme.css` may still use the CLI default purple `--color-brand-*` scale. Recoloring that scale to the RouteDeck palette is a separate branding task.
+Untitled UI `frontend/src/styles/theme.css` uses a burgundy `--color-brand-*` scale for UI chrome (ADR-0020 / DESIGN.md): brand-600 `#6E2432`, dark solid brand-500 `#8A3A48`. The app mark palette (deep blue / cyan / magenta) is unchanged. Do not treat burgundy as a protection status color.
 
 ## Usage
 

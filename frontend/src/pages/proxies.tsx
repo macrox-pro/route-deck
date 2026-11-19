@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { Events } from "@wailsio/runtime";
+import { Key01, Route, Trash01 } from "@untitledui/icons";
+import { InlineAlert } from "@/components/application/page-layout/inline-alert";
+import { ListPanel, ListRow } from "@/components/application/page-layout/list-panel";
+import { PageHeader } from "@/components/application/page-layout/page-header";
+import { PageShell } from "@/components/application/page-layout/page-shell";
+import { ScreenState } from "@/components/application/page-layout/screen-state";
 import { ProxyHealthBadge } from "@/components/application/proxy-health-badge/proxy-health-badge";
 import { ProxyListIcon } from "@/components/application/proxy-list-icon/proxy-list-icon";
 import { SuggestionBanner } from "@/components/application/setup-guide/suggestion-banner";
@@ -15,12 +20,13 @@ import {
 import type { GuideDTO, ProxyDTO } from "@bindings/github.com/macrox-pro/route-deck/internal/adapter/inbound/wails";
 
 export function ProxiesPage() {
-    const [searchParams, setSearchParams] = useSearchParams();
     const { data: snapshot } = useSnapshot();
     const [rows, setRows] = useState<ProxyDTO[]>([]);
     const [guides, setGuides] = useState<GuideDTO[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const [busy, setBusy] = useState(false);
+    const [busyID, setBusyID] = useState<string | null>(null);
+    const [headerBusy, setHeaderBusy] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     const reload = useCallback(async () => {
         setError(null);
@@ -30,6 +36,8 @@ export function ProxiesPage() {
             setGuides(guideRows);
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setLoading(false);
         }
     }, []);
 
@@ -45,17 +53,6 @@ export function ProxiesPage() {
             unsub();
         };
     }, [reload]);
-
-    useEffect(() => {
-        const guideID = searchParams.get("guide");
-        if (!guideID) {
-            return;
-        }
-        void EditorDialogsService.OpenProxy("", guideID);
-        const next = new URLSearchParams(searchParams);
-        next.delete("guide");
-        setSearchParams(next, { replace: true });
-    }, [searchParams, setSearchParams]);
 
     const healthByID = useMemo(() => {
         const map = new Map<string, string>();
@@ -74,118 +71,120 @@ export function ProxiesPage() {
         return map;
     }, [guides, rows]);
 
-    const onDelete = async (id: string, name: string) => {
-        if (!window.confirm(`Delete this proxy?\n\n${name}`)) {
-            return;
-        }
-        setBusy(true);
+    const withBusy = async (id: string, fn: () => Promise<unknown>) => {
+        setBusyID(id);
         setError(null);
         try {
-            await ProxiesService.Delete(id);
+            await fn();
             await reload();
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
         } finally {
-            setBusy(false);
-        }
-    };
-
-    const onClearPassword = async (id: string) => {
-        setBusy(true);
-        setError(null);
-        try {
-            await ProxiesService.ClearPassword(id);
-            await reload();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    const onRecheck = async () => {
-        setBusy(true);
-        setError(null);
-        try {
-            await ProxiesService.Recheck();
-            await reload();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
-        } finally {
-            setBusy(false);
+            setBusyID(null);
         }
     };
 
     return (
-        <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between gap-4">
-                <h1 className="text-display-xs font-semibold text-primary">Proxies</h1>
-                <div className="flex flex-wrap gap-2">
-                    <Button color="secondary" size="md" isLoading={busy} onClick={() => void onRecheck()}>
-                        Recheck health
-                    </Button>
-                    <Button color="primary" size="md" onClick={() => void EditorDialogsService.OpenProxy("", "")}>
-                        New proxy
-                    </Button>
-                </div>
-            </div>
+        <PageShell>
+            <PageHeader
+                title="Proxies"
+                description="Local SOCKS5 or HTTP endpoints from your VPN apps."
+                actions={
+                    !loading && rows.length > 0 ? (
+                        <>
+                            <Button
+                                color="secondary"
+                                size="md"
+                                isLoading={headerBusy}
+                                onClick={() => {
+                                    setHeaderBusy(true);
+                                    void ProxiesService.Recheck()
+                                        .then(() => reload())
+                                        .catch((err) => setError(err instanceof Error ? err.message : String(err)))
+                                        .finally(() => setHeaderBusy(false));
+                                }}
+                            >
+                                Recheck health
+                            </Button>
+                            <Button color="primary" size="md" onClick={() => void EditorDialogsService.OpenProxy("", "")}>
+                                New proxy
+                            </Button>
+                        </>
+                    ) : undefined
+                }
+            />
 
-            {error && (
-                <div className="rounded-lg bg-error-primary px-4 py-3 text-sm text-error-primary ring-1 ring-error_subtle" role="alert">
-                    {error}
-                </div>
-            )}
+            {error ? <InlineAlert tone="error">{error}</InlineAlert> : null}
 
             <SuggestionBanner onAdded={() => void reload()} />
 
-            <ul className="divide-y divide-secondary rounded-lg ring-1 ring-secondary">
-                {rows.length === 0 ? (
-                    <li className="px-4 py-6 text-sm text-tertiary">No proxies yet.</li>
-                ) : (
-                    rows.map((row) => {
+            {loading && rows.length === 0 ? (
+                <ScreenState state="loading" title="Loading proxies…" />
+            ) : rows.length === 0 ? (
+                <ScreenState
+                    state="empty"
+                    icon={Route}
+                    title="No proxies yet"
+                    description="Add one, or use Setup Guides in the sidebar."
+                    actions={
+                        <Button color="primary" size="md" onClick={() => void EditorDialogsService.OpenProxy("", "")}>
+                            New proxy
+                        </Button>
+                    }
+                />
+            ) : (
+                <ListPanel>
+                    {rows.map((row) => {
                         const icon = iconByID.get(row.id);
+                        const rowBusy = busyID === row.id;
                         return (
-                            <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
-                                <div className="flex min-w-0 items-center gap-3">
-                                    <ProxyListIcon installedPath={icon?.installedPath} kind={icon?.kind || row.kind} />
-                                    <div className="min-w-0">
-                                        <p className="font-medium text-primary">{row.name || row.id}</p>
-                                        <p className="text-tertiary">
-                                            {row.kind}://{row.host}:{row.port}
-                                            {row.hasPassword ? " · password set" : " · no password"}
-                                        </p>
-                                        <div className="mt-1.5">
-                                            <ProxyHealthBadge health={healthByID.get(row.id)} />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
+                            <ListRow
+                                key={row.id}
+                                leading={<ProxyListIcon installedPath={icon?.installedPath} kind={icon?.kind || row.kind} />}
+                                title={row.name || row.id}
+                                meta={
+                                    <span className="font-mono text-xs">
+                                        {row.kind}://{row.host}:{row.port}
+                                        {row.hasPassword ? " · password set" : " · no password"}
+                                    </span>
+                                }
+                                status={<ProxyHealthBadge health={healthByID.get(row.id)} />}
+                                actions={
                                     <Button
                                         color="secondary"
                                         size="sm"
+                                        isDisabled={busyID !== null}
                                         onClick={() => void EditorDialogsService.OpenProxy(row.id, "")}
                                     >
                                         Edit
                                     </Button>
-                                    {row.hasPassword && (
-                                        <Button color="secondary" size="sm" isLoading={busy} onClick={() => void onClearPassword(row.id)}>
-                                            Clear password
-                                        </Button>
-                                    )}
-                                    <Button
-                                        color="secondary-destructive"
-                                        size="sm"
-                                        isLoading={busy}
-                                        onClick={() => void onDelete(row.id, row.name || row.id)}
-                                    >
-                                        Delete
-                                    </Button>
-                                </div>
-                            </li>
+                                }
+                                menu={[
+                                    ...(row.hasPassword
+                                        ? [
+                                              {
+                                                  id: "clear-password",
+                                                  label: "Clear password",
+                                                  icon: Key01,
+                                                  isDisabled: busyID !== null,
+                                                  onAction: () => void withBusy(row.id, () => ProxiesService.ClearPassword(row.id)),
+                                              },
+                                          ]
+                                        : []),
+                                    {
+                                        id: "delete",
+                                        label: "Delete",
+                                        icon: Trash01,
+                                        destructive: true,
+                                        isDisabled: busyID !== null || rowBusy,
+                                        onAction: () => void withBusy(row.id, () => ProxiesService.Delete(row.id)),
+                                    },
+                                ]}
+                            />
                         );
-                    })
-                )}
-            </ul>
-        </div>
+                    })}
+                </ListPanel>
+            )}
+        </PageShell>
     );
 }

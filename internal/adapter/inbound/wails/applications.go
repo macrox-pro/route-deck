@@ -361,7 +361,7 @@ func (s *ApplicationsService) ConfirmHelpers(ctx context.Context, applicationID 
 	return nil
 }
 
-// Delete removes an application when unreferenced.
+// Delete removes an application when unreferenced after a native confirm (Cancel default).
 func (s *ApplicationsService) Delete(ctx context.Context, id string) error {
 	if s == nil || s.Catalog == nil {
 		return fmt.Errorf("applications service: not configured")
@@ -369,6 +369,24 @@ func (s *ApplicationsService) Delete(ctx context.Context, id string) error {
 	appID, err := domain.ParseApplicationID(id)
 	if err != nil {
 		return fmt.Errorf("applications delete: %w", err)
+	}
+	name := id
+	if apps, listErr := s.Catalog.ListApplications(ctx); listErr == nil {
+		for _, app := range apps {
+			if app.ID == appID {
+				if app.DisplayName != "" {
+					name = app.DisplayName
+				}
+				break
+			}
+		}
+	}
+	if !confirmDelete(
+		"Delete application?",
+		fmt.Sprintf("Delete this application and its confirmed helpers from the catalog?\n\n%s", name),
+		"Delete",
+	) {
+		return nil
 	}
 	if err := s.Catalog.DeleteApplication(ctx, appID); err != nil {
 		s.logger().Warn("application delete failed", "component", "wails.applications", "err", err)

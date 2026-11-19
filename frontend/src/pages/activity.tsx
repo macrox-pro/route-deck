@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Events } from "@wailsio/runtime";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { RefreshCcw01 } from "@untitledui/icons";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { Activity, RefreshCcw01 } from "@untitledui/icons";
+import { PageHeader } from "@/components/application/page-layout/page-header";
+import { PageShell } from "@/components/application/page-layout/page-shell";
+import { ScreenState } from "@/components/application/page-layout/screen-state";
 import { Badge } from "@/components/base/badges/badges";
 import type { BadgeColors } from "@/components/base/badges/badge-types";
 import { Button } from "@/components/base/buttons/button";
@@ -164,33 +165,31 @@ export function ActivityPage() {
     }, [hasMore, lastVirtualItem, loadMore, loading, loadingMore, records.length]);
 
     return (
-        <div className="flex min-h-0 flex-1 flex-col gap-4">
-            <div className="flex shrink-0 flex-wrap items-end justify-between gap-4">
-                <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-3">
-                        <h1 className="text-display-xs font-semibold text-primary">Activity</h1>
-                        {records.length > 0 ? (
-                            <Badge color="gray" type="modern" size="sm">
-                                {records.length}
-                                {hasMore ? "+" : ""} events
-                            </Badge>
-                        ) : null}
-                    </div>
-                    <p className="mt-1 text-sm text-tertiary">
-                        Newest RouteDeck JSON log first. Scroll loads older pages; product events refresh the newest page.
-                    </p>
-                </div>
-                <Button
-                    color="secondary"
-                    size="md"
-                    iconLeading={RefreshCcw01}
-                    onClick={() => void reload()}
-                    isDisabled={loading || loadingMore}
-                    isLoading={loading && records.length > 0}
-                >
-                    Refresh
-                </Button>
-            </div>
+        <PageShell className="min-h-0 flex-1">
+            <PageHeader
+                title="Activity"
+                titleAddon={
+                    records.length > 0 ? (
+                        <Badge color="gray" type="modern" size="sm">
+                            {records.length}
+                            {hasMore ? "+" : ""} events
+                        </Badge>
+                    ) : null
+                }
+                description="What RouteDeck did on this Mac, newest first."
+                actions={
+                    <Button
+                        color="secondary"
+                        size="md"
+                        iconLeading={RefreshCcw01}
+                        onClick={() => void reload()}
+                        isDisabled={loading || loadingMore}
+                        isLoading={loading && records.length > 0}
+                    >
+                        Refresh
+                    </Button>
+                }
+            />
 
             {error ? (
                 <div className="shrink-0 rounded-lg bg-error-primary px-4 py-3 text-sm text-error-primary ring-1 ring-error_subtle" role="alert">
@@ -198,26 +197,15 @@ export function ActivityPage() {
                 </div>
             ) : null}
 
-            {loading && records.length === 0 && !error ? (
-                <div className="flex min-h-64 flex-1 items-center justify-center rounded-xl ring-1 ring-secondary">
-                    <LoadingIndicator label="Loading activity…" />
-                </div>
-            ) : null}
+            {loading && records.length === 0 && !error ? <ScreenState state="loading" title="Loading activity…" /> : null}
 
             {!loading && !error && records.length === 0 ? (
-                <div className="flex flex-1 items-center justify-center rounded-xl ring-1 ring-secondary">
-                    <EmptyState size="md">
-                        <EmptyState.Header>
-                            <EmptyState.FeaturedIcon color="gray" theme="modern" />
-                        </EmptyState.Header>
-                        <EmptyState.Content>
-                            <EmptyState.Title>No activity yet</EmptyState.Title>
-                            <EmptyState.Description>
-                                RouteDeck JSON log records appear here after the app writes to the log file.
-                            </EmptyState.Description>
-                        </EmptyState.Content>
-                    </EmptyState>
-                </div>
+                <ScreenState
+                    state="empty"
+                    icon={Activity}
+                    title="No activity yet"
+                    description="Entries appear after the first log write."
+                />
             ) : null}
 
             {records.length > 0 ? (
@@ -314,6 +302,6 @@ export function ActivityPage() {
                     </div>
                 </section>
             ) : null}
-        </div>
+        </PageShell>
     );
 }

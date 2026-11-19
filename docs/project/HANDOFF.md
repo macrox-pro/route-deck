@@ -1,49 +1,31 @@
 # Handoff
 
-Timestamp: 2026-11-19 20:43 UTC
-Agent: agent (RD-068)
-Task ID: RD-068 (DONE → IDLE)
-Branch / commit: working tree (agent MUST NOT commit)
+Timestamp: 2026-11-19 21:45 UTC
+Agent: agent (RD-075 + RD-076)
+Task ID: RD-076 (DONE)
 
 ## Done
-
-- **RD-068 / ADR-0019**: Desired profile delete clears Desired then deletes; Applied Delete disabled until Stop
-- Editor remaps policies onto UI representatives; Save is WYSIWYG (drops siblings/orphans)
-- Match conflicts resolved last-wins on Save and `BuildRulePlan` (no user-facing `ErrConflictingMatch`)
-- Footnotes on ADR-0008 / ADR-0014; wails-api + domain-model updated
+- RD-075: proxy Connection/Authentication + Kind ButtonGroup; profile sticky toolbar, Action/Protocol ButtonGroup, proxy Select; helpers tri-state Select all; dialog shell/footer spacing
+- RD-076: `app_menu.go` RouteDeck menu (SetApplicationMenu), enable rules while editor open + Stop via CLIOwned, table-driven `MenuItemEnabled` tests; wired in `main.go`
+- UX follow-ups: Setup Guides in sidebar footer; AriaButton-unified sidebar; removed duplicate empty/header CTAs
 
 ## Verification
-
 | Command | Result |
 | --- | --- |
-| `go test ./internal/domain ./internal/application/service ./internal/adapter/inbound/wails` | PASS |
 | `cd frontend && npm run build` | PASS |
-| `golangci-lint run ./...` | PASS (0 issues) |
+| `go test ./internal/adapter/inbound/...` | PASS |
+| `golangci-lint run ./...` | PASS |
+| `wails3 task build` | PASS |
+| Manual menu + accelerators (dirty editor Cmd+W / Quit) | NOT RUN (needs owner on macOS UI) |
 
-## Review
-
-- No silent Direct fallback
-- No secrets in logs/SQLite
-- GORM stays in persistence adapter
-- Agent did not commit
+## Known limitations
+- Cmd+W handler in `dialog-footer.tsx` kept: CloseWindow role closes the focused window, but the footer path still runs dirty cancel semantics explicitly.
+- Manual full menu pass not run this session; DONE for code+automated gates; owner should smoke-test menu items.
 
 ## Exact next step
-
-Owner reviews the working tree and commits (agent MUST NOT commit). Suggested message below.
+Owner: `git status` / review diff, then commit. Optional: run `wails3 task build` and click every menu item once.
 
 ## Suggested commit message
-
 ```text
-fix profile delete, editor policy sync, and last-wins match conflicts (rd-068)
+add routedeck menu bar and finish editor form ux for rd-075/rd-076
 ```
-
-## Context to read
-
-- `docs/decisions/ADR-0019-profile-delete-last-wins.md`
-- `docs/project/STATUS.md`
-
-## Notes
-
-- Working tree may still include uncommitted RD-063..RD-067 changes; owner can commit together or separately.
-- Hotfix after RD-068: profile Delete used `window.confirm` (dead in Wails). Now native `Dialog.Question`; Applied → Stop and Delete in one confirm. Restart `wails3 dev` before smoke.
-- Smoke: Delete Desired; Delete Applied (Stop and Delete); editor Block remap + Save.

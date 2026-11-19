@@ -175,7 +175,9 @@ func run() error {
 	}
 	editorDialogs := &wails.EditorDialogs{Logger: logger}
 	editorDialogsService := &wails.EditorDialogsService{Dialogs: editorDialogs, Logger: logger}
-	windowChrome := &wails.WindowChrome{Editors: editorDialogs}
+	utilityWindows := &wails.UtilityWindows{Editors: editorDialogs, Logger: logger}
+	utilityWindowsService := &wails.UtilityWindowsService{Windows: utilityWindows, Logger: logger}
+	windowChrome := &wails.WindowChrome{Editors: editorDialogs, Utilities: utilityWindows}
 	dockService := dock.NewWailsService()
 	dockAttacher := &dock.Attacher{Dock: dockService, Snapshot: live, Logger: logger}
 	appSettings := &service.Settings{
@@ -240,6 +242,7 @@ func run() error {
 	application.RegisterEvent[wails.EventEnvelope](wails.EventOperationFailed)
 	application.RegisterEvent[wails.EventEnvelope](wails.EventCatalogChanged)
 	application.RegisterEvent[wails.EventEnvelope](wails.EventEditorsSaveForQuit)
+	application.RegisterEvent[wails.EventEnvelope](wails.EventMainCommand)
 
 	app := application.New(application.Options{
 		Name:        "route-deck",
@@ -256,6 +259,7 @@ func run() error {
 			application.NewService(activityService),
 			application.NewService(setupGuidesService),
 			application.NewService(editorDialogsService),
+			application.NewService(utilityWindowsService),
 			application.NewService(dockService),
 		},
 		Assets: application.AssetOptions{
@@ -284,6 +288,7 @@ func run() error {
 	applicationsService.Emit = emit
 	profilesService.Emit = emit
 	editorDialogs.Emit = emit
+	utilityWindows.Emit = emit
 	if healthMon != nil {
 		healthMon.OnChange = func() {
 			emit(wails.EventProxyHealthChanged, wails.EventEnvelope{
@@ -344,11 +349,20 @@ func run() error {
 
 	editorDialogs.App = app
 	editorDialogs.Parent = mainWindow
+	utilityWindows.App = app
+	utilityWindows.Parent = mainWindow
 
 	trayCtrl.App = app
 	trayCtrl.Window = mainWindow
 	trayCtrl.FocusEditor = editorDialogs.FocusOpen
 	trayCtrl.Editors = editorDialogs
+	trayCtrl.Utilities = utilityWindows
+	trayCtrl.OpenGuides = func() {
+		_ = utilityWindowsService.OpenGuides("")
+	}
+	trayCtrl.OpenAbout = func() {
+		_ = utilityWindowsService.OpenAbout()
+	}
 	userDialog := &wails.NativeUserDialog{App: app, Window: mainWindow}
 	windowChrome.Tray = trayCtrl
 	windowChrome.Dialog = userDialog
@@ -361,6 +375,18 @@ func run() error {
 	if err := trayCtrl.Attach(); err != nil {
 		return fmt.Errorf("route-deck: tray: %w", err)
 	}
+
+	appMenu := wails.NewAppMenu(wails.AppMenuDeps{
+		App:       app,
+		Emit:      emit,
+		Editors:   editorDialogs,
+		EditorSvc: editorDialogsService,
+		Utilities: utilityWindowsService,
+		Bridge:    protection,
+		Parent:    mainWindow,
+		Logger:    logger,
+	})
+	appMenu.Install()
 
 	// ADR-0015 / ADR-0017: Auto Apply after emit/dialog are live (synchronous coordinator Apply).
 	go wails.MaybeAutoApplyAtStartup(context.Background(), wails.AutoApplyConfig{
@@ -387,10 +413,12 @@ func run() error {
 	app.Event.On(wails.EventProtectionStateChanged, func(_ *application.CustomEvent) {
 		refreshTray()
 		refreshDock()
+		appMenu.SyncEnabled()
 	})
 	app.Event.On(wails.EventProxyBridgeStateChanged, func(_ *application.CustomEvent) {
 		refreshTray()
 		refreshDock()
+		appMenu.SyncEnabled()
 	})
 	app.Event.On(wails.EventProxyHealthChanged, func(_ *application.CustomEvent) {
 		refreshDock()

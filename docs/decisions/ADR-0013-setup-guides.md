@@ -10,7 +10,7 @@ Users need a local SOCKS5 or HTTP CONNECT endpoint from a third-party VPN client
 
 ## Decision
 
-- Ship a **Setup guides** screen (`/help`) with English step cards. Go owns all guide content and detection; React renders only.
+- Ship a **Setup guides** screen (`/help`) with English step cards. Go owns all guide content and detection; React renders only. **Superseded UI surface (ADR-0020):** the screen moves to the non-modal `guides` utility window; the main-window `/help` route is removed. Guide content, detection, one-click add, checklist, and dismiss rules in this ADR remain.
 - Guide inventory (v1): ProxyBridge (always first), Shadowrocket, v2rayN, Hiddify, Happ, sing-box SFM, Surge Mac, Generic (always last). Clash Verge Rev and ClashX Meta / FlClash are out of scope.
 - Detection: match installed apps by **bundle ID** via `InstalledApplicationLister` (ADR-0009). Probe documented default ports on `127.0.0.1` only (TCP dial). "Port open" is a TCP fact, never a health or protection word.
 - Bundle ID sources (must be official; else Detection unavailable, no name matching):

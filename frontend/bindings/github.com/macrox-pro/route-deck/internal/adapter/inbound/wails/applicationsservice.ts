@@ -31,7 +31,7 @@ export function ConfirmHelpers(applicationID: string, helpers: $models.HelperDTO
 }
 
 /**
- * Delete removes an application when unreferenced.
+ * Delete removes an application when unreferenced after a native confirm (Cancel default).
  */
 export function Delete(id: string): $CancellablePromise<void> {
     return $Call.ByID(665363672, id);

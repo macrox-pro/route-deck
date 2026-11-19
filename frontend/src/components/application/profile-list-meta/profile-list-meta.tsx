@@ -120,7 +120,7 @@ export function ProfileListMeta({
                         </Badge>
                     ) : null}
                     {isApplied ? (
-                        <Badge color="success" size="sm" type="pill-color">
+                        <Badge color="gray" size="sm" type="modern">
                             Applied
                         </Badge>
                     ) : null}

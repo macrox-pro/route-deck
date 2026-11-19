@@ -77,3 +77,11 @@ When a task becomes DONE: append one row here, remove `docs/project/tasks/RD-XXX
 | RD-066 | Native Warning for BridgeLineExtensionTimeout. |
 | RD-067 | Parallel health Recheck + emit proxy.health.changed on change. |
 | RD-068 | Profile Desired delete, editor process-id sync, last-wins match conflicts (ADR-0019). |
+| RD-069 | ADR-0020 utility windows/menu bar + design-refactor docs and READY tasks RD-070..RD-076. |
+| RD-070 | Burgundy brand scale, bg-sidebar, page-layout components, Settings ButtonGroup/InputGroup. |
+| RD-071 | Utility windows (guides/about), main.command, tray Title Case, About UI. |
+| RD-072 | ProgressSteps, Setup Guides window, remove /help, Dashboard setup strip. |
+| RD-073 | Dashboard + Activity page-layout, InlineAlerts, main.command handlers. |
+| RD-074 | ListPanel rows, native confirmDelete for proxies/apps, approved empty states. |
+| RD-075 | Editor forms: ButtonGroup/Select, helpers tri-state Select all, dialog spacing. |
+| RD-076 | RouteDeck application menu bar, accelerators, enable-while-editor rules. |

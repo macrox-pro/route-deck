@@ -21,6 +21,7 @@ Each product event payload MUST include:
 | `operation.progress` | Long operation tick (`operation_id`) |
 | `operation.failed` | Long operation failed (`operation_id`, typed error) |
 | `editors.save_for_quit` | Quit Save and Quit asked dirty profile/proxy editors to run Save (ADR-0018; `kinds`) |
+| `main.command` | Menu bar, tray utility actions, or `UtilityWindowsService.ShowMain` asked the main window to run a command (ADR-0020). Payload `command` is closed: `navigate` (optional `route`), `apply`, `stop`, `recheck`, `toggle-sidebar`, `add-application`. The event is a trigger; `app-shell` is the sole listener; pages reload snapshots after handlers run. MUST NOT carry protection state |
 
 `connection.observed` is not a v1 event. Activity reads the RouteDeck JSON log (ADR-0011), not a stored copy of these Wails events and not a parsed CLI connection stream. Product events may trigger an Activity reload; they are not proof of `Active`.
 

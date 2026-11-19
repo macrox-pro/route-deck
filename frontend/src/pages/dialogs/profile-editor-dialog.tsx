@@ -5,9 +5,10 @@ import { DialogFooter } from "@/components/application/dialog-shell/dialog-foote
 import { DialogShell } from "@/components/application/dialog-shell/dialog-shell";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
 import { Button } from "@/components/base/buttons/button";
+import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
 import { Checkbox } from "@/components/base/checkbox/checkbox";
 import { Input } from "@/components/base/input/input";
-import { NativeSelect } from "@/components/base/select/select-native";
+import { Select } from "@/components/base/select/select";
 import { appBundlePath } from "@/utils/app-bundle-path";
 import { loadAppIcon } from "@/utils/load-app-icon";
 import {
@@ -215,43 +216,77 @@ function ProcessActionControls({
     proxies: ProxyDTO[];
     onChange: (patch: Partial<ProcessDraft>) => void;
 }) {
+    const actionKey = draft.action || "none";
+    const protocolKey = draft.protocolScope || "BOTH";
+    const proxyItems = [
+        { id: "", label: "Select proxy…" },
+        ...proxies.map((proxy) => ({ id: proxy.id, label: proxy.name || proxy.id })),
+    ];
+
     return (
-        <div className="flex min-w-0 flex-col gap-2 sm:items-end">
-            <NativeSelect
-                className="min-w-0 sm:w-40"
-                aria-label="Action"
-                value={draft.action}
-                onChange={(e) => onChange({ action: e.target.value as ActionKind })}
-                options={ACTION_OPTIONS}
-            />
+        <div className="flex min-w-0 flex-col gap-3 sm:items-end">
+            <div className="flex flex-col gap-1.5 sm:items-end">
+                <p className="text-xs font-medium text-tertiary">Action</p>
+                <ButtonGroup
+                    size="sm"
+                    selectedKeys={new Set([actionKey])}
+                    aria-label="Action"
+                    onSelectionChange={(keys) => {
+                        const selected = keys as Set<string> | "all";
+                        if (selected === "all") {
+                            return;
+                        }
+                        const value = String([...selected][0] ?? "");
+                        const action = (value === "none" ? "" : value) as ActionKind;
+                        onChange({ action });
+                    }}
+                >
+                    {ACTION_OPTIONS.map((option) => (
+                        <ButtonGroupItem key={option.value || "none"} id={option.value || "none"}>
+                            {option.label}
+                        </ButtonGroupItem>
+                    ))}
+                </ButtonGroup>
+            </div>
             {draft.action === "proxy" ? (
                 <>
-                    <NativeSelect
-                        className="min-w-0 sm:w-40"
-                        aria-label="Proxy"
-                        value={draft.proxyId}
-                        onChange={(e) => onChange({ proxyId: e.target.value })}
-                        options={[
-                            { label: "Select proxy…", value: "" },
-                            ...proxies.map((proxy) => ({ label: proxy.name || proxy.id, value: proxy.id })),
-                        ]}
-                    />
-                    <NativeSelect
-                        className="min-w-0 sm:w-40"
-                        aria-label="Protocol scope"
-                        value={draft.protocolScope || "BOTH"}
-                        onChange={(e) => onChange({ protocolScope: e.target.value })}
-                        options={[
-                            { label: "TCP", value: "TCP" },
-                            { label: "UDP", value: "UDP" },
-                            { label: "BOTH", value: "BOTH" },
-                        ]}
-                    />
-                    <Checkbox
-                        label="Direct UDP limitation"
-                        isSelected={draft.udpLimitation === "DirectUDP"}
-                        onChange={(isSelected) => onChange({ udpLimitation: isSelected ? "DirectUDP" : "Absent" })}
-                    />
+                    <Select
+                        className="min-w-0 sm:w-56"
+                        label="Proxy"
+                        selectedKey={draft.proxyId || null}
+                        onSelectionChange={(key) => onChange({ proxyId: key == null ? "" : String(key) })}
+                        items={proxyItems}
+                    >
+                        {(item) => <Select.Item id={item.id} label={item.label} />}
+                    </Select>
+                    <div className="flex flex-col gap-1.5 sm:items-end">
+                        <p className="text-xs font-medium text-tertiary">Protocol</p>
+                        <ButtonGroup
+                            size="sm"
+                            selectedKeys={new Set([protocolKey])}
+                            aria-label="Protocol scope"
+                            onSelectionChange={(keys) => {
+                                const selected = keys as Set<string> | "all";
+                                if (selected === "all") {
+                                    return;
+                                }
+                                const value = String([...selected][0] ?? "BOTH");
+                                onChange({ protocolScope: value });
+                            }}
+                        >
+                            <ButtonGroupItem id="TCP">TCP</ButtonGroupItem>
+                            <ButtonGroupItem id="UDP">UDP</ButtonGroupItem>
+                            <ButtonGroupItem id="BOTH">Both</ButtonGroupItem>
+                        </ButtonGroup>
+                    </div>
+                    <div className="flex flex-col gap-1 sm:items-end">
+                        <Checkbox
+                            label="Direct UDP limitation"
+                            isSelected={draft.udpLimitation === "DirectUDP"}
+                            onChange={(isSelected) => onChange({ udpLimitation: isSelected ? "DirectUDP" : "Absent" })}
+                        />
+                        <p className="max-w-xs text-xs text-tertiary">When on, UDP for this app is written as Direct.</p>
+                    </div>
                 </>
             ) : null}
         </div>
@@ -530,31 +565,33 @@ export function ProfileEditorDialog() {
                     <LoadingIndicator label="Loading profile…" />
                 </div>
             ) : (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-5">
                 {error && (
                     <div className="rounded-lg bg-error-primary px-4 py-3 text-sm text-error-primary ring-1 ring-error_subtle" role="alert">
                         {error}
                     </div>
                 )}
-                <Input
-                    ref={nameRef}
-                    label="Profile name"
-                    value={name}
-                    placeholder="Work"
-                    onChange={setName}
-                />
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="sticky top-0 z-10 -mx-6 flex flex-col gap-4 border-b border-secondary bg-primary px-6 pb-4">
                     <Input
-                        className="min-w-48 flex-1"
-                        aria-label="Search applications"
-                        placeholder="Search applications"
-                        value={search}
-                        onChange={setSearch}
+                        ref={nameRef}
+                        label="Profile name"
+                        value={name}
+                        placeholder="Work"
+                        onChange={setName}
                     />
-                    <Checkbox label="Configured only" isSelected={configuredOnly} onChange={setConfiguredOnly} />
-                    <p className="text-sm text-tertiary">
-                        {configuredCount} of {rows.length}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <Input
+                            className="min-w-48 flex-1"
+                            aria-label="Search applications"
+                            placeholder="Search applications"
+                            value={search}
+                            onChange={setSearch}
+                        />
+                        <Checkbox label="Configured only" isSelected={configuredOnly} onChange={setConfiguredOnly} />
+                        <p className="text-sm text-tertiary">
+                            {configuredCount} of {rows.length}
+                        </p>
+                    </div>
                 </div>
                 {rows.length === 0 ? (
                     <p className="text-sm text-tertiary">

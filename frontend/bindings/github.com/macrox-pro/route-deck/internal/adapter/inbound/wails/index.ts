@@ -10,6 +10,7 @@ import * as ProxiesService from "./proxiesservice.js";
 import * as SettingsService from "./settingsservice.js";
 import * as SetupGuidesService from "./setupguidesservice.js";
 import * as SnapshotService from "./snapshotservice.js";
+import * as UtilityWindowsService from "./utilitywindowsservice.js";
 export {
     ActivityService,
     ApplicationsService,
@@ -19,7 +20,8 @@ export {
     ProxiesService,
     SettingsService,
     SetupGuidesService,
-    SnapshotService
+    SnapshotService,
+    UtilityWindowsService
 };
 
 export {

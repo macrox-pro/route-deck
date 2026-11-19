@@ -142,7 +142,7 @@ func (s *ProxiesService) Save(ctx context.Context, input ProxySaveDTO) (ProxyDTO
 	}, nil
 }
 
-// Delete removes a proxy when unreferenced.
+// Delete removes a proxy when unreferenced after a native confirm (Cancel default).
 func (s *ProxiesService) Delete(ctx context.Context, id string) error {
 	if s == nil || s.Catalog == nil {
 		return fmt.Errorf("proxies service: not configured")
@@ -150,6 +150,20 @@ func (s *ProxiesService) Delete(ctx context.Context, id string) error {
 	proxyID, err := domain.ParseProxyID(id)
 	if err != nil {
 		return fmt.Errorf("proxies delete: %w", err)
+	}
+	name := id
+	if proxies, listErr := s.Catalog.ListProxies(ctx); listErr == nil {
+		for _, proxy := range proxies {
+			if proxy.ID == proxyID {
+				if proxy.Name != "" {
+					name = proxy.Name
+				}
+				break
+			}
+		}
+	}
+	if !confirmDelete("Delete proxy?", fmt.Sprintf("Delete this proxy?\n\n%s", name), "Delete") {
+		return nil
 	}
 	if err := s.Catalog.DeleteProxy(ctx, proxyID); err != nil {
 		s.logger().Warn("proxy delete failed", "component", "wails.proxies", "err", err)

@@ -1,12 +1,16 @@
+import type { ReactNode } from "react";
 import { useEffect, useMemo } from "react";
 import { System } from "@wailsio/runtime";
 import { Button } from "@/components/base/buttons/button";
+import { cx } from "@/utils/cx";
 
 export type DialogFooterProps = {
     cancelLabel?: string;
     saveLabel?: string;
     saveDisabled?: boolean;
     saveLoading?: boolean;
+    /** Optional status line above the buttons (same px-6 rhythm). */
+    leading?: ReactNode;
     onCancel: () => void;
     onSave: () => void;
 };
@@ -20,6 +24,7 @@ export function DialogFooter({
     saveLabel = "Save",
     saveDisabled = false,
     saveLoading = false,
+    leading,
     onCancel,
     onSave,
 }: DialogFooterProps) {
@@ -65,18 +70,26 @@ export function DialogFooter({
     );
 
     return (
-        <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-secondary px-4 py-3">
-            {windowsOrder ? (
-                <>
-                    {save}
-                    {cancel}
-                </>
-            ) : (
-                <>
-                    {cancel}
-                    {save}
-                </>
+        <footer
+            className={cx(
+                "flex shrink-0 flex-col gap-3 border-t border-secondary px-6 py-4",
+                !leading && "items-end",
             )}
+        >
+            {leading ? <div className="w-full text-sm text-tertiary">{leading}</div> : null}
+            <div className="flex w-full items-center justify-end gap-2">
+                {windowsOrder ? (
+                    <>
+                        {save}
+                        {cancel}
+                    </>
+                ) : (
+                    <>
+                        {cancel}
+                        {save}
+                    </>
+                )}
+            </div>
         </footer>
     );
 }

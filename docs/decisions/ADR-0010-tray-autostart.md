@@ -46,3 +46,7 @@ RD-007 CI. Optional multi-state tray icons.
 ## Open decisions (owner)
 
 None.
+
+## Superseded lines (ADR-0020)
+
+- Tray closed list and the label "Stop protection" are superseded by ADR-0020 (Title Case "Stop Protection"; items Setup Guides… and About RouteDeck added). Visibility and Stop enable rules in this ADR remain.

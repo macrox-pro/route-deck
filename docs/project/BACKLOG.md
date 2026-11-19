@@ -15,8 +15,9 @@ Feature-drift rule: `STATUS.md` current task, this index, and `HANDOFF.md` task 
 
 ## Active
 
-_None. Next work needs a new `RD-*` task (TODO → READY)._
+| ID | Status | Goal |
+| --- | --- | --- |
 
 ## Done
 
-Archived one-liners: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-067). Full task files removed from `tasks/`; recover from git if needed.
+Archived one-liners: [`COMPLETED.md`](COMPLETED.md) (RD-000..RD-076). Full task files removed from `tasks/`; recover from git if needed.
